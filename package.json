@@ -1,0 +1,29 @@
+{
+  "name": "club-app",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "pnpm --filter @club/db prisma:generate",
+    "db:migrate": "pnpm --filter @club/db prisma:migrate",
+    "db:rls": "pnpm --filter @club/db rls:apply",
+    "db:studio": "pnpm --filter @club/db prisma:studio",
+    "db:seed": "pnpm --filter @club/db seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.3",
+    "typescript": "^5.6.2",
+    "prettier": "^3.3.3"
+  }
+}

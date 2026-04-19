@@ -1,0 +1,24 @@
+{
+  "name": "@club/workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@club/db": "workspace:*",
+    "bullmq": "^5.21.1",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@club/config": "workspace:*",
+    "@types/node": "^20.16.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}

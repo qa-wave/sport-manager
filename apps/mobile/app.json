@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Club App",
+    "slug": "club-app",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "clubapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clubapp.mobile"
+    },
+    "android": {
+      "package": "com.clubapp.mobile"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

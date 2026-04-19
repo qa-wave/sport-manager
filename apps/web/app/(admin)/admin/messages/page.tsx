@@ -1,0 +1,271 @@
+'use client';
+
+import { useMemo } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import {
+  MessageCircle,
+  Users,
+  Megaphone,
+  Shield,
+  Hash,
+  User,
+} from 'lucide-react';
+import { PageHeader } from '@/components/admin/page-header';
+import { EmptyState } from '@/components/admin/empty-state';
+import { apiFetch, ApiError, type ConversationSummary } from '@/lib/api';
+import { useAuth } from '@/lib/auth-store';
+import { useMemberContext } from '@/lib/member-context';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+/* ── Helpers ───────────────────────────────────────── */
+
+const TYPE_ICON: Record<string, typeof MessageCircle> = {
+  TEAM: Users,
+  COACHES: Shield,
+  PARENTS: Users,
+  DM: User,
+  GROUP: Hash,
+  ANNOUNCEMENT: Megaphone,
+};
+
+const TYPE_COLOR: Record<string, string> = {
+  TEAM: 'bg-emerald-500/15 text-emerald-500',
+  COACHES: 'bg-amber-500/15 text-amber-500',
+  PARENTS: 'bg-blue-500/15 text-blue-500',
+  DM: 'bg-violet-500/15 text-violet-500',
+  GROUP: 'bg-pink-500/15 text-pink-500',
+  ANNOUNCEMENT: 'bg-red-500/15 text-red-500',
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  TEAM: 'Team',
+  COACHES: 'Coaches',
+  PARENTS: 'Parents',
+  DM: 'DM',
+  GROUP: 'Group',
+  ANNOUNCEMENT: 'Announcement',
+};
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = now - then;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function getConversationTitle(
+  conv: ConversationSummary,
+  myMemberId?: string,
+): string {
+  if (conv.title) return conv.title;
+  if (conv.type === 'DM') {
+    const other = conv.participants.find((p) => p.memberId !== myMemberId);
+    return other ? `${other.firstName} ${other.lastName}` : 'Direct Message';
+  }
+  return conv.teamName ?? 'Conversation';
+}
+
+function AvatarGroup({ conv }: { conv: ConversationSummary }) {
+  const Icon = TYPE_ICON[conv.type] ?? MessageCircle;
+  const color = TYPE_COLOR[conv.type] ?? 'bg-secondary text-muted-foreground';
+
+  return (
+    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${color}`}>
+      <Icon className="h-5 w-5" />
+    </div>
+  );
+}
+
+/* ── Page ──────────────────────────────────────────── */
+
+export default function MessagesPage() {
+  const auth = useAuth();
+  const { data: memberCtx } = useMemberContext();
+
+  const { data, isLoading, isError } = useQuery<ConversationSummary[], ApiError>({
+    queryKey: ['conversations', auth.clubId],
+    queryFn: () => apiFetch<ConversationSummary[]>('/conversations'),
+    enabled: auth.isAuthenticated && !!auth.clubId,
+    retry: false,
+  });
+
+  // Split into categories
+  const { channels, dms } = useMemo(() => {
+    if (!data) return { channels: [], dms: [] };
+    const channels: ConversationSummary[] = [];
+    const dms: ConversationSummary[] = [];
+    for (const c of data) {
+      if (c.type === 'DM') {
+        dms.push(c);
+      } else {
+        channels.push(c);
+      }
+    }
+    return { channels, dms };
+  }, [data]);
+
+  return (
+    <>
+      <PageHeader
+        title="Messages"
+        subtitle="Team chats, DMs & announcements"
+      />
+
+      {!auth.isAuthenticated ? (
+        <EmptyState
+          icon={MessageCircle}
+          title="Sign in to see messages"
+          description="Requires authenticated session."
+        />
+      ) : isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex gap-3 rounded-xl border border-border/50 bg-card p-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="p-4 text-sm text-destructive">
+            Failed to load conversations
+          </CardContent>
+        </Card>
+      ) : !data || data.length === 0 ? (
+        <EmptyState
+          icon={MessageCircle}
+          title="No conversations yet"
+          description="Conversations will appear here once team chats are created."
+        />
+      ) : (
+        <div className="space-y-6">
+          {/* Channels / Group Chats */}
+          {channels.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center gap-3">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Channels
+                </h3>
+                <div className="h-px flex-1 bg-border/50" />
+                <span className="text-xs text-muted-foreground/60">{channels.length}</span>
+              </div>
+              <div className="space-y-2">
+                {channels.map((conv) => (
+                  <ConversationRow
+                    key={conv.id}
+                    conv={conv}
+                    myMemberId={memberCtx?.memberId}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Direct Messages */}
+          {dms.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center gap-3">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Direct Messages
+                </h3>
+                <div className="h-px flex-1 bg-border/50" />
+                <span className="text-xs text-muted-foreground/60">{dms.length}</span>
+              </div>
+              <div className="space-y-2">
+                {dms.map((conv) => (
+                  <ConversationRow
+                    key={conv.id}
+                    conv={conv}
+                    myMemberId={memberCtx?.memberId}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ── Conversation Row ──────────────────────────────── */
+
+function ConversationRow({
+  conv,
+  myMemberId,
+}: {
+  conv: ConversationSummary;
+  myMemberId?: string;
+}) {
+  const title = getConversationTitle(conv, myMemberId);
+  const typeLabel = TYPE_LABEL[conv.type] ?? conv.type;
+
+  return (
+    <Link
+      href={`/admin/messages/${conv.id}` as any}
+      className={`group flex items-center gap-3 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/40 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.15)] ${
+        conv.hasUnread
+          ? 'border-primary/30 bg-primary/[0.03]'
+          : 'border-border/50'
+      }`}
+    >
+      <AvatarGroup conv={conv} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-semibold truncate transition-colors group-hover:text-primary ${
+            conv.hasUnread ? 'text-foreground' : 'text-foreground/80'
+          }`}>
+            {title}
+          </span>
+          <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">
+            {typeLabel}
+          </span>
+          {conv.hasUnread && (
+            <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+          )}
+        </div>
+
+        {conv.lastMessage ? (
+          <p className={`mt-0.5 truncate text-xs ${
+            conv.hasUnread
+              ? 'font-medium text-foreground/70'
+              : 'text-muted-foreground'
+          }`}>
+            <span className="font-medium">{conv.lastMessage.senderName.split(' ')[0]}:</span>{' '}
+            {conv.lastMessage.body}
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-muted-foreground/50 italic">
+            No messages yet
+          </p>
+        )}
+      </div>
+
+      <div className="shrink-0 text-right">
+        {conv.lastMessage && (
+          <span className="text-[10px] text-muted-foreground/60">
+            {timeAgo(conv.lastMessage.createdAt)}
+          </span>
+        )}
+        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground/40">
+          <Users className="h-3 w-3" />
+          <span>{conv.participantCount}</span>
+        </div>
+      </div>
+    </Link>
+  );
+}

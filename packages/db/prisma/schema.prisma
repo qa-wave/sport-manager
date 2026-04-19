@@ -1,0 +1,572 @@
+// =============================================================================
+// Club App — Prisma schema (MVP)
+//
+// Design principles:
+//   1. User vs Member separation: User = identity (one per human),
+//      Member = club-scoped profile. A User can be a Member of many Clubs.
+//   2. Roles live on relationships, not users. TeamMembership carries role
+//      per team (multi-role native). ClubRole carries club-wide admin roles.
+//   3. GuardianLink owns permissions. Each guardian gets their own permission
+//      mask -> divorced-parent privacy is a property of the link.
+//   4. Everything is clubId-scoped -> enables Postgres Row-Level Security.
+//   5. Privacy-by-relationship. Payments and Messages are scoped to the
+//      member who created them; no shared "parent bucket".
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// TENANT
+// ============================================================================
+model Club {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  country   String
+  timezone  String   @default("Europe/London")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Per-tenant customization (see /projekty/per-tenant/architektura.md)
+  //   features — Level 1 feature flags: { messages: true, payments: false, ... }
+  //   config   — Level 2 tenant config : { tier, limits, ... }
+  // Validated on write by Zod schemas in packages/contracts/src/features.ts.
+  features Json @default("{}")
+  config   Json @default("{}")
+
+  members           Member[]
+  teams             Team[]
+  events            Event[]
+  fees              Fee[]
+  payments          Payment[]
+  waivers           Waiver[]
+  conversations     Conversation[]
+  notifications     Notification[]
+  trainingTemplates TrainingTemplate[]
+  featureAudit      ClubFeatureAudit[]
+}
+
+// ============================================================================
+// IDENTITY
+// ============================================================================
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  phone           String?   @unique
+  passwordHash    String?
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime?
+  avatarUrl       String?
+  locale          String    @default("en")
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Global SaaS-platform admin. Lives OUTSIDE the club scope — can change
+  // feature flags / tenant config for any club via /platform-admin/* routes.
+  // This is NOT a club-level OWNER; a club owner cannot grant this.
+  isPlatformAdmin Boolean @default(false)
+
+  members         Member[]
+  sessions        Session[]
+  pushTokens      PushToken[]
+  featureAuditLog ClubFeatureAudit[] @relation("AuditChangedBy")
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  refreshHash String
+  userAgent   String?
+  ip          String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String // "ios" | "android" | "web"
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// CLUB MEMBERSHIP
+// A User becomes a Member when they join a Club. All club-scoped data hangs
+// off Member, never User.
+// ============================================================================
+model Member {
+  id           String       @id @default(cuid())
+  userId       String
+  clubId       String
+  status       MemberStatus @default(ACTIVE)
+  isMinor      Boolean      @default(false)
+  jerseyNumber Int?
+  position     String?
+  medicalNotes String? // encrypted at app layer; visible only to COACH/MEDIC
+  joinedAt     DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  teamMemberships            TeamMembership[]
+  clubRoles                  ClubRole[]
+  guardianLinks              GuardianLink[]            @relation("Guardian")
+  childLinks                 GuardianLink[]            @relation("Child")
+  attendances                EventAttendance[]
+  paymentsAsPayer            Payment[]                 @relation("Payer")
+  paymentsOnBehalfOf         Payment[]                 @relation("OnBehalfOf")
+  waiverSignaturesGiven      WaiverSignature[]         @relation("Signer")
+  waiverSignaturesFor        WaiverSignature[]         @relation("Subject")
+  messagesSent               Message[]
+  conversationParticipations ConversationParticipant[]
+  createdEvents              Event[]                   @relation("EventCreator")
+  notifications              Notification[]
+  createdTrainingTemplates   TrainingTemplate[]        @relation("TemplateCreator")
+
+  @@unique([userId, clubId])
+  @@index([clubId])
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+// ============================================================================
+// TEAMS & TEAM-LEVEL ROLES
+// ============================================================================
+model Team {
+  id        String   @id @default(cuid())
+  clubId    String
+  name      String
+  sport     String
+  ageGroup  String?
+  season    String
+  createdAt DateTime @default(now())
+
+  club              Club               @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  memberships       TeamMembership[]
+  events            Event[]
+  conversations     Conversation[]
+  trainingTemplates TrainingTemplate[]
+
+  @@index([clubId])
+}
+
+// THE key RBAC table -- role lives on the relationship.
+model TeamMembership {
+  id       String    @id @default(cuid())
+  memberId String
+  teamId   String
+  role     TeamRole
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, teamId, role])
+  @@index([teamId])
+  @@index([memberId])
+}
+
+enum TeamRole {
+  PLAYER
+  HEAD_COACH
+  ASSISTANT_COACH
+  TEAM_MANAGER
+  MEDIC
+}
+
+// ============================================================================
+// CLUB-LEVEL ROLES
+// ============================================================================
+model ClubRole {
+  id       String       @id @default(cuid())
+  memberId String
+  role     ClubRoleType
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, role])
+}
+
+enum ClubRoleType {
+  OWNER
+  ADMIN
+  FINANCE
+  COMMUNICATIONS
+  FACILITY
+}
+
+// ============================================================================
+// GUARDIAN LINKING (parent <-> child)
+// Each link carries its OWN permission mask -> solves divorced-parent case.
+// ============================================================================
+model GuardianLink {
+  id           String               @id @default(cuid())
+  guardianId   String
+  childId      String
+  relationship GuardianRelationship
+  isPrimary    Boolean              @default(false)
+
+  canViewSchedule Boolean @default(true)
+  canRsvp         Boolean @default(true)
+  canViewPayments Boolean @default(false)
+  canMakePayments Boolean @default(false)
+  canViewMedical  Boolean @default(false)
+  canSignWaivers  Boolean @default(false)
+
+  verifiedAt DateTime? // admin must approve before privileges activate
+  createdAt  DateTime  @default(now())
+
+  guardian Member @relation("Guardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  child    Member @relation("Child", fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, childId])
+  @@index([childId])
+}
+
+enum GuardianRelationship {
+  PARENT
+  STEP_PARENT
+  LEGAL_GUARDIAN
+  OTHER
+}
+
+// ============================================================================
+// EVENTS & RSVP
+// ============================================================================
+model Event {
+  id           String    @id @default(cuid())
+  clubId       String
+  teamId       String? // null = club-wide
+  type         EventType
+  title        String
+  description  String?
+  startsAt     DateTime
+  endsAt       DateTime
+  location     String?
+  locationUrl  String?
+  opponent     String?
+  homeAway     HomeAway?
+  rsvpDeadline DateTime?
+  createdById  String
+  createdAt    DateTime  @default(now())
+
+  // Training template linkage — nullable FK + detached flag.
+  // See /projekty/training-templates/architektura.md for design.
+  templateId String?
+  detached   Boolean @default(false)
+
+  club        Club              @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team        Team?             @relation(fields: [teamId], references: [id])
+  createdBy   Member            @relation("EventCreator", fields: [createdById], references: [id])
+  template    TrainingTemplate? @relation("TemplateEvents", fields: [templateId], references: [id], onDelete: SetNull)
+  attendances EventAttendance[]
+
+  @@unique([templateId, startsAt], name: "template_instance_unique")
+  @@index([clubId, startsAt])
+  @@index([teamId, startsAt])
+  @@index([templateId])
+}
+
+enum EventType {
+  PRACTICE
+  MATCH
+  TOURNAMENT
+  MEETING
+  SOCIAL
+}
+
+enum HomeAway {
+  HOME
+  AWAY
+  NEUTRAL
+}
+
+model EventAttendance {
+  id            String     @id @default(cuid())
+  eventId       String
+  memberId      String // the player being RSVP'd
+  respondedById String // who clicked (may be a guardian)
+  status        RSVPStatus
+  note          String?
+  respondedAt   DateTime   @default(now())
+  attended      Boolean? // coach marks after
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@unique([eventId, memberId])
+  @@index([eventId])
+  @@index([memberId])
+}
+
+enum RSVPStatus {
+  YES
+  NO
+  MAYBE
+  PENDING
+}
+
+// ============================================================================
+// CHAT (privacy-aware)
+// ============================================================================
+model Conversation {
+  id        String           @id @default(cuid())
+  clubId    String
+  teamId    String? // set for team-scoped rooms
+  type      ConversationType
+  title     String?
+  createdAt DateTime         @default(now())
+
+  club         Club                      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team         Team?                     @relation(fields: [teamId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([clubId])
+  @@index([teamId])
+}
+
+enum ConversationType {
+  TEAM
+  COACHES
+  PARENTS
+  DM
+  GROUP
+  ANNOUNCEMENT
+}
+
+// Explicit participant list -> privacy by default. A divorced parent only
+// sees conversations they are a participant of.
+model ConversationParticipant {
+  conversationId String
+  memberId       String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+  muted          Boolean   @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, memberId])
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  attachments    Json?
+  createdAt      DateTime  @default(now())
+  editedAt       DateTime?
+  deletedAt      DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       Member       @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+}
+
+// ============================================================================
+// PAYMENTS & FEES
+// ============================================================================
+model Fee {
+  id          String    @id @default(cuid())
+  clubId      String
+  teamId      String?
+  name        String
+  description String?
+  amountCents Int
+  currency    String    @default("EUR")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+
+  club     Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([clubId])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  clubId                String
+  feeId                 String
+  payerId               String // the Member who paid (adult)
+  onBehalfOfId          String? // the child Member, if applicable
+  amountCents           Int
+  currency              String
+  status                PaymentStatus
+  stripePaymentIntentId String?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  club       Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  fee        Fee     @relation(fields: [feeId], references: [id])
+  payer      Member  @relation("Payer", fields: [payerId], references: [id])
+  onBehalfOf Member? @relation("OnBehalfOf", fields: [onBehalfOfId], references: [id])
+
+  @@index([clubId, status])
+  @@index([payerId])
+  @@index([onBehalfOfId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ============================================================================
+// WAIVERS (GDPR, health, media consent)
+// ============================================================================
+model Waiver {
+  id                String     @id @default(cuid())
+  clubId            String
+  title             String
+  body              String
+  version           Int        @default(1)
+  type              WaiverType
+  requiredForMinors Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+
+  club       Club              @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  signatures WaiverSignature[]
+
+  @@index([clubId])
+}
+
+enum WaiverType {
+  GDPR
+  HEALTH
+  LIABILITY
+  MEDIA_CONSENT
+}
+
+model WaiverSignature {
+  id         String   @id @default(cuid())
+  waiverId   String
+  subjectId  String // the Member the waiver covers
+  signedById String // the Member who clicked sign (guardian for minors)
+  signedAt   DateTime @default(now())
+  ipAddress  String?
+
+  waiver   Waiver @relation(fields: [waiverId], references: [id], onDelete: Cascade)
+  subject  Member @relation("Subject", fields: [subjectId], references: [id])
+  signedBy Member @relation("Signer", fields: [signedById], references: [id])
+
+  @@unique([waiverId, subjectId])
+  @@index([subjectId])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+model Notification {
+  id        String           @id @default(cuid())
+  clubId    String
+  memberId  String // recipient
+  type      NotificationType
+  title     String
+  body      String?
+  link      String? // deep link, e.g. "/admin/events/cxyz"
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, read, createdAt])
+  @@index([clubId])
+}
+
+enum NotificationType {
+  EVENT_CREATED // new event scheduled
+  EVENT_UPDATED // event time/location changed
+  EVENT_CANCELLED // event cancelled
+  RSVP_REMINDER // unanswered RSVP
+  MESSAGE // new chat message
+  PAYMENT_DUE // fee reminder
+  PAYMENT_RECEIVED // payment confirmed
+  ANNOUNCEMENT // club-wide announcement
+  WAIVER_PENDING // waiver needs signing
+  GENERAL // generic
+}
+
+// ============================================================================
+// TRAINING TEMPLATES
+// Repeating training plan (team × days of week × time × location). On
+// create/update, concrete Event rows are materialized up to `validUntil`.
+// See /projekty/training-templates/architektura.md for full spec.
+// ============================================================================
+model TrainingTemplate {
+  id          String    @id @default(cuid())
+  clubId      String
+  teamId      String // MVP: templates are always team-scoped
+  name        String // e.g. "UMT pondělí 17:00" — shown in UI
+  eventType   EventType @default(PRACTICE)
+  daysOfWeek  Int[] // 0=Sunday..6=Saturday (aligned with JS Date.getDay())
+  startTime   String // "HH:mm" in club local time
+  endTime     String // "HH:mm" in club local time
+  location    String?
+  locationUrl String?
+  description String?
+  validFrom   DateTime // first possible date (local midnight)
+  validUntil  DateTime // last possible date (local 23:59, inclusive)
+  active      Boolean   @default(true) // soft-disable without delete
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  club      Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy Member  @relation("TemplateCreator", fields: [createdById], references: [id])
+  events    Event[] @relation("TemplateEvents")
+
+  @@index([clubId])
+  @@index([teamId, active])
+}
+
+// ============================================================================
+// PLATFORM — Feature flag / config audit log
+// Every mutation of Club.features or Club.config via /platform-admin/* lands
+// here. We snapshot both before/after states so rollback is trivial and the
+// "who enabled billing for Spartak on day X?" question is always answerable.
+// Written only by PlatformAdminController; never rewritten in place.
+// ============================================================================
+model ClubFeatureAudit {
+  id              String   @id @default(cuid())
+  clubId          String
+  changedByUserId String // FK to User (must be isPlatformAdmin=true)
+  changedAt       DateTime @default(now())
+  before          Json // Snapshot of { features, config } BEFORE the change.
+  after           Json // Snapshot of { features, config } AFTER the change.
+  reason          String? // Free-text note, e.g. "Enabled payments for trial".
+
+  club      Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  changedBy User @relation("AuditChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([clubId, changedAt])
+}
