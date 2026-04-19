@@ -2,7 +2,9 @@
   "extends": "@club/config/tsconfig.node.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": [],
+    "declaration": true
   },
   "include": ["src/**/*"]
 }

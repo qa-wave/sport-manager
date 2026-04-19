@@ -22,20 +22,11 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const loginRes = await fetch(
-        (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001') +
-          '/auth/login',
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        },
-      );
-      if (!loginRes.ok) {
-        throw new ApiError(loginRes.status, 'Invalid credentials');
-      }
-      const { accessToken } = (await loginRes.json()) as { accessToken: string };
+      const loginRes = await apiFetch<{ accessToken: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const { accessToken } = loginRes;
 
       authStore.setSession(accessToken, null);
       const me = await apiFetch<MeResponse>('/me');
@@ -47,7 +38,7 @@ export default function LoginPage() {
       if (err instanceof ApiError && err.status === 401) {
         setError('Invalid email or password.');
       } else {
-        setError('Something went wrong. Is the API running on :3001?');
+        setError('Something went wrong. Is the API running?');
       }
       authStore.clear();
     } finally {

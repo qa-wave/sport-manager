@@ -37,3 +37,4 @@ packages/db/prisma/migrations/dev.db*
 apps/mobile/.expo/
 apps/mobile/web-build/
 *.orig.*
+.vercel
