@@ -4,13 +4,13 @@
     {
       "name": "api",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@club/api", "run", "dev"],
+      "runtimeArgs": ["--filter", "@branik/api", "run", "dev"],
       "port": 3001
     },
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@club/web", "exec", "next", "dev", "-p", "3100"],
+      "runtimeArgs": ["--filter", "@branik/web", "exec", "next", "dev", "-p", "3100"],
       "port": 3100
     }
   ]

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { ClubRoleType, TeamRole } from '@club/db';
+import type { ClubRoleType, TeamRole } from '@branik/db';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { RbacService } from '../rbac.service';

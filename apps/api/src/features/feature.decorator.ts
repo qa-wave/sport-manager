@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import type { FeatureKey } from '@club/contracts';
+import type { FeatureKey } from '@branik/contracts';
 
 /**
  * Metadata key used by FeaturesGuard.

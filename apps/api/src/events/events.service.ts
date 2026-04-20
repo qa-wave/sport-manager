@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RbacService, type MemberContext } from '../auth/rbac.service';
-import type { CreateEventInput, UpdateEventInput } from '@club/contracts';
+import type { CreateEventInput, UpdateEventInput } from '@branik/contracts';
 
 @Injectable()
 export class EventsService {

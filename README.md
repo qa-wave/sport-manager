@@ -22,7 +22,7 @@ A multi-tenant sports club management platform — TeamSnap / Spond / XPS class.
 ## Layout
 
 ```
-club-app/
+branik/
 ├── apps/
 │   ├── api/          # NestJS — REST + Socket.IO + Prisma + tenant middleware
 │   ├── web/          # Next.js 15 — Admin & Coach console
@@ -76,10 +76,10 @@ pnpm db:seed
 ```bash
 pnpm dev               # turbo run dev — boots api + web + workers in parallel
 # or individually:
-pnpm --filter @club/api    dev    # http://localhost:3001
-pnpm --filter @club/web    dev    # http://localhost:3000
-pnpm --filter @club/mobile dev    # Expo Go QR
-pnpm --filter @club/workers dev
+pnpm --filter @branik/api    dev    # http://localhost:3001
+pnpm --filter @branik/web    dev    # http://localhost:3000
+pnpm --filter @branik/mobile dev    # Expo Go QR
+pnpm --filter @branik/workers dev
 ```
 
 ## Verification — proving the schema solves the hard cases

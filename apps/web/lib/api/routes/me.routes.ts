@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { FeatureFlags, ClubConfig } from '@club/contracts';
+import { FeatureFlags, ClubConfig } from '@branik/contracts';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole, resolveMemberContext } from '../middleware/rbac.middleware';
 import { getFeaturesState } from '../middleware/feature-flag.middleware';

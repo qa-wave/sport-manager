@@ -1,5 +1,5 @@
 {
-  "name": "@club/db",
+  "name": "@branik/db",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -26,7 +26,7 @@
     "@prisma/client": "^5.20.0"
   },
   "devDependencies": {
-    "@club/config": "workspace:*",
+    "@branik/config": "workspace:*",
     "@types/node": "^20.16.10",
     "prisma": "^5.20.0",
     "tsx": "^4.19.1",

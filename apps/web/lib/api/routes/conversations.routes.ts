@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { CreateConversationInput, SendMessageInput } from '@club/contracts';
+import { CreateConversationInput, SendMessageInput } from '@branik/contracts';
 import { prisma } from '../prisma';
 import { requireAuth } from '../middleware/rbac.middleware';
 import type { HonoEnv } from '../../types/hono';

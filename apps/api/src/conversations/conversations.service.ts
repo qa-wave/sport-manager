@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RbacService, type MemberContext } from '../auth/rbac.service';
-import type { CreateConversationInput } from '@club/contracts';
+import type { CreateConversationInput } from '@branik/contracts';
 
 @Injectable()
 export class ConversationsService {

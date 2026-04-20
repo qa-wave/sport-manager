@@ -17,7 +17,7 @@ Zjednodušit stack z dual-server (NestJS :3001 + Next.js :3100) na single-server
 - Zachovat 100 % kompatibility REST API (žádný breaking change pro Expo ani web FE)
 - Přenést veškerou business logiku bez regrese funkcionalnosti
 - Nerozbít paralelní feature vývoj — větve nových features se rebazují na migrační větev, ne obráceně
-- Zachovat typovou bezpečnost (Zod kontrakty z `@club/contracts` zůstávají single source of truth)
+- Zachovat typovou bezpečnost (Zod kontrakty z `@branik/contracts` zůstávají single source of truth)
 - Zachovat multi-tenant RLS přes `prisma.withClub(clubId)`
 
 ---
@@ -53,8 +53,8 @@ apps/web/src/server/
 - Catch-all route: `app/api/[...route]/route.ts` exportuje `{ GET, POST, PUT, PATCH, DELETE }`
 - Hono `app.fetch` → Next.js handler adapter přes `@hono/node-server/adapters/next`
 - Cookies pro refresh token: Hono `setCookie` / `getCookie` z `hono/cookie`
-- Prisma client sdílen z `@club/db` — stejný package, žádná změna
-- Zod validace zůstává identická — importuje z `@club/contracts`
+- Prisma client sdílen z `@branik/db` — stejný package, žádná změna
+- Zod validace zůstává identická — importuje z `@branik/contracts`
 
 ---
 
@@ -79,7 +79,7 @@ apps/web/src/server/
 
 **Rizika Fáze 0:**
 - Next.js 15 App Router a Hono: ověřit kompatibilitu `@hono/node-server` adapteru s Node.js runtime (ne Edge)
-- Sdílení Prisma clienta mezi Server Components a Hono route — singleton pattern v `@club/db`
+- Sdílení Prisma clienta mezi Server Components a Hono route — singleton pattern v `@branik/db`
 
 ---
 
@@ -205,7 +205,7 @@ POST   /api/events/:eventId/detach
 - [ ] Portovat RSVP logiku (`POST /:eventId/rsvp`) — backend-vyvojar
 - [ ] Portovat attendance bulk update — backend-vyvojar
 - [ ] Portovat detach (odpojení instance ze série) — backend-vyvojar
-- [ ] Portovat Zod validace ze stávajících DTO na `@club/contracts` schémata — backend-vyvojar
+- [ ] Portovat Zod validace ze stávajících DTO na `@branik/contracts` schémata — backend-vyvojar
 - [ ] Testovat Calendar view (month grid) — qa-tester
 - [ ] Testovat RSVP roster tabulku v event detailu — qa-tester
 - [ ] Testovat Create Event form — qa-tester
@@ -386,7 +386,7 @@ Každá fáze je izolovaná. Pokud Fáze N selže:
 
 Pokud se po cutoveru projeví kritická chyba:
 1. Okamžitě: přepnout `NEXT_PUBLIC_API_URL` zpět na `:3001`
-2. Restartovat NestJS proces (`pnpm --filter @club/api dev`)
+2. Restartovat NestJS proces (`pnpm --filter @branik/api dev`)
 3. `apps/_legacy/api` je stále dostupný, NestJS kód nebyl smazán
 4. Analyzovat příčinu, opravit v Hono, provést nový cutover
 
@@ -442,6 +442,6 @@ VÝSTUP: projekty/migrace-hono/plan.md
 DALŠÍ KROK: Architekt navrhne detailní technickou architekturu Hono v Next.js — typy Hono Context Variables (user, clubId, member), middleware stacking pořadí, adapter pattern pro sdílení services mezi Hono a Next.js Server Components, Prisma singleton. Výstup: projekty/migrace-hono/architektura.md
 OTÁZKY:
   1. Node.js runtime vs. Edge runtime — potvrdit že catch-all route bude `export const runtime = 'nodejs'`?
-  2. Sdílet Prisma client instanci mezi Hono routes a Next.js Server Components přes singleton v `@club/db`?
+  2. Sdílet Prisma client instanci mezi Hono routes a Next.js Server Components přes singleton v `@branik/db`?
   3. Přejmenovat `apps/api` na `apps/_legacy/api` hned v Fázi 0, nebo až po cutoveru (Fáze 7)?
 ---/HANDOFF---

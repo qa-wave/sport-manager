@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { FeatureKey } from '@club/contracts';
+import type { FeatureKey } from '@branik/contracts';
 import { FEATURE_KEY } from './feature.decorator';
 import { FeaturesService } from './features.service';
 

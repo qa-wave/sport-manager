@@ -1,5 +1,5 @@
 {
-  "name": "@club/api",
+  "name": "@branik/api",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@club/contracts": "workspace:*",
-    "@club/db": "workspace:*",
+    "@branik/contracts": "workspace:*",
+    "@branik/db": "workspace:*",
     "@fastify/cookie": "^9.4.0",
     "@fastify/helmet": "^11.1.1",
     "@nestjs/common": "^10.4.4",
@@ -32,7 +32,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@club/config": "workspace:*",
+    "@branik/config": "workspace:*",
     "@nestjs/cli": "^10.4.5",
     "@nestjs/schematics": "^10.1.4",
     "@types/bcrypt": "^5.0.2",

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ClubRoleType, TeamRole } from '@club/db';
+import type { ClubRoleType, TeamRole } from '@branik/db';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**

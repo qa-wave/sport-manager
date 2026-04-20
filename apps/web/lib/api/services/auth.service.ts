@@ -2,7 +2,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '../prisma';
-import type { LoginInput, RegisterInput } from '@club/contracts';
+import type { LoginInput, RegisterInput } from '@branik/contracts';
 
 const BCRYPT_ROUNDS = 12;
 const ACCESS_TTL_SECONDS = 15 * 60; // 15 minutes

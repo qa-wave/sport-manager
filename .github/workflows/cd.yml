@@ -1,4 +1,4 @@
-# ─── CD Pipeline: Deploy apps/web na Vercel (club-app.qawave.ai) ──────────
+# ─── CD Pipeline: Deploy apps/web na Vercel (branik.qawave.ai) ──────────
 # Pozn.: apps/api a apps/workers se nasazují samostatně (Fly.io / Railway).
 name: CD
 

@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RbacService, type MemberContext } from '../auth/rbac.service';
-import type { Prisma } from '@club/db';
+import type { Prisma } from '@branik/db';
 import type {
   CreateTrainingTemplateInput,
   UpdateTrainingTemplateInput,
-} from '@club/contracts';
+} from '@branik/contracts';
 import {
   eachLocalDay,
   localDayOfWeek,

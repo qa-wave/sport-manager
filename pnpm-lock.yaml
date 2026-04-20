@@ -20,10 +20,10 @@ importers:
 
   apps/api:
     dependencies:
-      '@club/contracts':
+      '@branik/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@club/db':
+      '@branik/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@fastify/cookie':
@@ -75,7 +75,7 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@nestjs/cli':
@@ -99,7 +99,7 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@club/contracts':
+      '@branik/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@tanstack/react-query':
@@ -136,7 +136,7 @@ importers:
         specifier: ~4.1.0
         version: 4.1.0(react-native@0.76.0(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@types/react':
@@ -148,10 +148,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@club/contracts':
+      '@branik/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@club/db':
+      '@branik/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@hono/zod-validator':
@@ -224,7 +224,7 @@ importers:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@types/bcrypt':
@@ -257,7 +257,7 @@ importers:
 
   apps/workers:
     dependencies:
-      '@club/db':
+      '@branik/db':
         specifier: workspace:*
         version: link:../../packages/db
       bullmq:
@@ -267,7 +267,7 @@ importers:
         specifier: ^5.4.1
         version: 5.10.1
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@types/node':
@@ -288,7 +288,7 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../config
       typescript:
@@ -301,7 +301,7 @@ importers:
         specifier: ^5.20.0
         version: 5.22.0(prisma@5.22.0)
     devDependencies:
-      '@club/config':
+      '@branik/config':
         specifier: workspace:*
         version: link:../config
       '@types/node':

@@ -1,5 +1,5 @@
 import { Controller, Get, NotFoundException } from '@nestjs/common';
-import { ClubConfig, FeatureFlags } from '@club/contracts';
+import { ClubConfig, FeatureFlags } from '@branik/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentMember } from '../auth/decorators/current-member.decorator';

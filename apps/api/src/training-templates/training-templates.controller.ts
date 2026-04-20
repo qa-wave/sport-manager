@@ -15,7 +15,7 @@ import type { MemberContext } from '../auth/rbac.service';
 import {
   CreateTrainingTemplateInput,
   UpdateTrainingTemplateInput,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { RequireFeature } from '../features/feature.decorator';
 
 @Controller('training-templates')

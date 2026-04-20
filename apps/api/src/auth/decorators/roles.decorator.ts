@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import type { ClubRoleType, TeamRole } from '@club/db';
+import type { ClubRoleType, TeamRole } from '@branik/db';
 
 export const ROLES_KEY = 'roles';
 

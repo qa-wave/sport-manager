@@ -10,7 +10,7 @@ import {
 import {
   UpdateClubConfigInput,
   UpdateClubFeaturesInput,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { PlatformAdminService } from './platform-admin.service';
 import { PlatformAdminGuard } from './platform-admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';

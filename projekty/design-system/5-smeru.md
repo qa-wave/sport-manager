@@ -1584,7 +1584,7 @@ Každý směr bude implementován jako:
 OD: UI Designér
 KOMU: Frontend vývojář
 STATUS: hotovo
-VÝSTUP: /Users/tm/workspaces/projects/club-app/projekty/design-system/5-smeru.md
+VÝSTUP: /Users/tm/workspaces/projects/branik/projekty/design-system/5-smeru.md
 DALŠÍ KROK: Frontend vývojář implementuje 5 standalone preview stránek pod
   /admin/design-preview/v{1-5}-{slug}/page.tsx.
   Každá stránka je izolovaná (inline styles nebo CSS variables v [data-theme]).

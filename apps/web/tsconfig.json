@@ -1,5 +1,5 @@
 {
-  "extends": "@club/config/tsconfig.nextjs.json",
+  "extends": "@branik/config/tsconfig.nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

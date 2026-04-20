@@ -4,7 +4,7 @@ import {
   CONFIG_DEFAULTS,
   FeatureFlags,
   FEATURE_DEFAULTS,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { prisma } from '../prisma';
 import { cache } from '../redis';
 import type { HonoEnv } from '../../types/hono';

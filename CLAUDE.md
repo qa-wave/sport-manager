@@ -1,4 +1,4 @@
-# club-app — Claude Code Context
+# branik — Claude Code Context
 
 ## Pracovní styl
 
@@ -14,14 +14,14 @@ Aplikace pro řízení sportovních klubů (trénink, eventy, RSVP, komunikace, 
 | Frontend | Next.js 15 App Router + React 19 + TanStack Query + shadcn/ui + Tailwind |
 | DB | PostgreSQL 16 v Dockeru (`club-postgres`) |
 | Cache | Redis 7 v Dockeru (`club-redis`) |
-| Contracts | `@club/contracts` — Zod schémata sdílená FE/BE |
+| Contracts | `@branik/contracts` — Zod schémata sdílená FE/BE |
 | Monorepo | pnpm workspaces + turbo |
 | Theme | light/dark přes `next-themes`, brand modrá ABC Braník `#609bc6` (HSL `205 47% 55%`) |
 
 ## Struktura monorepa
 
 ```
-club-app/
+branik/
 ├── apps/
 │   ├── api/              # NestJS backend (port 3001)
 │   └── web/              # Next.js web (port 3100)
@@ -46,17 +46,17 @@ docker compose up -d
 
 # 2) Migrace + seed (při prvním běhu nebo po změně schematu)
 DATABASE_URL="postgresql://club:club@localhost:5432/club_app?schema=public" \
-  pnpm --filter @club/db exec npx prisma db push
+  pnpm --filter @branik/db exec npx prisma db push
 
 DATABASE_URL="postgresql://club:club@localhost:5432/club_app?schema=public" \
-  pnpm --filter @club/db exec npx tsx prisma/seed.ts
+  pnpm --filter @branik/db exec npx tsx prisma/seed.ts
 
 # 3) Backend (port 3001)
-pnpm --filter @club/api run dev
+pnpm --filter @branik/api run dev
 # nebo v Claude Preview přes .claude/launch.json
 
 # 4) Frontend (port 3100)
-pnpm --filter @club/web run dev
+pnpm --filter @branik/web run dev
 # nebo v Claude Preview přes .claude/launch.json
 ```
 
@@ -164,7 +164,7 @@ Už existuje:
 
 ## Klíčové principy
 
-1. **Type safety od A do Z** — Zod kontrakty v `@club/contracts` jsou single source of truth
+1. **Type safety od A do Z** — Zod kontrakty v `@branik/contracts` jsou single source of truth
 2. **Privacy-by-participation** — Dad nevidí konverzaci Mom+Coach i když jsou v stejném klubu
 3. **Multi-tenant RLS** — každá DB query musí přes `prisma.withClub(clubId)` nebo explicit `clubId` filter
 4. **Handoff mezi agenty** — nikdy bot nevolá bota, PM orchestruje

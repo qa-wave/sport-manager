@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client';
  * Extended PrismaClient with withClub() RLS helper.
  * Mirrors apps/api/src/prisma/prisma.service.ts exactly.
  *
- * Import from @prisma/client directly (not @club/db which exports a
+ * Import from @prisma/client directly (not @branik/db which exports a
  * pre-instantiated singleton without the withClub method).
  */
 class ExtendedPrismaClient extends PrismaClient {

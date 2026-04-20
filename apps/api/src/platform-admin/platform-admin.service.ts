@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@club/db';
+import { Prisma } from '@branik/db';
 import {
   ClubConfig,
   FeatureFlags,
   type UpdateClubConfigInput,
   type UpdateClubFeaturesInput,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { FeaturesService } from '../features/features.service';
 

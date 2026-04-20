@@ -555,7 +555,7 @@ export default function HeritagePage() {
           </span>
           <Ornament color={C.rule} />
           <span style={{ fontFamily: F.condensed, fontSize: 10, letterSpacing: 2, color: C.charcoalLight, textTransform: 'uppercase' }}>
-            Varianta 5 — Heritage · club-app
+            Varianta 5 — Heritage · branik
           </span>
         </footer>
       </div>

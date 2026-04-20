@@ -1,5 +1,5 @@
 {
-  "extends": "@club/config/tsconfig.node.json",
+  "extends": "@branik/config/tsconfig.node.json",
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",

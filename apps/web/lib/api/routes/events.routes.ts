@@ -5,7 +5,7 @@ import {
   UpdateEventInput,
   RsvpInput,
   MarkAttendanceInput,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { prisma } from '../prisma';
 import {
   requireAuth,

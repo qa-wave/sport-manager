@@ -2,7 +2,7 @@
 **Od:** Softwarový architekt
 **Pro:** Frontend vývojář, Backend vývojář, DevOps
 **Datum:** 2026-04-18
-**Projekt:** club-app — konsolidace API do Next.js serveru
+**Projekt:** branik — konsolidace API do Next.js serveru
 
 ---
 
@@ -24,8 +24,8 @@ Next.js Route Handlers jsou dobré pro pár endpointů, ale pro 11 modulů s mid
 - **Catch-all Next.js route** — jeden soubor `app/api/[[...route]]/route.ts` bez boilerplate per-endpoint
 
 ### Co se NEMĚNÍ
-- `@club/contracts` — nula změn, Zod schémata sdílíme beze změny
-- `@club/db` — nula změn, PrismaClient + `withClub()` wrapper zůstávají identické
+- `@branik/contracts` — nula změn, Zod schémata sdílíme beze změny
+- `@branik/db` — nula změn, PrismaClient + `withClub()` wrapper zůstávají identické
 - Databázové schéma, migrace, seed — nedotkneme se
 - REST API URL struktura — `/api/v1/...` zůstane kompatibilní s FE i mobilem
 - Autentizační flow — JWT access token v paměti + httpOnly refresh cookie
@@ -77,7 +77,7 @@ Next.js Route Handlers jsou dobré pro pár endpointů, ale pro 11 modulů s mid
                  │                              │
                  ▼                              ▼
     PostgreSQL 16 (Docker)            Redis 7 (Docker)
-    @club/db / Prisma                 feature flag cache
+    @branik/db / Prisma                 feature flag cache
 ```
 
 ### Typ architektury
@@ -267,7 +267,7 @@ app.onError((err, c) => {
 ### `lib/types/hono.ts`
 
 ```typescript
-import type { AuthenticatedUser } from '@club/contracts'
+import type { AuthenticatedUser } from '@branik/contracts'
 import type { MemberContext } from '@/lib/api/services/rbac.service'
 
 /**
@@ -380,7 +380,7 @@ export const clubContextMiddleware = createMiddleware<HonoEnv>(async (c, next) =
 // lib/api/middleware/rbac.middleware.ts
 import { createMiddleware } from 'hono/factory'
 import { HTTPException } from 'hono/http-exception'
-import type { ClubRoleType, TeamRole } from '@club/db'
+import type { ClubRoleType, TeamRole } from '@branik/db'
 import type { HonoEnv } from '@/lib/types/hono'
 import { rbacService } from '@/lib/api/services/rbac.service'
 
@@ -445,7 +445,7 @@ export const requireRole = (...roles: Array<ClubRoleType | TeamRole>) =>
 // lib/api/middleware/feature-flag.middleware.ts
 import { createMiddleware } from 'hono/factory'
 import { HTTPException } from 'hono/http-exception'
-import type { FeatureKey } from '@club/contracts'
+import type { FeatureKey } from '@branik/contracts'
 import type { HonoEnv } from '@/lib/types/hono'
 import { featuresService } from '@/lib/api/services/features.service'
 
@@ -479,7 +479,7 @@ export const requireFeature = (feature: FeatureKey) =>
 // lib/api/routes/events.routes.ts
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { CreateEventInput, UpdateEventInput, RsvpInput, MarkAttendanceInput } from '@club/contracts'
+import { CreateEventInput, UpdateEventInput, RsvpInput, MarkAttendanceInput } from '@branik/contracts'
 import { requireAuth, requireRole } from '@/lib/api/middleware/rbac.middleware'
 import { eventsService } from '@/lib/api/services/events.service'
 import { trainingTemplatesService } from '@/lib/api/services/training-templates.service'
@@ -593,7 +593,7 @@ eventsRoutes.post(
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { zValidator } from '@hono/zod-validator'
-import { LoginInput, RegisterInput } from '@club/contracts'
+import { LoginInput, RegisterInput } from '@branik/contracts'
 import { authService } from '@/lib/api/services/auth.service'
 import type { HonoEnv } from '@/lib/types/hono'
 
@@ -666,7 +666,7 @@ Next.js v dev módu (hot reload) opakovaně importuje moduly → vznikají stovk
 
 ```typescript
 // lib/api/prisma.ts
-import { PrismaClient, Prisma } from '@club/db'
+import { PrismaClient, Prisma } from '@branik/db'
 
 /**
  * PrismaClient singleton bezpečný pro Next.js hot reload.
@@ -856,7 +856,7 @@ pnpm add hono @hono/zod-validator jose ioredis
    ```
 
 2. Vytvořit prázdný `app/api/[[...route]]/route.ts` s hello world Hono app.
-3. Ověřit, že Next.js builduje (`pnpm --filter @club/web build`).
+3. Ověřit, že Next.js builduje (`pnpm --filter @branik/web build`).
 4. Ověřit, že `GET /api/health` vrací `{ ok: true }` na portu 3000.
 
 **NestJS API stále běží na 3001 — paralelní provoz.**
@@ -948,7 +948,7 @@ export const requirePlatformAdmin = () =>
 
 ### Fáze 7: Cleanup (0,5 dne)
 1. Smazat `apps/api` z monorepa
-2. Odebrat `@club/api` z `pnpm-workspace.yaml`
+2. Odebrat `@branik/api` z `pnpm-workspace.yaml`
 3. Odebrat `apps/api` entry z `turbo.json`
 4. Odebrat port 3001 z `docker-compose.yml` (pokud byl tam expose)
 5. Odebrat `.claude/launch.json` entry pro api
@@ -958,14 +958,14 @@ export const requirePlatformAdmin = () =>
 
 ## 14. Co se mění v packages
 
-### `@club/contracts` — ŽÁDNÁ ZMĚNA
+### `@branik/contracts` — ŽÁDNÁ ZMĚNA
 Zod schémata jsou framework-agnostická. Import beze změny.
 
-### `@club/db` — ŽÁDNÁ ZMĚNA
-PrismaClient + `withClub()` zůstávají. PrismaService wrapper (NestJS Injectable) se nepoužije — místo toho `lib/api/prisma.ts` singleton. Ale samotný `@club/db` package beze změny.
+### `@branik/db` — ŽÁDNÁ ZMĚNA
+PrismaClient + `withClub()` zůstávají. PrismaService wrapper (NestJS Injectable) se nepoužije — místo toho `lib/api/prisma.ts` singleton. Ale samotný `@branik/db` package beze změny.
 
-### `@club/config` — případná malá změna
-Pokud API v `@club/config` exportuje NestJS-specifické věci (ConfigModule, etc.), tyto importy z nové implementace odstraníme. Obecné env proměnné zůstávají.
+### `@branik/config` — případná malá změna
+Pokud API v `@branik/config` exportuje NestJS-specifické věci (ConfigModule, etc.), tyto importy z nové implementace odstraníme. Obecné env proměnné zůstávají.
 
 ---
 
@@ -1050,9 +1050,9 @@ const nextConfig = {
 
 ## 19. Odpovědi na konkrétní otázky ze zadání
 
-**Co se změní v @club/db?** Nic.
+**Co se změní v @branik/db?** Nic.
 
-**Co se změní v @club/contracts?** Nic.
+**Co se změní v @branik/contracts?** Nic.
 
 **Co se stane s apps/api?** Smaže se ve Fázi 7 po úspěšném smoke testu všech endpointů.
 

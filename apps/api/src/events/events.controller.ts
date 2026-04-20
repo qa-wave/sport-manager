@@ -4,7 +4,7 @@ import { TrainingTemplatesService } from '../training-templates/training-templat
 import { CurrentMember } from '../auth/decorators/current-member.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { MemberContext } from '../auth/rbac.service';
-import { CreateEventInput, UpdateEventInput, RsvpInput, MarkAttendanceInput } from '@club/contracts';
+import { CreateEventInput, UpdateEventInput, RsvpInput, MarkAttendanceInput } from '@branik/contracts';
 
 @Controller('events')
 export class EventsController {

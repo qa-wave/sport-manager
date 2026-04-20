@@ -61,7 +61,7 @@ Scope navržen, čekám na potvrzení otevřených otázek od uživatele a násl
 OD: projektovy-manazer
 KOMU: uživatel (potvrzení) → softwarovy-architekt (návrh DB+API)
 STATUS: čekám-na-vstup
-VÝSTUP: /Users/tm/workspaces/projects/club-app/projekty/training-templates/plan.md
+VÝSTUP: /Users/tm/workspaces/projects/branik/projekty/training-templates/plan.md
 DALŠÍ KROK: Uživatel zodpoví 4 otevřené otázky → PM deleguje na softwarovy-architekt návrh Prisma schema pro TrainingTemplate a API kontraktu (generateEvents, detachInstance).
 OTÁZKY: viz sekce "Otevřené otázky pro uživatele" v plánu
 ---/HANDOFF---

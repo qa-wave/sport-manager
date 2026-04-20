@@ -4,7 +4,7 @@ import {
   CONFIG_DEFAULTS,
   FeatureFlags,
   FEATURE_DEFAULTS,
-} from '@club/contracts';
+} from '@branik/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from './redis-cache.service';
 
@@ -16,7 +16,7 @@ import { RedisCacheService } from './redis-cache.service';
  *   - Writes (platform-admin) call `invalidate(clubId)` so the next read
  *     picks up fresh state immediately (no 60s stale-read window).
  *
- * The Zod schemas in `@club/contracts` are the source of truth: we always
+ * The Zod schemas in `@branik/contracts` are the source of truth: we always
  * `.parse(...)` the raw JSON columns so defaults are applied and unknown /
  * bad values can't leak into business logic.
  */

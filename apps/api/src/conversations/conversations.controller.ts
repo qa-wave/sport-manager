@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Param, Query, Body } from '@nestjs/common
 import { ConversationsService } from './conversations.service';
 import { CurrentMember } from '../auth/decorators/current-member.decorator';
 import type { MemberContext } from '../auth/rbac.service';
-import { CreateConversationInput, SendMessageInput } from '@club/contracts';
+import { CreateConversationInput, SendMessageInput } from '@branik/contracts';
 import { RequireFeature } from '../features/feature.decorator';
 
 /**
