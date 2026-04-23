@@ -1,5 +1,5 @@
-# ─── Club-app monorepo · build apps/web ────────────────────────────────────
-# Pro build apps/api nebo apps/workers použij --build-arg APP=api (resp. workers).
+# ─── Club-app monorepo · build apps/web (Next.js + Hono API v jednom) ─────
+# Pro build apps/workers použij --build-arg APP=workers.
 
 # ─── Fáze 1: Instalace závislostí ───────────────────────────────────────────
 FROM node:22-alpine AS deps
@@ -9,7 +9,6 @@ RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
-COPY apps/api/package.json ./apps/api/
 COPY apps/workers/package.json ./apps/workers/
 COPY apps/mobile/package.json ./apps/mobile/
 COPY packages/config/package.json ./packages/config/

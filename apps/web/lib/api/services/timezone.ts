@@ -1,6 +1,5 @@
 /**
  * Timezone helpers for materializing training events.
- * Ported verbatim from apps/api/src/training-templates/timezone.ts.
  *
  * Why not `date-fns-tz`? We rely on native `Intl.DateTimeFormat` which ships
  * with Node 20+, handles IANA zones and DST transitions correctly, and avoids

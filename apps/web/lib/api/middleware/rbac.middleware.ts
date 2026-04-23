@@ -5,7 +5,6 @@ import type { HonoEnv, MemberContext } from '../../types/hono';
 
 // ---------------------------------------------------------------------------
 // resolve() — single Prisma query that builds a full MemberContext.
-// Mirrors RbacService.resolve() from apps/api/src/auth/rbac.service.ts.
 // ---------------------------------------------------------------------------
 export async function resolveMemberContext(
   userId: string,

@@ -5,7 +5,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/dashboard — aggregated feed for the admin dashboard.
- * Ported from apps/api/src/dashboard/dashboard.service.ts.
  */
 const dashboard = new Hono<HonoEnv>();
 

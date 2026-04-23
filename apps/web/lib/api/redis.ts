@@ -2,7 +2,6 @@ import Redis from 'ioredis';
 
 /**
  * Thin Redis wrapper with in-memory fallback.
- * Mirrors apps/api/src/features/redis-cache.service.ts.
  *
  * The API can boot and operate WITHOUT a local Redis. If REDIS_URL is missing
  * or the connection errors, we transparently fall through to a Map-based cache

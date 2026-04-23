@@ -1,5 +1,6 @@
 # ─── CD Pipeline: Deploy apps/web na Vercel (branik.qawave.ai) ──────────
-# Pozn.: apps/api a apps/workers se nasazují samostatně (Fly.io / Railway).
+# Pozn.: apps/workers se nasazují samostatně (Fly.io / Railway).
+# API běží uvnitř apps/web (Hono v Next.js catch-all route).
 name: CD
 
 on:

@@ -35,7 +35,6 @@ export function randomId(length = 32): string {
 
 // ---------------------------------------------------------------------------
 // issueTokens — create session, sign JWT access + refresh tokens.
-// Mirrors AuthService.issueTokens() from apps/api/src/auth/auth.service.ts.
 // ---------------------------------------------------------------------------
 async function issueTokens(
   userId: string,
