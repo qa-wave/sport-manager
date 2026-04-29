@@ -44,9 +44,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: club
-          POSTGRES_PASSWORD: club
-          POSTGRES_DB: club_app_test
+          POSTGRES_USER: branik
+          POSTGRES_PASSWORD: branik
+          POSTGRES_DB: branik_test
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
@@ -62,7 +62,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://club:club@localhost:5432/club_app_test?schema=public
+      DATABASE_URL: postgresql://branik:branik@localhost:5432/branik_test?schema=public
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4

@@ -86,9 +86,9 @@ cp .env.example apps/web/.env  # Next čte .env z root apps/web
 
 # 3) Migrace + seed (při prvním běhu nebo po změně schematu)
 pnpm --filter @branik/db run prisma:generate
-DATABASE_URL="postgresql://club:club@localhost:5432/club_app?schema=public" \
+DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
   pnpm --filter @branik/db exec prisma db push
-DATABASE_URL="postgresql://club:club@localhost:5432/club_app?schema=public" \
+DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
   pnpm --filter @branik/db run seed
 
 # 4) Contracts build (před prvním dev startem — Next čte dist/)

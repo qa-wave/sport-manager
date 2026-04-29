@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { StyleSheet, Text, View } from 'react-native';
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
+const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3100/api/v1';
 
 export default function Index() {
   return (
