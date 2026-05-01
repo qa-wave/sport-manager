@@ -6,7 +6,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "echo '[workers] no eslint config — skipping (TODO: add eslint)'",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },

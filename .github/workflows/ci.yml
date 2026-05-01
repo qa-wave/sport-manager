@@ -30,7 +30,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Prisma generate
-        run: pnpm --filter @branik/db run db:generate || true
+        run: pnpm --filter @branik/db run prisma:generate || true
       - name: Lint
         run: pnpm lint
       - name: Typecheck
@@ -74,7 +74,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @branik/db run db:generate || true
+      - run: pnpm --filter @branik/db run prisma:generate || true
       - run: pnpm test
 
   build:
@@ -91,5 +91,5 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @branik/db run db:generate || true
+      - run: pnpm --filter @branik/db run prisma:generate || true
       - run: pnpm build
