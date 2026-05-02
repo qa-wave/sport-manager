@@ -9,9 +9,6 @@ import { prisma } from '../prisma';
 import { cache } from '../redis';
 import type { HonoEnv } from '../../types/hono';
 
-/**
- * Cache TTL for per-club features/config. Mirrors features.service.ts (60s).
- */
 const CACHE_TTL_SECONDS = 60;
 
 export interface ClubFeatureState {
@@ -21,7 +18,7 @@ export interface ClubFeatureState {
 }
 
 // ---------------------------------------------------------------------------
-// FeaturesService — matches apps/api/src/features/features.service.ts exactly.
+// Features service — reads FeatureFlags + ClubConfig with 60s Redis cache.
 // ---------------------------------------------------------------------------
 function cacheKey(clubId: string): string {
   return `club:${clubId}:features`;

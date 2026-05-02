@@ -14,7 +14,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/platform-admin/clubs — platform-level club management.
- * Ported from apps/api/src/platform-admin/platform-admin.service.ts.
  *
  * Every handler is gated by requirePlatformAdmin().
  * These routes are NOT tenant-scoped — no x-club-id required.

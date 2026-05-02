@@ -3,7 +3,6 @@ import { getFeaturesState } from '../middleware/feature-flag.middleware';
 
 /**
  * Enforces Level-2 tenant config `limits` (tier, maxMembers, maxTeams).
- * Mirrors apps/api/src/clubs/limits.service.ts exactly.
  *
  * Call before inserting new Member / Team rows.
  * Violation throws HTTP 402 Payment Required.

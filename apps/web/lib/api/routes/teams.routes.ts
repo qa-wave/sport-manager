@@ -5,7 +5,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/teams — team list.
- * Ported from apps/api/src/teams/teams.service.ts.
  */
 const teams = new Hono<HonoEnv>();
 

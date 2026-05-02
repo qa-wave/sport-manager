@@ -17,7 +17,6 @@ import type { MemberContext } from '../../types/hono';
 
 /**
  * /v1/events — event CRUD, RSVP, attendance, detach.
- * Ported from apps/api/src/events/events.service.ts + events.controller.ts.
  */
 const events = new Hono<HonoEnv>();
 

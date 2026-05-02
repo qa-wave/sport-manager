@@ -7,7 +7,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/conversations — inbox, chat, create, read.
- * Ported from apps/api/src/conversations/conversations.service.ts.
  *
  * Privacy-by-participation: all queries filter by memberId, so a user
  * cannot read conversations they're not part of.

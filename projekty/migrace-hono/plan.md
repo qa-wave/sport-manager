@@ -1,6 +1,6 @@
 # Projektový plán: Migrace NestJS → Hono (Next.js API Routes)
 **Datum:** 2026-04-18
-**Status:** Nový
+**Status:** ✅ Dokončeno (2026-04-23) — cutover hotov, `apps/api` smazán, web + mobile volají Hono
 **Autor:** Projektový manažer
 
 ---
@@ -413,7 +413,15 @@ Pokud se po cutoveru projeví kritická chyba:
 
 ## Aktuální stav
 
-Fáze plánování dokončena. Čeká na zahájení Fáze 0 (scaffold).
+**✅ Migrace dokončena (2026-04-23).** Všechny fáze 0–7 splněny:
+- Hono app běží v `apps/web/lib/api/` s 11 route groups
+- Middleware stack: auth (jose JWT) → club-context → rbac (requireAuth/requireRole) + feature-flag
+- Prisma singleton s `withClub()` RLS wrapper
+- Redis singleton s in-memory fallback
+- `apps/api` smazán z git historie (rollback dostupný přes `git revert`)
+- `.env.example`, `launch.json`, `Dockerfile`, `CLAUDE.md`, `README.md` aktualizovány
+- Expo stub cílí na `localhost:3000/api/v1` (EXPO_PUBLIC_API_URL)
+- Smoke test: všech 10 endpointů vrací HTTP 200
 
 ## Další kroky
 

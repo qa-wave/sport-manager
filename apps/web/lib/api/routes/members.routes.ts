@@ -5,7 +5,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/members — member list and detail.
- * Ported from apps/api/src/members/members.service.ts.
  */
 const members = new Hono<HonoEnv>();
 

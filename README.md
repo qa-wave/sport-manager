@@ -9,13 +9,13 @@ A multi-tenant sports club management platform — TeamSnap / Spond / XPS class.
 | Layer        | Stack                                                                    |
 | ------------ | ------------------------------------------------------------------------ |
 | Monorepo     | Turborepo + pnpm workspaces                                              |
-| Web          | Next.js 15 (App Router), Tailwind, shadcn/ui, TanStack Query             |
+| Web + API    | Next.js 15 (App Router) + Hono catch-all API — single process            |
+| UI           | Tailwind, shadcn/ui, TanStack Query                                      |
 | Mobile       | Expo SDK 52 (React Native), Expo Router, NativeWind                      |
-| API          | NestJS 10 (Fastify adapter), Passport JWT, Socket.IO                     |
 | Workers      | BullMQ                                                                   |
 | Database     | PostgreSQL 16 + Prisma ORM (Postgres RLS for tenant isolation)           |
-| Cache / Queue| Redis 7                                                                  |
-| Auth         | Self-hosted: NestJS Passport + JWT (access + refresh)                    |
+| Cache / Queue| Redis 7 (in-memory fallback if unavailable)                              |
+| Auth         | jose JWT (access) + httpOnly refresh cookie + bcrypt                     |
 | Payments     | Stripe                                                                   |
 | Storage      | Cloudflare R2 / S3                                                       |
 
@@ -24,8 +24,7 @@ A multi-tenant sports club management platform — TeamSnap / Spond / XPS class.
 ```
 branik/
 ├── apps/
-│   ├── api/          # NestJS — REST + Socket.IO + Prisma + tenant middleware
-│   ├── web/          # Next.js 15 — Admin & Coach console
+│   ├── web/          # Next.js 15 — admin UI + Hono API in app/api/[[...route]]
 │   ├── mobile/       # Expo — Player & Parent
 │   └── workers/      # BullMQ — notifications, bulk comms, reminders
 └── packages/
@@ -74,13 +73,14 @@ pnpm db:seed
 ## Running
 
 ```bash
-pnpm dev               # turbo run dev — boots api + web + workers in parallel
+pnpm dev               # turbo run dev — boots web + workers in parallel
 # or individually:
-pnpm --filter @branik/api    dev    # http://localhost:3001
-pnpm --filter @branik/web    dev    # http://localhost:3000
-pnpm --filter @branik/mobile dev    # Expo Go QR
+pnpm --filter @branik/web     dev    # http://localhost:3100 (serves UI + /api/v1/*)
+pnpm --filter @branik/mobile  dev    # Expo Go QR
 pnpm --filter @branik/workers dev
 ```
+
+The Hono API lives inside `apps/web` at `app/api/[[...route]]/route.ts` — no separate server.
 
 ## Verification — proving the schema solves the hard cases
 
@@ -100,7 +100,7 @@ pnpm db:studio   # opens Prisma Studio at http://localhost:5555
 Health check (public):
 
 ```bash
-curl http://localhost:3001/health
+curl http://localhost:3100/api/v1/health
 # -> {"status":"ok","db":"ok","ts":"..."}
 ```
 
@@ -113,7 +113,7 @@ Once seeded, prove the auth + RBAC stack works end-to-end:
 CLUB_ID="<club id from FC Rivertown>"
 
 # 2. Register a brand-new user
-curl -i -c cookies.txt -X POST http://localhost:3001/auth/register \
+curl -i -c cookies.txt -X POST http://localhost:3100/api/v1/auth/register \
   -H 'content-type: application/json' \
   -d '{"email":"tester@example.com","password":"hunter22!","firstName":"Test","lastName":"User"}'
 # -> 201 Created, body: {"accessToken":"eyJ..."}, Set-Cookie: club_rt=...
@@ -121,11 +121,11 @@ curl -i -c cookies.txt -X POST http://localhost:3001/auth/register \
 ACCESS="<paste accessToken from above>"
 
 # 3. /me works (any authenticated user, no club scope)
-curl http://localhost:3001/me -H "authorization: Bearer $ACCESS"
+curl http://localhost:3100/api/v1/me -H "authorization: Bearer $ACCESS"
 # -> 200 with user identity
 
 # 4. /me/context fails — the new user has no Member row in this club
-curl -i http://localhost:3001/me/context \
+curl -i http://localhost:3100/api/v1/me/context \
   -H "authorization: Bearer $ACCESS" \
   -H "x-club-id: $CLUB_ID"
 # -> 403 Forbidden ("Not a member of this club")
@@ -137,7 +137,7 @@ curl -i http://localhost:3001/me/context \
 
 # 6. After logging in as coach, /me/coach-only returns 200; as a plain
 #    player or parent, it returns 403.
-curl http://localhost:3001/me/coach-only \
+curl http://localhost:3100/api/v1/me/coach-only \
   -H "authorization: Bearer $COACH_ACCESS" \
   -H "x-club-id: $CLUB_ID"
 # -> 200 { ok: true, clubRoles: [...], teamRoles: [{teamId, role:'HEAD_COACH'}, ...] }

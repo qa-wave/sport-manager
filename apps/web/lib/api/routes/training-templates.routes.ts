@@ -16,7 +16,6 @@ import type { HonoEnv, MemberContext } from '../../types/hono';
 
 /**
  * /v1/training-templates — CRUD + event generation.
- * Ported from apps/api/src/training-templates/training-templates.service.ts.
  *
  * Design:
  *   - Generation runs at create/update time (no scheduler).

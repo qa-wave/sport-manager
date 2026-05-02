@@ -5,7 +5,6 @@ import type { HonoEnv } from '../../types/hono';
 
 /**
  * /v1/notifications — list, unread count, mark read.
- * Ported from apps/api/src/notifications/notifications.service.ts.
  */
 const notifications = new Hono<HonoEnv>();
 
