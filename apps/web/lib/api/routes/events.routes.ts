@@ -5,7 +5,7 @@ import {
   UpdateEventInput,
   RsvpInput,
   MarkAttendanceInput,
-} from '@branik/contracts';
+} from '@sport-manager/contracts';
 import { prisma } from '../prisma';
 import {
   requireAuth,

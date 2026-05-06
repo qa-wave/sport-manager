@@ -1,5 +1,5 @@
 {
-  "name": "@branik/contracts",
+  "name": "@sport-manager/contracts",
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
@@ -24,7 +24,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@branik/config": "workspace:*",
+    "@sport-manager/config": "workspace:*",
     "typescript": "^5.6.2"
   }
 }

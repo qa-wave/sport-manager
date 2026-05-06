@@ -1,7 +1,7 @@
 /**
  * Frontend feature-flag hook.
  *
- * Mirrors `@branik/contracts` FeatureFlags — every key defined there MUST have
+ * Mirrors `@sport-manager/contracts` FeatureFlags — every key defined there MUST have
  * a default value here. When the API hasn't loaded yet (or the user is
  * signed out) we fall through to these defaults, matching what the Zod
  * schema would produce server-side.
@@ -16,7 +16,7 @@ import { useMe } from './use-me';
 /**
  * Known feature keys. Keep in sync with `FeatureFlags` in
  * `packages/contracts/src/features.ts`. We duplicate the type here because
- * Next.js `apps/web` doesn't import from `@branik/contracts` today; swap this
+ * Next.js `apps/web` doesn't import from `@sport-manager/contracts` today; swap this
  * for a direct import once the contracts package is on the FE tsconfig.
  */
 export type FeatureKey =
@@ -29,7 +29,7 @@ export type FeatureKey =
   | 'gallery'
   | 'springCup';
 
-/** Matches `FEATURE_DEFAULTS` in `@branik/contracts`. */
+/** Matches `FEATURE_DEFAULTS` in `@sport-manager/contracts`. */
 export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   messages: true,
   trainingTemplates: true,

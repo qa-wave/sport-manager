@@ -1,30 +1,30 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: branik-postgres
+    container_name: sport-manager-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: branik
-      POSTGRES_PASSWORD: branik
-      POSTGRES_DB: branik
+      POSTGRES_USER: sport_manager
+      POSTGRES_PASSWORD: sport_manager
+      POSTGRES_DB: sport_manager
     ports:
       - "5432:5432"
     volumes:
-      - branik_pgdata:/var/lib/postgresql/data
+      - sport_manager_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U branik -d branik"]
+      test: ["CMD-SHELL", "pg_isready -U sport_manager -d sport_manager"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: branik-redis
+    container_name: sport-manager-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - branik_redisdata:/data
+      - sport_manager_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,5 +32,5 @@ services:
       retries: 5
 
 volumes:
-  branik_pgdata:
-  branik_redisdata:
+  sport_manager_pgdata:
+  sport_manager_redisdata:

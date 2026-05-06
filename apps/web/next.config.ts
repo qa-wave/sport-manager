@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 const config: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@branik/contracts', '@branik/db'],
+  transpilePackages: ['@sport-manager/contracts', '@sport-manager/db'],
   typedRoutes: true,
   // Pin workspace root to the monorepo root so Next doesn't walk up to
   // /Users/tm/package-lock.json and misdetect the workspace.

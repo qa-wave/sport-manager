@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@branik/web", "exec", "next", "dev", "-p", "3100"],
+      "runtimeArgs": ["--filter", "@sport-manager/web", "exec", "next", "dev", "-p", "3100"],
       "port": 3100
     }
   ]

@@ -310,7 +310,7 @@ Rozšířit `packages/db/prisma/seed.ts`:
 ## Další kroky pro backend vývojáře
 1. Přidat schema change + `pnpm prisma db push` + `pnpm prisma generate`.
 2. Přidat dep `date-fns-tz` do `apps/api/package.json`.
-3. Doplnit Zod kontrakty do `@branik/contracts` (+ export `CreateTrainingTemplateInput`, `UpdateTrainingTemplateInput`, `TrainingTemplateListItem`).
+3. Doplnit Zod kontrakty do `@sport-manager/contracts` (+ export `CreateTrainingTemplateInput`, `UpdateTrainingTemplateInput`, `TrainingTemplateListItem`).
 4. Implementovat `TrainingTemplatesService` s metodami `create`, `update`, `delete`, `list`, `get`, `regenerate`, `generateEvents(templateId, scope, tx)`.
 5. Implementovat `TrainingTemplatesController` dle tabulky endpointů.
 6. Doplnit `POST /events/:id/detach` do `EventsController` + implicit detach při `PATCH /events/:id` pokud se změní `startsAt`/`endsAt`.
@@ -321,7 +321,7 @@ Rozšířit `packages/db/prisma/seed.ts`:
 OD: softwarovy-architekt
 KOMU: backend-vyvojar
 STATUS: hotovo
-VÝSTUP: /Users/tm/workspaces/projects/branik/projekty/training-templates/architektura.md
-DALŠÍ KROK: Backend vývojář implementuje Prisma schema change (TrainingTemplate + Event.templateId/detached), TrainingTemplatesService vč. generátoru (date-fns-tz, idempotent insert přes @@unique([templateId, startsAt]) + skipDuplicates), controller dle tabulky, Zod kontrakty v @branik/contracts, detach endpoint v EventsController (+ implicit detach při změně času), seed 2 ukázkových šablon pro ABC Braník.
+VÝSTUP: /Users/tm/workspaces/projects/sport-manager/projekty/training-templates/architektura.md
+DALŠÍ KROK: Backend vývojář implementuje Prisma schema change (TrainingTemplate + Event.templateId/detached), TrainingTemplatesService vč. generátoru (date-fns-tz, idempotent insert přes @@unique([templateId, startsAt]) + skipDuplicates), controller dle tabulky, Zod kontrakty v @sport-manager/contracts, detach endpoint v EventsController (+ implicit detach při změně času), seed 2 ukázkových šablon pro ABC Braník.
 OTÁZKY: Žádné blokační. Timezone závislost date-fns-tz (~10 kB) k přidání. Svátky vědomě mimo MVP.
 ---/HANDOFF---

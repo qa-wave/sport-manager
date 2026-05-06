@@ -5,7 +5,7 @@ import {
   FeatureFlags,
   UpdateClubConfigInput,
   UpdateClubFeaturesInput,
-} from '@branik/contracts';
+} from '@sport-manager/contracts';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { requirePlatformAdmin } from '../middleware/rbac.middleware';

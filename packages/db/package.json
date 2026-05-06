@@ -1,5 +1,5 @@
 {
-  "name": "@branik/db",
+  "name": "@sport-manager/db",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -26,7 +26,7 @@
     "@prisma/client": "^5.20.0"
   },
   "devDependencies": {
-    "@branik/config": "workspace:*",
+    "@sport-manager/config": "workspace:*",
     "@types/node": "^20.16.10",
     "prisma": "^5.20.0",
     "tsx": "^4.19.1",

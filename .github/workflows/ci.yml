@@ -30,7 +30,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Prisma generate
-        run: pnpm --filter @branik/db run prisma:generate || true
+        run: pnpm --filter @sport-manager/db run prisma:generate || true
       - name: Lint
         run: pnpm lint
       - name: Typecheck
@@ -44,9 +44,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: branik
-          POSTGRES_PASSWORD: branik
-          POSTGRES_DB: branik_test
+          POSTGRES_USER: sport_manager
+          POSTGRES_PASSWORD: sport_manager
+          POSTGRES_DB: sport_manager_test
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
@@ -62,7 +62,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://branik:branik@localhost:5432/branik_test?schema=public
+      DATABASE_URL: postgresql://sport_manager:sport_manager@localhost:5432/sport_manager_test?schema=public
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +74,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @branik/db run prisma:generate || true
+      - run: pnpm --filter @sport-manager/db run prisma:generate || true
       - run: pnpm test
 
   build:
@@ -91,5 +91,5 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @branik/db run prisma:generate || true
+      - run: pnpm --filter @sport-manager/db run prisma:generate || true
       - run: pnpm build

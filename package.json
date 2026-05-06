@@ -1,5 +1,5 @@
 {
-  "name": "branik",
+  "name": "sport-manager",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@9.12.0",
@@ -13,11 +13,11 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "db:generate": "pnpm --filter @branik/db prisma:generate",
-    "db:migrate": "pnpm --filter @branik/db prisma:migrate",
-    "db:rls": "pnpm --filter @branik/db rls:apply",
-    "db:studio": "pnpm --filter @branik/db prisma:studio",
-    "db:seed": "pnpm --filter @branik/db seed",
+    "db:generate": "pnpm --filter @sport-manager/db prisma:generate",
+    "db:migrate": "pnpm --filter @sport-manager/db prisma:migrate",
+    "db:rls": "pnpm --filter @sport-manager/db rls:apply",
+    "db:studio": "pnpm --filter @sport-manager/db prisma:studio",
+    "db:seed": "pnpm --filter @sport-manager/db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },

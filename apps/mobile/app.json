@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Club App",
-    "slug": "branik",
+    "name": "Sport manager",
+    "slug": "sport-manager",
     "version": "0.0.1",
     "orientation": "portrait",
-    "scheme": "clubapp",
+    "scheme": "sportmanager",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clubapp.mobile"
+      "bundleIdentifier": "ai.qawave.sportmanager"
     },
     "android": {
-      "package": "com.clubapp.mobile"
+      "package": "ai.qawave.sportmanager"
     },
     "plugins": ["expo-router"],
     "experiments": {
