@@ -29,7 +29,11 @@ export default function TeamsPage() {
       <PageHeader
         title="Teams"
         subtitle="Rosters, coaching staff, and team-scoped conversations."
-        actions={<Button size="sm">+ New team</Button>}
+        actions={
+          <Button size="sm" asChild>
+            <Link href="/admin/teams/new">+ Novy tym</Link>
+          </Button>
+        }
       />
 
       {!auth.isAuthenticated ? (
@@ -85,7 +89,12 @@ export default function TeamsPage() {
               {data.map((team) => (
                 <TableRow key={team.id} className="group border-border/30 transition-colors hover:bg-primary/[0.03]">
                   <TableCell>
-                    <div className="font-semibold transition-colors group-hover:text-primary">{team.name}</div>
+                    <Link
+                      href={`/admin/teams/${team.id}` as any}
+                      className="font-semibold transition-colors group-hover:text-primary hover:underline"
+                    >
+                      {team.name}
+                    </Link>
                     <div className="text-xs text-muted-foreground">{team.sport}</div>
                   </TableCell>
                   <TableCell>

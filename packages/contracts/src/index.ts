@@ -41,6 +41,15 @@ export type TeamRole = z.infer<typeof TeamRole>;
 export const ClubRoleType = z.enum(['OWNER', 'ADMIN', 'FINANCE', 'COMMUNICATIONS', 'FACILITY']);
 export type ClubRoleType = z.infer<typeof ClubRoleType>;
 
+// ---------- Club onboarding ----------
+export const CreateClubInput = z.object({
+  name: z.string().min(2).max(120),
+  sport: z.string().min(1).max(60).default('Fotbal'),
+  country: z.string().length(2).default('CZ'),
+  timezone: z.string().default('Europe/Prague'),
+});
+export type CreateClubInput = z.infer<typeof CreateClubInput>;
+
 // ---------- Events / RSVP ----------
 export const EventType = z.enum(['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL']);
 export type EventType = z.infer<typeof EventType>;

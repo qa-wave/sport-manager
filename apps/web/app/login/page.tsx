@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { Trophy } from 'lucide-react';
 import { apiFetch, ApiError, type MeResponse } from '@/lib/api';
 import { authStore } from '@/lib/auth-store';
@@ -33,6 +34,11 @@ export default function LoginPage() {
       const firstClubId = me.members[0]?.clubId ?? null;
       authStore.setSession(accessToken, firstClubId);
 
+      if (!firstClubId) {
+        // User has no club — redirect to onboarding
+        router.push('/signup');
+        return;
+      }
       router.push('/admin');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -60,7 +66,7 @@ export default function LoginPage() {
             <Trophy className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <div className="text-base font-bold tracking-tight">Club App</div>
+            <div className="text-base font-bold tracking-tight">Sport Manager</div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Admin Console
             </div>
@@ -104,15 +110,11 @@ export default function LoginPage() {
                 {busy ? 'Signing in...' : 'Sign in'}
               </Button>
 
-              <div className="pt-2 text-[11px] text-muted-foreground">
-                Seeded accounts (dev):{' '}
-                <code className="rounded bg-secondary px-1 py-0.5">admin@example.com</code>
-                {' · '}
-                <code className="rounded bg-secondary px-1 py-0.5">coach@example.com</code>
-                {' · '}
-                <code className="rounded bg-secondary px-1 py-0.5">mom@example.com</code>
-                {' — all password '}
-                <code className="rounded bg-secondary px-1 py-0.5">password</code>
+              <div className="pt-2 text-center text-xs text-muted-foreground">
+                Nemáš účet?{' '}
+                <Link href="/signup" className="text-primary hover:underline">
+                  Zaregistruj se
+                </Link>
               </div>
             </form>
           </CardContent>

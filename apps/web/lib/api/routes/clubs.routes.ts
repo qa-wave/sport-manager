@@ -1,23 +1,99 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { ClubConfig, ClubTheme, UpdateClubThemeInput } from '@sport-manager/contracts';
+import { ClubConfig, ClubTheme, CreateClubInput, UpdateClubThemeInput } from '@sport-manager/contracts';
 import type { Prisma } from '@prisma/client';
+import { ClubRoleType } from '@prisma/client';
 import { prisma } from '../prisma';
-import { requireRole } from '../middleware/rbac.middleware';
+import { requireAuth, requireRole } from '../middleware/rbac.middleware';
 import { invalidateFeatureCache } from '../middleware/feature-flag.middleware';
 import type { HonoEnv } from '../../types/hono';
 
 /**
- * /v1/clubs — club-scoped management endpoints.
+ * /v1/clubs — club management endpoints.
  *
- * Requires x-club-id header (club context middleware).
- * Routes are role-gated per handler.
+ * POST / is auth-only (no club context needed — creating a new club).
+ * Other routes require x-club-id header and are role-gated.
  */
 const clubs = new Hono<HonoEnv>();
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
+
+/**
+ * POST /v1/clubs
+ *
+ * Create a new club. The authenticated user becomes the OWNER.
+ * Used during self-service signup / onboarding.
+ */
+clubs.post(
+  '/',
+  requireAuth(),
+  zValidator('json', CreateClubInput),
+  async (c) => {
+    const user = c.get('user')!;
+    const input = c.req.valid('json');
+
+    // Generate slug from name
+    const slug = input.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // Check slug uniqueness
+    const existing = await prisma.club.findUnique({ where: { slug } });
+    if (existing) {
+      throw Object.assign(new Error('Club with this name already exists'), {
+        statusCode: 409,
+        code: 'EMAIL_CONFLICT',
+      });
+    }
+
+    const club = await prisma.$transaction(async (tx) => {
+      const newClub = await tx.club.create({
+        data: {
+          slug,
+          name: input.name,
+          country: input.country,
+          timezone: input.timezone,
+          features: {},
+          config: asJson({
+            tier: 'free',
+            limits: { maxMembers: 50, maxTeams: 3 },
+            theme: { primary: '#609bc6', secondary: '#f59e0b', tertiary: '#0f172a', styleId: 1 },
+          }),
+        },
+      });
+
+      // Create member + OWNER role
+      const member = await tx.member.create({
+        data: { userId: user.id, clubId: newClub.id },
+      });
+
+      await tx.clubRole.create({
+        data: { memberId: member.id, role: ClubRoleType.OWNER },
+      });
+
+      // Create default team if sport is provided
+      if (input.sport) {
+        await tx.team.create({
+          data: {
+            clubId: newClub.id,
+            name: `${input.name} — hlavní tým`,
+            sport: input.sport,
+            season: '2025/26',
+          },
+        });
+      }
+
+      return newClub;
+    });
+
+    return c.json({ club: { id: club.id, slug: club.slug, name: club.name } }, 201);
+  },
+);
 
 /**
  * PATCH /v1/clubs/theme

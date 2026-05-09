@@ -9,7 +9,9 @@ import {
   UserCircle,
   CreditCard,
   MessageCircle,
+  Bell,
   Settings,
+  Repeat,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -44,11 +46,26 @@ export const ADMIN_NAV: NavItem[] = [
     feature: 'calendar',
   },
   {
+    href: '/admin/training-templates',
+    label: 'Šablony',
+    description: 'Opakující se tréninky',
+    icon: Repeat,
+    access: 'admin_or_coach',
+    feature: 'trainingTemplates',
+  },
+  {
     href: '/admin/messages',
     label: 'Messages',
     description: 'Team chat & DMs',
     icon: MessageCircle,
     feature: 'messages',
+  },
+  {
+    href: '/admin/notifications',
+    label: 'Oznámení',
+    description: 'Vaše oznámení',
+    icon: Bell,
+    feature: 'notifications',
   },
   {
     href: '/admin/members',

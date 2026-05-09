@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Clock, MapPin, User, ExternalLink } from 'lucide-react';
+import { Check, CheckCheck, ChevronLeft, Clock, MapPin, User, ExternalLink, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
 import { apiFetch, ApiError, type EventDetail } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +37,13 @@ export default function EventDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const auth = useAuth();
   const queryClient = useQueryClient();
+  const { data: memberCtx } = useMemberContext();
+  const [bulkAttendance, setBulkAttendance] = useState<Record<string, boolean>>({});
+  const isCoachOrAdmin = memberCtx && (
+    memberCtx.clubRoles.includes('OWNER') ||
+    memberCtx.clubRoles.includes('ADMIN') ||
+    memberCtx.teamRoles.some(tr => ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(tr.role))
+  );
 
   const { data: event, isLoading, isError } = useQuery<EventDetail, ApiError>({
     queryKey: ['event', eventId, auth.clubId],
@@ -189,10 +198,75 @@ export default function EventDetailPage() {
 
       {/* Roster table */}
       <Card className="overflow-hidden gradient-card">
-        <CardHeader className="pb-2">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm">
             Attendance Roster ({event.attendees.length} members)
           </CardTitle>
+          <div className="flex gap-2">
+            {/* Bulk RSVP — for coaches, future events */}
+            {isCoachOrAdmin && !past && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={rsvpMutation.isPending}
+                  onClick={() => {
+                    const pending = event.attendees.filter(a => a.status === 'PENDING');
+                    if (pending.length === 0) return;
+                    Promise.all(pending.map(a =>
+                      apiFetch(`/events/${eventId}/rsvp`, {
+                        method: 'POST',
+                        body: JSON.stringify({ memberId: a.memberId, eventId, status: 'YES' }),
+                      })
+                    )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
+                  }}
+                >
+                  <CheckCheck className="mr-1 h-3 w-3" />
+                  Vše ANO
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={rsvpMutation.isPending}
+                  onClick={() => {
+                    const pending = event.attendees.filter(a => a.status === 'PENDING');
+                    if (pending.length === 0) return;
+                    Promise.all(pending.map(a =>
+                      apiFetch(`/events/${eventId}/rsvp`, {
+                        method: 'POST',
+                        body: JSON.stringify({ memberId: a.memberId, eventId, status: 'NO' }),
+                      })
+                    )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
+                  }}
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  Vše NE
+                </Button>
+              </>
+            )}
+            {/* Bulk attendance — for coaches, past events */}
+            {isCoachOrAdmin && past && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={attendanceMutation.isPending || Object.keys(bulkAttendance).length === 0}
+                onClick={() => {
+                  const entries = Object.entries(bulkAttendance).map(([memberId, attended]) => ({ memberId, attended }));
+                  if (entries.length > 0) {
+                    attendanceMutation.mutate(entries, {
+                      onSuccess: () => setBulkAttendance({}),
+                    });
+                  }
+                }}
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Uložit docházku ({Object.keys(bulkAttendance).length})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <Table>
           <TableHeader>
@@ -226,20 +300,33 @@ export default function EventDetailPage() {
                 </TableCell>
                 {past && (
                   <TableCell>
-                    {a.attended != null ? (
+                    {a.attended != null && !(a.memberId in bulkAttendance) ? (
                       <Badge variant={a.attended ? 'success' : 'danger'} className="text-[10px]">
-                        {a.attended ? 'Yes' : 'No'}
+                        {a.attended ? 'Ano' : 'Ne'}
                       </Badge>
                     ) : (
-                      <button
-                        className="text-xs text-primary hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          attendanceMutation.mutate([{ memberId: a.memberId, attended: true }]);
-                        }}
-                      >
-                        Mark present
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                            bulkAttendance[a.memberId] === true
+                              ? 'bg-emerald-500/20 text-emerald-500'
+                              : 'text-muted-foreground hover:text-emerald-500'
+                          }`}
+                          onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: true }))}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                            bulkAttendance[a.memberId] === false
+                              ? 'bg-red-500/20 text-red-500'
+                              : 'text-muted-foreground hover:text-red-500'
+                          }`}
+                          onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: false }))}
+                        >
+                          ✗
+                        </button>
+                      </div>
                     )}
                   </TableCell>
                 )}

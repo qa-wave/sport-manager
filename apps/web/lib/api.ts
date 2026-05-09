@@ -121,6 +121,30 @@ export type TeamSummary = {
   }>;
 };
 
+export type TeamRosterEntry = {
+  membershipId: string;
+  memberId: string;
+  role: 'PLAYER' | 'HEAD_COACH' | 'ASSISTANT_COACH' | 'TEAM_MANAGER' | 'MEDIC';
+  joinedAt: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+  jerseyNumber: number | null;
+  position: string | null;
+  status: string;
+};
+
+export type TeamDetail = {
+  id: string;
+  name: string;
+  sport: string;
+  ageGroup: string | null;
+  season: string;
+  memberCount: number;
+  roster: TeamRosterEntry[];
+};
+
 export type MemberSummary = {
   id: string;
   firstName: string;
@@ -273,6 +297,38 @@ export type ConversationDetail = {
   messages: MessageResponse[];
   hasMore: boolean;
   nextCursor: string | null;
+};
+
+// ---------- Training Templates ----------
+export type TrainingTemplateListItem = {
+  id: string;
+  name: string;
+  teamId: string;
+  teamName: string;
+  eventType: string;
+  daysOfWeek: number[];
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  validFrom: string;
+  validUntil: string;
+  active: boolean;
+  generatedEventsCount: number;
+  upcomingEventsCount: number;
+};
+
+export type TrainingTemplateDetail = TrainingTemplateListItem & {
+  description: string | null;
+  locationUrl: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  stats: {
+    totalEvents: number;
+    detachedEvents: number;
+    pastEvents: number;
+    upcomingEvents: number;
+  };
 };
 
 // ---------- Members ----------
