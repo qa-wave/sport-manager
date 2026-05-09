@@ -43,7 +43,7 @@ export type FeatureFlags = z.infer<typeof FeatureFlags>;
 export type FeatureKey = keyof z.infer<typeof FeatureFlags>;
 
 // ---------- Tenant config (Level 2, minimal MVP) ----------
-export const ClubTier = z.enum(['basic', 'pro', 'enterprise']);
+export const ClubTier = z.enum(['free', 'basic', 'pro', 'enterprise']);
 export type ClubTier = z.infer<typeof ClubTier>;
 
 export const ClubLimits = z
@@ -54,11 +54,20 @@ export const ClubLimits = z
   .default({});
 export type ClubLimits = z.infer<typeof ClubLimits>;
 
+// ---------- Club theme (Phase C) ----------
+export const ClubTheme = z.object({
+  primary: z.string().regex(/^#[0-9a-f]{6}$/i).default('#609bc6'),
+  secondary: z.string().regex(/^#[0-9a-f]{6}$/i).default('#f59e0b'),
+  tertiary: z.string().regex(/^#[0-9a-f]{6}$/i).default('#0f172a'),
+  styleId: z.number().int().min(1).max(10).default(1),
+});
+export type ClubTheme = z.infer<typeof ClubTheme>;
+
 export const ClubConfig = z
   .object({
     tier: ClubTier.default('basic'),
     limits: ClubLimits,
-    // labels / branding are deferred — architektura.md Level 2 says MVP skips them.
+    theme: ClubTheme.default({}),
   })
   .passthrough();
 export type ClubConfig = z.infer<typeof ClubConfig>;
@@ -75,6 +84,11 @@ export const UpdateClubConfigInput = z.object({
   reason: z.string().max(500).optional(),
 });
 export type UpdateClubConfigInput = z.infer<typeof UpdateClubConfigInput>;
+
+export const UpdateClubThemeInput = z.object({
+  theme: ClubTheme,
+});
+export type UpdateClubThemeInput = z.infer<typeof UpdateClubThemeInput>;
 
 // ---------- Defaults (used by both API and FE) ----------
 /**

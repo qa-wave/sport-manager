@@ -17,6 +17,7 @@ import { notificationsRoutes } from './routes/notifications.routes';
 import { dashboardRoutes } from './routes/dashboard.routes';
 import { trainingTemplatesRoutes } from './routes/training-templates.routes';
 import { platformAdminRoutes } from './routes/platform-admin.routes';
+import { clubsRoutes } from './routes/clubs.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -82,6 +83,7 @@ app.route('/v1/notifications', notificationsRoutes);
 app.route('/v1/dashboard', dashboardRoutes);
 app.route('/v1/training-templates', trainingTemplatesRoutes);
 app.route('/v1/platform-admin/clubs', platformAdminRoutes);
+app.route('/v1/clubs', clubsRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

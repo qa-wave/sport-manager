@@ -71,9 +71,17 @@ export type MeClubFeatures = {
   [key: string]: boolean | unknown;
 };
 
+export type MeClubTheme = {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  styleId: number;
+};
+
 export type MeClubConfig = {
   tier: 'basic' | 'pro' | 'enterprise';
   limits: { maxMembers: number; maxTeams: number };
+  theme: MeClubTheme;
   [key: string]: unknown;
 };
 
