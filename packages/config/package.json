@@ -1,5 +1,5 @@
 {
-  "name": "@branik/config",
+  "name": "@sport-manager/config",
   "version": "0.0.0",
   "private": true,
   "main": "index.js",

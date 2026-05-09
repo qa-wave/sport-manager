@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 /**
  * Extended PrismaClient with withClub() RLS helper.
  *
- * Import from @prisma/client directly (not @branik/db which exports a
+ * Import from @prisma/client directly (not @sport-manager/db which exports a
  * pre-instantiated singleton without the withClub method).
  */
 class ExtendedPrismaClient extends PrismaClient {

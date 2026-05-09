@@ -1,10 +1,16 @@
-# branik — Claude Code Context
+# Sport manager — Claude Code Context
 
 ## Pracovní styl
 
 Při plnění úkolů postupuj přímo k řešení. Pokud potřebuješ použít nástroj, analyzovat data nebo provést výpočet, udělej to rovnou. Neptej se mě na povolení, pokud to není kriticky nutné pro bezpečnost.
 
-Aplikace pro řízení sportovních klubů (trénink, eventy, RSVP, komunikace, platby). Stavěno pro ABC Braník + TJ Spartak Kbely, potenciálně **self-hostable white-label** pro libovolný klub.
+## Co je Sport manager
+
+**Veřejný multi-tenant SaaS pro sportovní kluby** — kalendář, RSVP, attendance, komunikace, platby, tréninkové šablony. Hostuju já (`sport-manager.qawave.ai`), kdokoli si může self-service založit klub. Volitelně lze appku embednout do klubového webu (iframe / widget).
+
+**Killer feature:** AI integrace s ligovými API — onboarding wizard najde tým ve FAČR / ČFbU / ČSLH a stáhne kompletní rozpis (minulé i budoucí zápasy).
+
+**Aktuální fáze:** přechod z původního konceptu (white-label self-hosted pro ABC Braník + Spartak Kbely, kódový název `branik`) na public SaaS. Renaming + reseed + theming probíhá.
 
 ## Stack
 
@@ -15,34 +21,32 @@ Aplikace pro řízení sportovních klubů (trénink, eventy, RSVP, komunikace, 
 | Auth | JWT access (jose) + httpOnly refresh cookie (hono/cookie) + bcrypt |
 | DB | PostgreSQL 16 v Dockeru |
 | Cache | Redis 7 v Dockeru (in-memory fallback pokud není dostupný) |
-| Contracts | `@branik/contracts` — Zod schémata sdílená FE/BE |
+| Contracts | `@sport-manager/contracts` — Zod schémata sdílená FE/BE |
 | Monorepo | pnpm workspaces + turbo |
-| Theme | light/dark přes `next-themes`, brand modrá ABC Braník `#609bc6` (HSL `205 47% 55%`) |
+| Hosting | Vercel (`sport-manager.qawave.ai`), GitHub Actions CI |
+| AI | Plánováno: lokální agent pro ligový sync + theming z loga |
 
-**Single-process:** Web FE + API běží v jednom Next.js procesu. Žádný zvláštní NestJS server.
+**Single-process:** Web FE + API běží v jednom Next.js procesu.
 
 ## Struktura monorepa
 
 ```
-branik/
+sport-manager/
 ├── apps/
 │   ├── web/              # Next.js 15 (FE + Hono API) — port 3100 v dev
 │   ├── mobile/           # Expo (zatím stub)
 │   └── workers/          # BullMQ workers
 ├── packages/
-│   ├── contracts/        # Zod kontrakty (FE i BE je importují)
+│   ├── contracts/        # Zod kontrakty
 │   ├── db/               # Prisma schema + migrace + seed
 │   └── config/           # sdílené tsconfig/eslint presety
-├── projekty/             # Specifikace feature z agentů (plan.md, architektura.md)
-├── .claude/
-│   ├── agents/           # 16 subagentů (PM, architect, FE, BE ...)
-│   ├── launch.json       # Claude Preview config (jen web)
-│   └── settings.local.json
+├── projekty/             # Specifikace (historické + aktivní)
+├── .claude/agents/       # 16 subagentů
 ├── docker-compose.yml    # Postgres + Redis
 └── CLAUDE.md             # Tento soubor
 ```
 
-### Hono API
+## Hono API mapa
 
 ```
 apps/web/
@@ -51,180 +55,102 @@ apps/web/
     ├── hono.ts                     # Hono app + global middleware + onError
     ├── prisma.ts                   # Prisma singleton + withClub() RLS
     ├── redis.ts                    # Redis singleton s in-memory fallback
-    ├── middleware/
-    │   ├── auth.middleware.ts      # JWT verify → c.set('user')
-    │   ├── club-context.middleware.ts # x-club-id → c.set('clubId')
-    │   ├── rbac.middleware.ts      # requireAuth() + requireRole()
-    │   └── feature-flag.middleware.ts # requireFeature() + cache
-    ├── routes/
-    │   ├── auth.routes.ts          # /v1/auth/{login,register,refresh,logout}
-    │   ├── me.routes.ts            # /v1/me/{*,context,coach-only}
-    │   ├── members.routes.ts       # /v1/members
-    │   ├── teams.routes.ts         # /v1/teams
-    │   ├── events.routes.ts        # /v1/events (CRUD + RSVP + attendance)
-    │   ├── conversations.routes.ts # /v1/conversations (privacy-by-participation)
-    │   ├── notifications.routes.ts # /v1/notifications
-    │   ├── dashboard.routes.ts     # /v1/dashboard/feed
-    │   ├── training-templates.routes.ts
-    │   ├── platform-admin.routes.ts
-    │   └── health.routes.ts
-    └── services/
-        ├── auth.service.ts         # issueTokens + refresh rotation
-        ├── limits.service.ts       # Level-2 tenant config enforcement
-        └── timezone.ts             # native Intl.DateTimeFormat helpers
+    ├── middleware/                 # auth, club-context, rbac, feature-flag
+    ├── routes/                     # auth, me, members, teams, events,
+    │                               #   conversations, notifications, dashboard,
+    │                               #   training-templates, platform-admin, health
+    └── services/                   # auth, limits, timezone
 ```
 
 ## Rychlý start
 
 ```bash
-# 1) Služby (DB + Redis) — JEDNOU při startu machiny
-open -a "Docker Desktop"   # Nebo "Rancher Desktop"
+# 1) Služby (DB + Redis)
+open -a "Docker Desktop"
 docker compose up -d
 
 # 2) Env
-cp .env.example apps/web/.env  # Next čte .env z root apps/web
+cp .env.example apps/web/.env
 
-# 3) Migrace + seed (při prvním běhu nebo po změně schematu)
-pnpm --filter @branik/db run prisma:generate
-DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
-  pnpm --filter @branik/db exec prisma db push
-DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
-  pnpm --filter @branik/db run seed
+# 3) Migrace + seed
+pnpm --filter @sport-manager/db run prisma:generate
+DATABASE_URL="postgresql://sport_manager:sport_manager@localhost:5432/sport_manager?schema=public" \
+  pnpm --filter @sport-manager/db exec prisma db push
+DATABASE_URL="postgresql://sport_manager:sport_manager@localhost:5432/sport_manager?schema=public" \
+  pnpm --filter @sport-manager/db run seed
 
-# 4) Contracts build (před prvním dev startem — Next čte dist/)
-pnpm --filter @branik/contracts build
+# 4) Contracts build
+pnpm --filter @sport-manager/contracts build
 
-# 5) Dev server (port 3100)
-pnpm --filter @branik/web run dev
-# nebo v Claude Preview přes .claude/launch.json
+# 5) Dev server
+pnpm --filter @sport-manager/web run dev
 ```
 
 URL:
-- Web: http://localhost:3100
-- Login: http://localhost:3100/login
+- Web (dev): http://localhost:3100
+- Web (prod): https://sport-manager.qawave.ai (po DNS propagaci)
 - API health: http://localhost:3100/api/v1/health
-- API base: http://localhost:3100/api/v1/...
 
-## Dev účty (heslo pro všechny: `password`)
+## Co je hotové
 
-### ABC Braník (primární)
-| Role | Email | Jméno |
+### Hono API (migrace z NestJS dokončena, PR #1 mergnutý)
+- Auth (JWT access + httpOnly refresh cookie)
+- RBAC (ClubRole + TeamRole + GuardianLink) přes `requireAuth()` / `requireRole()`
+- `prisma.withClub(clubId)` RLS wrapper
+- Routes: auth, me, members, teams, events (RSVP + attendance), conversations (privacy-by-participation), notifications, dashboard, training-templates, platform-admin, health
+- Feature flags s Redis cache + `requireFeature()` middleware
+
+### Frontend
+- Layout s left sidebar + role-aware nav, topbar (notification bell, role switcher, theme toggle)
+- Dashboard, Events (list + calendar), Event detail s RSVP roster, Create Event
+- Members (list + detail), Teams, Messages (inbox + chat)
+- Light + Dark theme
+
+### Infra
+- Vercel projekt `sport-manager` (team `qa-waves-projects`)
+- GitHub repo `qa-wave/sport-manager`
+- CI: lint + typecheck + tests + build (vše zelené)
+- CD: deploy na Vercel přes `amondnet/vercel-action` (čeká na nastavení `VERCEL_TOKEN` secret v GH)
+
+## Co se právě dělá (aktivní projekty)
+
+| Projekt | Status | Cesta |
 |---|---|---|
-| Owner | `admin@example.com` | Jan Novák |
-| Head Coach | `coach@example.com` | Martin Procházka |
-| Mom (rodič) | `mom@example.com` | Lucie Pecková |
-| Dad (rodič) | `dad@example.com` | Tomáš Mertin |
-| Hráč (16 let, multi-role) | `alex@example.com` | Alex Mertin |
+| Renaming `branik` → `Sport manager` | Probíhá | (není v `projekty/`) |
+| Test data wipe + reseed (2 fiktivní kluby) | Plánováno | (Phase B) |
+| Theming infra (3 barvy + 10 stylů per klub) | Plánováno | (Phase C) |
+| AI Liga Sync (FAČR adapter first) | Plánováno | TBD |
+| Self-service signup + onboarding wizard | Plánováno | TBD |
+| Public team page (SEO) | Plánováno | TBD |
 
-V topbaru je DEV **role switcher** (Admin / Coach / Parent) — rychlý přepínač bez odhlašování.
+## Strategická rozhodnutí (potvrzená)
 
-### TJ Spartak Kbely U9 (2. klub, multi-tenant proof)
-- `admin@spartak-kbely.example.com` — Vít Mrkvička (Owner)
-- Reálný roster z Týmuj (Alex Mertin + 26 hráčů + 4 trenéři)
-- Alex Mertin je v **obou klubech** (ukázka multi-tenant)
-
-## Co už je hotové
-
-### Hono API (migrace z NestJS dokončena)
-- Auth (JWT access + httpOnly refresh cookie, jose + bcrypt)
-- RBAC (ClubRole + TeamRole + GuardianLink permission masks) přes `requireAuth()` / `requireRole()`
-- `prisma.withClub(clubId)` RLS wrapper (set_config `app.club_id` per transakce)
-- Route groups: `auth`, `me`, `members`, `teams`, `events`, `conversations`, `notifications`, `dashboard`, `training-templates`, `platform-admin`, `health`
-- Events + EventAttendance s RSVP
-- Conversations (TEAM / COACHES / PARENTS / DM / GROUP / ANNOUNCEMENT), privacy-by-participation
-- Notifications model + API (10 typů)
-- TrainingTemplate CRUD + generátor Events (idempotentní, `skipDuplicates`)
-- Feature flags s Redis cache (60s TTL) + `requireFeature()` middleware
-
-### Frontend (admin)
-- Layout s left sidebar + role-aware nav (`useMemberContext`)
-- Dashboard: This Week + Needs Attention + Quick Actions + Recent Activity
-- Events: list view + calendar view (month grid, Czech lokalizace, today highlight)
-- Event detail s RSVP roster tabulkou
-- Create Event form (Schedule event)
-- Messages: inbox + chat view (bubliny, date separators, optimistic updates)
-- Notification bell s dropdownem (per-type icon+color)
-- Light + Dark theme, brand Braník modrá globálně
-- `/admin/design-preview` — 5 vizuálních směrů k výběru
-
-### Seed data
-- 2 kluby s **oddělenými rostery** (žádné překrytí příjmení kromě Alexe)
-- Braník: 35 členů, 9 týmů, 48 upcoming events, 14 notifications
-- Spartak: 32 členů, U9 tým, training template Út+Čt 16:30 → generované tréninky
-
-## Co zbývá / TOP 15 z Týmuj analýzy
-
-| # | Feature | Status |
-|---|---|---|
-| 1 | Notification Center | ✅ Hotovo |
-| 2 | Calendar view | ✅ Hotovo |
-| 3 | Training templates (databáze tréninků) | ✅ BE + DB + seed · ⏳ FE stránka `/admin/training-templates` chybí |
-| 4 | Per-tenant customizace (feature flags) | 📋 Architektura hotová, čeká na implementaci |
-| 5 | Bulk RSVP | ⏳ |
-| 6 | Email/push reminders | ⏳ |
-| 7 | Attendance statistiky | ⏳ |
-| 8 | Platební přehled | ⏳ |
-| 9 | Gallery / media | ⏳ |
-| ... | | |
-
-Strategická otázka v řešení: **self-hosted single-tenant** vs. **SaaS multi-tenant** vs. **dual-mode**.
-
-## Práce s agenty
-
-V `.claude/agents/` je 16 subagentů:
-
-```
-projektovy-manazer, produktovy-manazer, business-analytik,
-ux-designer, ui-designer, brand-designer, copywriter,
-softwarovy-architekt, frontend-vyvojar, backend-vyvojar, mobilni-vyvojar,
-qa-tester, security-specialista, devops-inzenyr,
-marketer, web-designer
-```
-
-**Komunikační protokol** (viz `/Users/tm/Documents/Claude/Projects/Company/team/PROTOKOL.md`):
-Každý agent končí handoff blokem:
-```
----HANDOFF---
-OD: <role>
-KOMU: <další role | uživatel>
-STATUS: hotovo | blokováno | čekám-na-vstup | otázka
-VÝSTUP: <cesty k souborům>
-DALŠÍ KROK: <co očekává>
----/HANDOFF---
-```
-
-**Pracovní výstupy ukládat do `projekty/<slug>/`:**
-- `plan.md` — od PM
-- `architektura.md` — od architekta
-- `prd.md`, `specifikace.md` — od PdM / BA
-- atd.
-
-Už existuje:
-- `projekty/migrace-hono/plan.md` + `architektura.md` (migrace dokončena)
-- `projekty/training-templates/plan.md` + `architektura.md`
-- `projekty/per-tenant/architektura.md`
+1. **Veřejný SaaS, ne self-hosted white-label.** Self-host volitelně.
+2. **Free tier zatím** (žádný billing v MVP).
+3. **AI later** — připravit hooky, ale neimplementovat. Možná lokální agent.
+4. **Fotbal first** — FAČR adapter první, ostatní svazy potom.
+5. **Public API only** — žádný scraping, jen dokumentovaná API.
+6. **Brand = Sport manager** napříč git, Vercel, doménou, package names.
 
 ## Klíčové principy
 
-1. **Type safety od A do Z** — Zod kontrakty v `@branik/contracts` jsou single source of truth
-2. **Privacy-by-participation** — Dad nevidí konverzaci Mom+Coach i když jsou v stejném klubu
-3. **Multi-tenant RLS** — každá DB query musí přes `prisma.withClub(clubId)` nebo explicit `clubId` filter
-4. **Handoff mezi agenty** — nikdy bot nevolá bota, PM orchestruje
+1. **Type safety od A do Z** — Zod kontrakty v `@sport-manager/contracts`
+2. **Privacy-by-participation** — Dad nevidí konverzaci Mom+Coach
+3. **Multi-tenant RLS** — každá DB query přes `prisma.withClub(clubId)`
+4. **Per-tenant customizace přes feature flags / config** — žádné `if (clubSlug === '...')` v kódu
 5. **Soubory jako sdílená paměť** — všechno na disk do `projekty/`
-6. **Žádné `if (clubSlug === 'branik')`** — per-klub customizace přes feature flags / config
+6. **Žádné komity automatické** — user explicitně řekne "commit"
 
 ## User context
 
-- **tomas.mertin@gmail.com** je uživatel/orchestrátor
-- Jeho syn **Alex Mertin** (16, narozen 2009-06-12) je hráč v ABC Braník + Spartak Kbely U9
-- Matka: **Lucie Pecková** (`mom@`), Otec: **Tomáš Mertin** (`dad@`)
-- Jazyk komunikace: Čeština
-- Má TOP 15 analýzu konkurence (Týmuj.cz) v `/Users/tm/Documents/Claude/Projects/Company/`
+- **tomas.mertin@gmail.com** — uživatel/orchestrátor / produkt owner
+- Komunikace: čeština
+- Reálný klub k dispozici pro user research: ABC Braník (původní pilot, syn Alex, partnerka Lucie)
 
 ## Důležité poznámky
 
-- **Docker musí běžet** — API bez DB spadne při startu (`PrismaClientInitializationError`). Health endpoint vrátí `db: down`, ostatní endpointy padnou s 500.
-- **Next.js načítá .env z `apps/web/.env`** — root `.env` Next ignoruje (monorepo root čte jen Turbo pro globalDependencies)
-- **Před prvním dev startem vybuilduj `@branik/contracts`** — package exportuje z `./dist/`, Next bez toho selže na imports
+- **Docker musí běžet** — API bez DB spadne při startu
+- **Next.js načítá `.env` z `apps/web/.env`**
+- **Před prvním dev startem vybuilduj `@sport-manager/contracts`** — package exportuje z `./dist/`
 - **sessionStorage klíče pro auth**: `club.access` (JWT) a `club.clubId` (aktivní klub)
-- **Žádné komity automatické** — user explicitně řekne "commit"
+- **Lokální DB je nově `sport_manager` user/db** (po renamingu z `branik`)

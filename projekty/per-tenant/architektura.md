@@ -189,7 +189,7 @@ Při startu aplikace `PluginLoader` načte všechny registrované pluginy a zare
 - Errory z pluginu nesmí shodit hlavní request (try/catch s logováním + Sentry). Webhook s externím selháním jde do retry queue (BullMQ).
 
 **Hot-plug / dynamic load**
-V MVP **ne** — jednoduchost. Pokud by později šlo o skutečné 3rd-party pluginy, pak `@branik/plugin-sdk` + dynamický import z `/plugins/*.js` s sandboxem (ale to je Level 5, viz níže).
+V MVP **ne** — jednoduchost. Pokud by později šlo o skutečné 3rd-party pluginy, pak `@sport-manager/plugin-sdk` + dynamický import z `/plugins/*.js` s sandboxem (ale to je Level 5, viz níže).
 
 ### Cena / složitost
 **M** — ~1 týden (event bus, plugin-loader, konvence, první dva příklady + testy).
@@ -280,7 +280,7 @@ V MVP absolutně ne. Pozor: neslučuj s microservice multi-deploy — to je Leve
 
 ---
 
-## Doporučení pro projekt branik (nyní)
+## Doporučení pro projekt Sport manager (nyní)
 
 ### Fáze A — MVP (nyní, 1-2 sprinty)
 1. **Level 1 — Feature flags** implementovat celé.
@@ -387,7 +387,7 @@ listConversations() { ... }
 ```ts
 // apps/web/lib/features.ts
 import { useMemberContext } from './member-context';
-import type { ClubFeatures } from '@branik/contracts';
+import type { ClubFeatures } from '@sport-manager/contracts';
 
 export function useFeature(key: keyof ClubFeatures): boolean {
   const { data } = useMemberContext();
@@ -453,7 +453,7 @@ async context(@CurrentMember() member: MemberContext) {
 OD: softwarovy-architekt
 KOMU: projektovy-manazer (dále backend-vyvojar)
 STATUS: hotovo
-VÝSTUP: /Users/tm/workspaces/projects/branik/projekty/per-tenant/architektura.md
+VÝSTUP: /Users/tm/workspaces/projects/sport-manager/projekty/per-tenant/architektura.md
 DALŠÍ KROK: Uživatel / PM odsouhlasí doporučenou cestu (Level 1 + minimální Level 2). Pak backend-vyvojar implementuje Level 1 podle spec:
   1. Prisma migrace `add_club_features_config` — přidat `features Json` + `config Json` na `Club`.
   2. `packages/contracts/features.ts` Zod schema (ClubFeatures + ClubConfig).

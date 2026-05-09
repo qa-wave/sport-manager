@@ -4,7 +4,7 @@ import {
   CONFIG_DEFAULTS,
   FeatureFlags,
   FEATURE_DEFAULTS,
-} from '@branik/contracts';
+} from '@sport-manager/contracts';
 import { prisma } from '../prisma';
 import { cache } from '../redis';
 import type { HonoEnv } from '../../types/hono';

@@ -33,7 +33,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN pnpm --filter @branik/db run db:generate 2>/dev/null || true
+RUN pnpm --filter @sport-manager/db run db:generate 2>/dev/null || true
 RUN pnpm --filter "./apps/${APP}" build
 
 # ─── Fáze 3: Produkční image (Next.js web) ─────────────────────────────────

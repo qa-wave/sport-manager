@@ -1,5 +1,5 @@
 {
-  "extends": "@branik/config/tsconfig.node.json",
+  "extends": "@sport-manager/config/tsconfig.node.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",

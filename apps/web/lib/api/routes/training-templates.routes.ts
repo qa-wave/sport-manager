@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import {
   CreateTrainingTemplateInput,
   UpdateTrainingTemplateInput,
-} from '@branik/contracts';
+} from '@sport-manager/contracts';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/rbac.middleware';
