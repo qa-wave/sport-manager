@@ -180,15 +180,12 @@ export default function AccountPage() {
             />
           )}
 
+        {/* Edit profile */}
+        {me.data && <EditProfileCard user={me.data} />}
+
         {/* Menu items */}
         <Card className="overflow-hidden">
           <CardContent className="divide-y divide-border/30 p-0">
-            <MenuItem
-              icon={User}
-              label="Edit Profile"
-              desc="Name, email, avatar"
-              disabled
-            />
             <MenuItem
               icon={Shield}
               label="Roles & Permissions"
@@ -248,6 +245,87 @@ function MenuItem({
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Edit profile
+// ---------------------------------------------------------------------------
+
+function EditProfileCard({ user }: { user: MeResponse }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [firstName, setFirstName] = useState(user.firstName);
+  const [lastName, setLastName] = useState(user.lastName);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ firstName, lastName }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      setEditing(false);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="divide-y divide-border/30 p-0">
+          <button
+            className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03]"
+            onClick={() => setEditing(true)}
+          >
+            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Upravit profil</div>
+              <div className="text-xs text-muted-foreground">
+                {user.firstName} {user.lastName} · {user.email}
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-3 pb-1">
+          <User className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Upravit profil</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Jméno</label>
+            <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Příjmení</label>
+            <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-8 text-sm" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Email</label>
+          <Input value={user.email} disabled className="h-8 text-sm opacity-50" />
+        </div>
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditing(false)}>
+            Zrušit
+          </Button>
+          <Button size="sm" className="h-7 text-xs" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            {mutation.isPending ? 'Ukládám...' : 'Uložit'}
+          </Button>
+        </div>
+        {mutation.isError && (
+          <div className="text-xs text-destructive">Nepodařilo se uložit.</div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

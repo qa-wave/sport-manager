@@ -21,6 +21,44 @@ function asJson(value: unknown): Prisma.InputJsonValue {
 }
 
 /**
+ * GET /v1/clubs/public/:slug
+ *
+ * Public club info — no auth required. Returns name, sport, teams, member count.
+ */
+clubs.get('/public/:slug', async (c) => {
+  const slug = c.req.param('slug');
+
+  const club = await prisma.club.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      config: true,
+      teams: {
+        select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+        orderBy: { name: 'asc' },
+      },
+      _count: { select: { members: true } },
+    },
+  });
+
+  if (!club) {
+    throw Object.assign(new Error('Club not found'), { statusCode: 404, code: 'CLUB_NOT_FOUND' });
+  }
+
+  const config = ClubConfig.parse(club.config ?? {});
+
+  return c.json({
+    slug: club.slug,
+    name: club.name,
+    theme: config.theme,
+    memberCount: club._count.members,
+    teams: club.teams,
+  });
+});
+
+/**
  * POST /v1/clubs
  *
  * Create a new club. The authenticated user becomes the OWNER.

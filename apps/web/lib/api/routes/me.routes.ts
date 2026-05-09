@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { FeatureFlags, ClubConfig } from '@sport-manager/contracts';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole, resolveMemberContext } from '../middleware/rbac.middleware';
@@ -112,6 +114,33 @@ me.get('/context', async (c) => {
     features: state.features,
     config: state.config,
   });
+});
+
+/**
+ * PATCH /v1/me
+ * Update the current user's profile (name, locale).
+ */
+const UpdateProfileInput = z.object({
+  firstName: z.string().min(1).max(60).optional(),
+  lastName: z.string().min(1).max(60).optional(),
+  locale: z.string().max(10).optional(),
+});
+
+me.patch('/', zValidator('json', UpdateProfileInput), async (c) => {
+  const user = c.get('user')!;
+  const input = c.req.valid('json');
+
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      ...(input.firstName !== undefined && { firstName: input.firstName }),
+      ...(input.lastName !== undefined && { lastName: input.lastName }),
+      ...(input.locale !== undefined && { locale: input.locale }),
+    },
+    select: { id: true, firstName: true, lastName: true, email: true, locale: true },
+  });
+
+  return c.json(updated);
 });
 
 /**
