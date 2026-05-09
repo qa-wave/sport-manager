@@ -1,27 +1,40 @@
 /**
- * Seed script — rich dev data set.
+ * Seed script — Sport manager dev data (FULL VARIANT COVERAGE).
  *
- * Creates two clubs (ABC Braník + TJ Spartak Kbely) with realistic
- * rosters, events, conversations, fees, payments and waivers.
+ * 2 fictional clubs:
+ *   1. FC Hvězda Strašnice (fotbal, U13 + U15) — modrá / zlatá  | tier: pro
+ *   2. TJ Sokol Měcholupy  (florbal, U11)      — zelená / oranžová | tier: free
  *
- * DATA HYGIENE (important):
- *   - ABC Braník uses COMPLETELY FICTIONAL Czech names (no overlap with Spartak).
- *   - TJ Spartak Kbely uses the REAL roster scraped from Týmuj (27 players + 5 staff).
- *   - The ONLY cross-club person is Alex Mertin — our multi-tenant proof.
+ * Demonstrates EVERY enum value + edge case from the schema:
+ *   - MemberStatus: ACTIVE, INACTIVE, SUSPENDED, ARCHIVED
+ *   - TeamRole: PLAYER, HEAD_COACH, ASSISTANT_COACH, TEAM_MANAGER, MEDIC
+ *   - ClubRoleType: OWNER, ADMIN, FINANCE, COMMUNICATIONS, FACILITY
+ *   - GuardianRelationship: PARENT, STEP_PARENT, LEGAL_GUARDIAN, OTHER
+ *   - EventType: PRACTICE, MATCH, TOURNAMENT, MEETING, SOCIAL
+ *   - HomeAway: HOME, AWAY, NEUTRAL
+ *   - RSVPStatus: YES, NO, MAYBE, PENDING
+ *   - ConversationType: TEAM, COACHES, PARENTS, DM, GROUP, ANNOUNCEMENT
+ *   - WaiverType: GDPR, HEALTH, LIABILITY, MEDIA_CONSENT
+ *   - PaymentStatus: PENDING, PROCESSING, PAID, FAILED, REFUNDED
+ *   - NotificationType: all 10 variants
+ *   - Multi-role: 16yo Šimon is PLAYER on U15 AND ASSISTANT_COACH on U13
+ *   - Multi-tenant: Tomáš Mertin = parent in Hvězda + HEAD_COACH in Sokol
+ *   - Divorced parents (different permission masks)
+ *   - Step-parent + Legal guardian relationships
+ *   - Privacy DM (Dad NOT participant)
+ *   - TrainingTemplate that materializes Events
+ *   - Detached event (was from template, then unlinked)
+ *   - ClubFeatureAudit entry
+ *   - PushToken example
+ *   - Edited message, deleted (soft) message
  *
- * Preserves architecturally-critical cases:
- *   (1) Multi-role user: Alex Mertin (16y) is PLAYER on U15 + U19 AND ASSISTANT_COACH on U9 Braník,
- *       and PLAYER on Spartak Kbely U9.
- *   (2) Divorced-parent privacy: Mom + Dad have different GuardianLink masks.
- *
- * Dev accounts (password "password" for all of them):
- *   - admin@example.com             (Jan Novák — Braník owner)
- *   - coach@example.com             (Martin Procházka — Braník head coach)
- *   - mom@example.com               (Lucie Pecková)
- *   - dad@example.com               (Tomáš Mertin)
- *   - alex@example.com              (Alex Mertin — multi-tenant)
- *   - admin@spartak-kbely.example.com  (Vít Mrkvička — Spartak owner)
- *   - platform@example.com          (SaaS platform admin — /platform-admin/*)
+ * Dev login matrix (password "heslo123" for all):
+ *   admin@hvezda.cz       Pavel Dvořák       — Hvězda OWNER
+ *   coach@hvezda.cz       Miroslav Horák     — Hvězda HEAD_COACH (U13)
+ *   parent@hvezda.cz      Lucie Pekařová     — Hvězda parent (Mom of Anna)
+ *   admin@sokoli.cz       Jana Procházková   — Sokol OWNER
+ *   tomas@example.com     Tomáš Mertin       — multi-tenant: Hvězda parent + Sokol HEAD_COACH
+ *   platform@example.com  Petr Platforma     — SaaS platform admin
  */
 import {
   PrismaClient,
@@ -32,6 +45,7 @@ import {
   HomeAway,
   MemberStatus,
   NotificationType,
+  PaymentStatus,
   RSVPStatus,
   TeamRole,
   WaiverType,
@@ -39,37 +53,55 @@ import {
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
-const DEV_PASSWORD = 'password';
+const DEV_PASSWORD = 'heslo123';
 
-// ---------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
-function d(iso: string) {
-  return new Date(iso);
-}
+// ----------------------------------------------------------------------------
 
-function future(daysFromNow: number, hour = 10) {
+function offset(daysFromNow: number, hour = 10, minute = 0): Date {
   const dt = new Date();
   dt.setDate(dt.getDate() + daysFromNow);
-  dt.setHours(hour, 0, 0, 0);
+  dt.setHours(hour, minute, 0, 0);
   return dt;
 }
 
-function past(daysAgo: number, hour = 10) {
-  return future(-daysAgo, hour);
+function avatarUrl(name: string, bg: string): string {
+  const cleaned = name.replace(/ /g, '+');
+  return `https://ui-avatars.com/api/?name=${cleaned}&background=${bg.replace('#', '')}&color=fff&size=128&bold=true`;
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-async function main() {
-  console.log('Seeding...');
+function pick<T>(arr: T[], i: number): T {
+  return arr[i % arr.length]!;
+}
 
-  const devHash = await bcrypt.hash(DEV_PASSWORD, 12);
+// ----------------------------------------------------------------------------
+// Club brand SVG logos
+// ----------------------------------------------------------------------------
+
+const HVEZDA_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#1e3a8a" stroke="#f59e0b" stroke-width="3"/><path d="M50 14L60 40L88 40L66 58L74 86L50 70L26 86L34 58L12 40L40 40Z" fill="#f59e0b"/></svg>`;
+
+const SOKOL_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#16a34a" stroke="#ea580c" stroke-width="3"/><path d="M50 22 C32 36 30 58 38 76 C45 80 50 76 50 70 C50 76 55 80 62 76 C70 58 68 36 50 22 Z" fill="#fff"/><circle cx="44" cy="48" r="2.5" fill="#16a34a"/><path d="M50 60 L46 66 L54 66 Z" fill="#ea580c"/></svg>`;
+
+// ----------------------------------------------------------------------------
+// Czech names
+// ----------------------------------------------------------------------------
+
+const CHILD_FIRST    = ['Tomáš', 'Jakub', 'Filip', 'David', 'Vojtěch', 'Adam', 'Matyáš', 'Lukáš', 'Ondřej', 'Štěpán', 'Karel', 'Petr', 'Jan', 'Marek', 'Šimon'];
+const SURNAMES       = ['Novák', 'Svoboda', 'Novotný', 'Dvořák', 'Černý', 'Procházka', 'Kučera', 'Veselý', 'Horák', 'Němec', 'Pokorný', 'Pospíšil', 'Hájek', 'Marek', 'Růžička', 'Beneš', 'Fiala', 'Sedláček'];
+const PARENT_FIRST_M = ['Petr', 'Martin', 'Pavel', 'Jiří', 'Tomáš', 'Michal', 'David', 'Marek'];
+const PARENT_FIRST_F = ['Lucie', 'Hana', 'Jana', 'Kateřina', 'Eva', 'Zuzana', 'Tereza', 'Barbora'];
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+async function main() {
+  console.log('🧹 Wiping old data…');
 
   await prisma.$executeRawUnsafe(`SET row_security = OFF`).catch(() => {});
 
-  // ---------- Wipe ----------
+  // Wipe in dependency order
   await prisma.message.deleteMany();
   await prisma.conversationParticipant.deleteMany();
   await prisma.conversation.deleteMany();
@@ -80,1142 +112,692 @@ async function main() {
   await prisma.fee.deleteMany();
   await prisma.waiverSignature.deleteMany();
   await prisma.waiver.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.guardianLink.deleteMany();
   await prisma.teamMembership.deleteMany();
+  await prisma.team.deleteMany();
   await prisma.clubRole.deleteMany();
   await prisma.member.deleteMany();
-  await prisma.team.deleteMany();
   await prisma.session.deleteMany();
   await prisma.pushToken.deleteMany();
-  await prisma.notification.deleteMany();
   await prisma.clubFeatureAudit.deleteMany();
-  await prisma.user.deleteMany();
   await prisma.club.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log('🌱 Seeding…');
+
+  const devHash = await bcrypt.hash(DEV_PASSWORD, 12);
 
   // ==========================================================================
-  //  CLUB 1 — ABC Braník (the main dev club — FICTIONAL NAMES ONLY)
+  // Platform admin (no club)
   // ==========================================================================
-  const club = await prisma.club.create({
+
+  const platformAdmin = await prisma.user.create({
     data: {
-      slug: 'abc-branik',
-      name: 'ABC Braník',
-      country: 'CZ',
-      timezone: 'Europe/Prague',
-      // Per-tenant customization — Braník gets every module enabled and a
-      // bumped `pro` tier. Demonstrates "everything on, large club".
+      email: 'platform@example.com', passwordHash: devHash,
+      firstName: 'Petr', lastName: 'Platforma', locale: 'cs',
+      isPlatformAdmin: true,
+      avatarUrl: avatarUrl('Petr Platforma', '#475569'),
+    },
+  });
+
+  // ==========================================================================
+  // CLUB 1: FC Hvězda Strašnice
+  // ==========================================================================
+
+  console.log('  ⚽ FC Hvězda Strašnice…');
+
+  const hvezda = await prisma.club.create({
+    data: {
+      slug: 'fc-hvezda', name: 'FC Hvězda Strašnice',
+      country: 'CZ', timezone: 'Europe/Prague',
       features: {
-        messages: true,
-        trainingTemplates: true,
-        payments: true,
-        notifications: true,
-        waivers: true,
-        calendar: true,
-        gallery: false,
+        messages: true, notifications: true, trainingTemplates: true,
+        payments: true, waivers: true, calendar: true, gallery: true,
         springCup: false,
       },
       config: {
-        tier: 'pro',
-        limits: { maxMembers: 500, maxTeams: 20 },
+        tier: 'pro', limits: { maxMembers: 200, maxTeams: 10 },
+        logoSvg: HVEZDA_LOGO_SVG,
+        theme: { primary: '#1e3a8a', secondary: '#f59e0b', tertiary: '#0f172a', styleId: 1 },
       },
     },
   });
 
-  // ---- Teams ----
-  const [muziA, muziB, u19, u15, u12, u9, zeny, wu15] = await Promise.all([
-    prisma.team.create({
-      data: { clubId: club.id, name: 'Muži A', sport: 'football', ageGroup: 'Senior', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'Muži B', sport: 'football', ageGroup: 'Senior', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'U19', sport: 'football', ageGroup: 'U19', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'U15', sport: 'football', ageGroup: 'U15', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'U12', sport: 'football', ageGroup: 'U12', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'U9', sport: 'football', ageGroup: 'U9', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'Ženy', sport: 'football', ageGroup: 'Senior', season: '2025-26' },
-    }),
-    prisma.team.create({
-      data: { clubId: club.id, name: 'WU15', sport: 'football', ageGroup: 'U15', season: '2025-26' },
-    }),
-  ]);
+  const u13 = await prisma.team.create({
+    data: { clubId: hvezda.id, name: 'U13 Strašnice', sport: 'Fotbal', ageGroup: 'U13', season: '2025/26' },
+  });
+  const u15 = await prisma.team.create({
+    data: { clubId: hvezda.id, name: 'U15 Strašnice', sport: 'Fotbal', ageGroup: 'U15', season: '2025/26' },
+  });
 
-  // ---- Users (bulk) ----
-  //
-  // NAMING RULE: Everything under Braník uses fictional Czech names that DO NOT
-  // appear in the real Spartak Kbely Týmuj roster. Only Alex Mertin crosses
-  // clubs (intentionally, as multi-tenant proof).
-  //
-  // Banned surnames (reserved for Spartak): Danihelka, Donev, Hladík, Hrubý,
-  // Korenčík(ová), Korovskyi, Křenek, Neuvirth, Niessner, Novák/Nováková,
-  // Pecka, Pechar, Rajtr, Růžička, Slavata, Snihura, Tomašuk, Vávra, Velička,
-  // Venhuda, Vomáčka, Zavoral, Žaba, Mrkvička, Stejskal, Frydrychová.
-  // (Šimák and Váňa kept under Braník for dev-account stability; Spartak uses
-  // its own real Šimák + Váňa as separate records with different emails.)
-  const userDefs: Array<{
-    key: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    dob?: string;
-    pw?: boolean;
-  }> = [
-    // Staff & admin — dev accounts (DO NOT CHANGE emails/names the user logs in with)
-    { key: 'admin',        email: 'admin@example.com',          firstName: 'Jan',       lastName: 'Novotný',     pw: true },
-    { key: 'headCoach',    email: 'coach@example.com',          firstName: 'Martin',    lastName: 'Procházka',   pw: true },
-    { key: 'assistCoach1', email: 'assistant1@example.com',     firstName: 'Petra',     lastName: 'Svobodová',   pw: true },
-    { key: 'assistCoach2', email: 'assistant2@example.com',     firstName: 'Ondřej',    lastName: 'Beneš',       pw: true },
-    { key: 'coachU9',      email: 'coach.u9@example.com',       firstName: 'Filip',     lastName: 'Dvořák',      pw: true },
-    { key: 'teamMgr',      email: 'manager@example.com',        firstName: 'Eva',       lastName: 'Králová',     pw: true },
-    { key: 'medic',        email: 'medic@example.com',          firstName: 'David',     lastName: 'Kučera',      pw: true },
-    { key: 'commsMgr',     email: 'comms@example.com',          firstName: 'Zuzana',    lastName: 'Marková',     pw: true },
+  // --- Adults: ClubRoleType coverage (OWNER, ADMIN, FINANCE, COMMUNICATIONS, FACILITY) ---
 
-    // Parents (dev mom/dad + fictional supporting cast — NO Spartak surnames)
-    { key: 'mom',          email: 'mom@example.com',            firstName: 'Lucie',     lastName: 'Pecková',     pw: true },
-    { key: 'dad',          email: 'dad@example.com',            firstName: 'Tomáš',     lastName: 'Mertin',      pw: true },
-    { key: 'parentAlena',  email: 'alena.dvorakova@example.com', firstName: 'Alena',    lastName: 'Dvořáková',   pw: true },
-    { key: 'parentPavel',  email: 'pavel.horak@example.com',    firstName: 'Pavel',     lastName: 'Horák',       pw: true },
-    { key: 'parentJirina', email: 'jirina.kovarova@example.com', firstName: 'Jiřina',   lastName: 'Kovářová',    pw: true },
-    { key: 'parentRadek',  email: 'radek.novotny@example.com',  firstName: 'Radek',     lastName: 'Nový',        pw: true },
-    { key: 'parentMarketa',email: 'marketa.bartosova@example.com', firstName: 'Markéta', lastName: 'Bartošová',  pw: true },
-    { key: 'parentMichal', email: 'michal.cerny@example.com',   firstName: 'Michal',    lastName: 'Černý',       pw: true },
+  const adminH = await createUserMember({
+    email: 'admin@hvezda.cz', firstName: 'Pavel', lastName: 'Dvořák',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    clubRoles: [ClubRoleType.OWNER, ClubRoleType.ADMIN, ClubRoleType.FINANCE],
+  });
 
-    // Players — fictional Czech kids' names. Alex is the only cross-club person.
-    // Alex = 16y (born 2009), plays U15/U19, assists U9.
-    { key: 'alex',     email: 'alex@example.com',               firstName: 'Alex',       lastName: 'Mertin',      dob: '2009-06-12', pw: true },
+  const commsH = await createUserMember({
+    email: 'pr@hvezda.cz', firstName: 'Iveta', lastName: 'Veselá',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    clubRoles: [ClubRoleType.COMMUNICATIONS],
+  });
 
-    // U19 player (born 2009)
-    { key: 'vojta',    email: 'vojta.fiala@example.com',        firstName: 'Vojtěch',    lastName: 'Fiala',       dob: '2009-03-18' },
+  const facilityH = await createUserMember({
+    email: 'spravce@hvezda.cz', firstName: 'Jaroslav', lastName: 'Hájek',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    clubRoles: [ClubRoleType.FACILITY],
+  });
 
-    // U15 players (born 2010-2012)
-    { key: 'jakub',    email: 'jakub.dvorak@example.com',       firstName: 'Jakub',      lastName: 'Dvořák',      dob: '2011-05-20' },
-    { key: 'tomasH',   email: 'tomas.horak@example.com',        firstName: 'Tomáš',      lastName: 'Horák',       dob: '2011-08-14' },
-    { key: 'marek',    email: 'marek.kovar@example.com',        firstName: 'Marek',      lastName: 'Kovář',       dob: '2010-11-02' },
-    { key: 'oliver',   email: 'oliver.pokorny@example.com',     firstName: 'Oliver',     lastName: 'Pokorný',     dob: '2012-01-27' },
-    { key: 'matejC',   email: 'matej.cerny@example.com',        firstName: 'Matěj',      lastName: 'Černý',       dob: '2012-04-09' },
+  // --- Coaches: HEAD_COACH, ASSISTANT_COACH, TEAM_MANAGER, MEDIC ---
 
-    // U12 players (born 2013-2014)
-    { key: 'adela',    email: 'adela.bartosova@example.com',    firstName: 'Adéla',      lastName: 'Bartošová',   dob: '2013-09-25' },
-    { key: 'eliska',   email: 'eliska.nova@example.com',        firstName: 'Eliška',     lastName: 'Nová',        dob: '2014-03-06' },
-    { key: 'jonas',    email: 'jonas.pokorny@example.com',      firstName: 'Jonáš',      lastName: 'Pokorný',     dob: '2013-11-14' },
+  const coachU13 = await createUserMember({
+    email: 'coach@hvezda.cz', firstName: 'Miroslav', lastName: 'Horák',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.HEAD_COACH }],
+  });
 
-    // U9 players (born 2015-2017) — Matyáš Peroutka is Mom's son (our primary dev child)
-    { key: 'matyasBr', email: 'matyas.peroutka@example.com',    firstName: 'Matyáš',     lastName: 'Peroutka',    dob: '2017-09-03' },
-    { key: 'anicka',   email: 'anicka.kovarova@example.com',    firstName: 'Anička',     lastName: 'Kovářová',    dob: '2016-07-11' },
-    { key: 'viktorie', email: 'viktorie.fialova@example.com',   firstName: 'Viktorie',   lastName: 'Fialová',     dob: '2016-12-18' },
-    { key: 'kubik',    email: 'kubik.horak@example.com',        firstName: 'Kubík',      lastName: 'Horák',       dob: '2017-02-22' },
-    { key: 'sarka',    email: 'sarka.cerna@example.com',        firstName: 'Šárka',      lastName: 'Černá',       dob: '2015-05-30' },
-    { key: 'dominikP', email: 'dominik.prochazka@example.com',  firstName: 'Dominik',    lastName: 'Procházka',   dob: '2016-10-04' },
+  const assistantU13 = await createUserMember({
+    email: 'jakub.kucera@hvezda.cz', firstName: 'Jakub', lastName: 'Kučera',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.ASSISTANT_COACH }],
+  });
 
-    // WU15 girls (born 2010-2012) — Tereza + Klára
-    { key: 'tereza',   email: 'tereza.horakova@example.com',    firstName: 'Tereza',     lastName: 'Horáková',    dob: '2011-02-08' },
-    { key: 'klara',    email: 'klara.mala@example.com',         firstName: 'Klára',      lastName: 'Malá',        dob: '2010-06-17' },
+  const teamMgrU13 = await createUserMember({
+    email: 'manager.u13@hvezda.cz', firstName: 'Renata', lastName: 'Sedláčková',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.TEAM_MANAGER }],
+  });
 
-    // U19 second player — Albert (fictional)
-    { key: 'albertCZ', email: 'albert.becvar@example.com',      firstName: 'Albert',     lastName: 'Bečvář',      dob: '2009-12-01' },
-  ];
+  const medicU13 = await createUserMember({
+    email: 'doktor@hvezda.cz', firstName: 'Aleš', lastName: 'Beneš',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.MEDIC }, { teamId: u15.id, role: TeamRole.MEDIC }],
+  });
 
-  const users: Record<string, Awaited<ReturnType<typeof prisma.user.create>>> = {};
-  for (const u of userDefs) {
-    users[u.key] = await prisma.user.create({
+  const coachU15 = await createUserMember({
+    email: 'coach.u15@hvezda.cz', firstName: 'Roman', lastName: 'Fiala',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    teamRoles: [{ teamId: u15.id, role: TeamRole.HEAD_COACH }],
+  });
+
+  // --- U13 Players + parent linkage (with divorced + step-parent + legal-guardian variants) ---
+
+  const childMembersHvezda: Array<{ id: string; firstName: string; surname: string }> = [];
+
+  for (let i = 0; i < 11; i++) {
+    const isAnna = i === 3;
+    const firstName = isAnna ? 'Anna' : pick(CHILD_FIRST, i + 7);
+    const surname = isAnna ? 'Pekařová' : pick(SURNAMES, i + 2);
+
+    const child = await createUserMember({
+      email: `${firstName.toLowerCase()}.${surname.toLowerCase()}@kid.local`,
+      firstName, lastName: surname,
+      clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      isMinor: true, jerseyNumber: 7 + i, position: pick(['ÚT', 'ZÁL', 'OBR', 'BR'], i),
+      teamRoles: [{ teamId: u13.id, role: TeamRole.PLAYER }],
+    });
+    childMembersHvezda.push({ id: child.memberId, firstName, surname });
+
+    if (isAnna) {
+      // Divorced parents
+      const mom = await createUserMember({
+        email: 'parent@hvezda.cz', firstName: 'Lucie', lastName: 'Pekařová',
+        clubId: hvezda.id, brandColor: '#f59e0b', devHash,
+      });
+      const dad = await createUserMember({
+        email: 'petr.pekar@hvezda.cz', firstName: 'Petr', lastName: 'Pekař',
+        clubId: hvezda.id, brandColor: '#475569', devHash,
+      });
+      // Plus step-parent (Mom's new partner)
+      const stepDad = await createUserMember({
+        email: 'martin.novotny@hvezda.cz', firstName: 'Martin', lastName: 'Novotný',
+        clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      });
+      await prisma.guardianLink.createMany({
+        data: [
+          {
+            guardianId: mom.memberId, childId: child.memberId,
+            relationship: GuardianRelationship.PARENT, isPrimary: true,
+            canViewSchedule: true, canRsvp: true, canViewPayments: true,
+            canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+            verifiedAt: new Date(),
+          },
+          {
+            guardianId: dad.memberId, childId: child.memberId,
+            relationship: GuardianRelationship.PARENT, isPrimary: false,
+            canViewSchedule: true, canRsvp: true,
+            canViewPayments: false, canMakePayments: false,
+            canViewMedical: false, canSignWaivers: true,
+            verifiedAt: new Date(),
+          },
+          {
+            guardianId: stepDad.memberId, childId: child.memberId,
+            relationship: GuardianRelationship.STEP_PARENT, isPrimary: false,
+            canViewSchedule: true, canRsvp: false,
+            canViewPayments: false, canMakePayments: false,
+            canViewMedical: false, canSignWaivers: false,
+            verifiedAt: new Date(),
+          },
+        ],
+      });
+    } else if (i === 5) {
+      // LEGAL_GUARDIAN case (parent unavailable, grandparent has legal custody)
+      const legalGuardian = await createUserMember({
+        email: `babicka.${surname.toLowerCase()}@hvezda.cz`,
+        firstName: 'Marie', lastName: surname,
+        clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      });
+      await prisma.guardianLink.create({
+        data: {
+          guardianId: legalGuardian.memberId, childId: child.memberId,
+          relationship: GuardianRelationship.LEGAL_GUARDIAN, isPrimary: true,
+          canViewSchedule: true, canRsvp: true, canViewPayments: true,
+          canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+          verifiedAt: new Date(),
+        },
+      });
+    } else if (i === 7) {
+      // OTHER relationship (uncle/older sibling acting as guardian)
+      const other = await createUserMember({
+        email: `stryc.${surname.toLowerCase()}@hvezda.cz`,
+        firstName: 'Václav', lastName: surname,
+        clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      });
+      await prisma.guardianLink.create({
+        data: {
+          guardianId: other.memberId, childId: child.memberId,
+          relationship: GuardianRelationship.OTHER, isPrimary: true,
+          canViewSchedule: true, canRsvp: true, canViewPayments: false,
+          canMakePayments: false, canViewMedical: false, canSignWaivers: false,
+          verifiedAt: null, // unverified — admin must approve
+        },
+      });
+    } else {
+      // Standard PARENT
+      const parentFirst = pick(PARENT_FIRST_M, i);
+      const parent = await createUserMember({
+        email: `${parentFirst.toLowerCase()}.${surname.toLowerCase()}@parent.local`,
+        firstName: parentFirst, lastName: surname,
+        clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      });
+      await prisma.guardianLink.create({
+        data: {
+          guardianId: parent.memberId, childId: child.memberId,
+          relationship: GuardianRelationship.PARENT, isPrimary: true,
+          canViewSchedule: true, canRsvp: true, canViewPayments: true,
+          canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+          verifiedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  // --- U15 Players ---
+
+  const u15Children: Array<{ id: string; firstName: string; surname: string }> = [];
+  for (let i = 0; i < 9; i++) {
+    const firstName = pick(CHILD_FIRST.slice().reverse(), i);
+    const surname = pick(SURNAMES.slice().reverse(), i + 1);
+    const child = await createUserMember({
+      email: `${firstName.toLowerCase()}.${surname.toLowerCase()}.u15@kid.local`,
+      firstName, lastName: surname,
+      clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+      isMinor: true, jerseyNumber: 100 + i, position: pick(['ÚT', 'ZÁL', 'OBR', 'BR'], i),
+      teamRoles: [{ teamId: u15.id, role: TeamRole.PLAYER }],
+    });
+    u15Children.push({ id: child.memberId, firstName, surname });
+  }
+
+  // --- MULTI-ROLE: Šimon (16, U15 PLAYER + U13 ASSISTANT_COACH) ---
+
+  const simon = await createUserMember({
+    email: 'simon.assist@hvezda.cz', firstName: 'Šimon', lastName: 'Růžička',
+    clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
+    isMinor: true, jerseyNumber: 11,
+    teamRoles: [
+      { teamId: u15.id, role: TeamRole.PLAYER },
+      { teamId: u13.id, role: TeamRole.ASSISTANT_COACH },
+    ],
+  });
+  u15Children.push({ id: simon.memberId, firstName: 'Šimon', surname: 'Růžička' });
+
+  // --- MemberStatus variants: INACTIVE, SUSPENDED, ARCHIVED ---
+
+  await createUserMember({
+    email: 'inactive.player@hvezda.cz', firstName: 'Daniel', lastName: 'Pospíšil',
+    clubId: hvezda.id, brandColor: '#94a3b8', devHash, isMinor: true,
+    status: MemberStatus.INACTIVE,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.PLAYER }],
+  });
+  await createUserMember({
+    email: 'suspended.player@hvezda.cz', firstName: 'Roman', lastName: 'Černý',
+    clubId: hvezda.id, brandColor: '#dc2626', devHash, isMinor: true,
+    status: MemberStatus.SUSPENDED,
+    teamRoles: [{ teamId: u13.id, role: TeamRole.PLAYER }],
+  });
+  await createUserMember({
+    email: 'archived.player@hvezda.cz', firstName: 'Karel', lastName: 'Pokorný',
+    clubId: hvezda.id, brandColor: '#64748b', devHash, isMinor: false,
+    status: MemberStatus.ARCHIVED,
+  });
+
+  // ==========================================================================
+  // CLUB 2: TJ Sokol Měcholupy (florbal, U11)
+  // ==========================================================================
+
+  console.log('  🏑 TJ Sokol Měcholupy…');
+
+  const sokol = await prisma.club.create({
+    data: {
+      slug: 'sokol-mecholupy', name: 'TJ Sokol Měcholupy',
+      country: 'CZ', timezone: 'Europe/Prague',
+      features: {
+        messages: true, notifications: true, trainingTemplates: true,
+        payments: false, waivers: true, calendar: true, gallery: false,
+        springCup: false,
+      },
+      config: {
+        tier: 'free', limits: { maxMembers: 50, maxTeams: 2 },
+        logoSvg: SOKOL_LOGO_SVG,
+        theme: { primary: '#16a34a', secondary: '#ea580c', tertiary: '#064e3b', styleId: 2 },
+      },
+    },
+  });
+
+  const u11 = await prisma.team.create({
+    data: { clubId: sokol.id, name: 'U11 Sokoli', sport: 'Florbal', ageGroup: 'U11', season: '2025/26' },
+  });
+
+  await createUserMember({
+    email: 'admin@sokoli.cz', firstName: 'Jana', lastName: 'Procházková',
+    clubId: sokol.id, brandColor: '#16a34a', devHash,
+    clubRoles: [ClubRoleType.OWNER, ClubRoleType.ADMIN],
+  });
+
+  // ── Multi-tenant: Tomáš Mertin ──
+  const tomasUser = await prisma.user.create({
+    data: {
+      email: 'tomas@example.com', passwordHash: devHash,
+      firstName: 'Tomáš', lastName: 'Mertin', locale: 'cs',
+      avatarUrl: avatarUrl('Tomáš Mertin', '#16a34a'),
+    },
+  });
+
+  // PushToken example for Tomáš (web + ios)
+  await prisma.pushToken.createMany({
+    data: [
+      { userId: tomasUser.id, token: 'expo-token-tomas-ios-' + Date.now(), platform: 'ios' },
+      { userId: tomasUser.id, token: 'web-push-tomas-' + Date.now(), platform: 'web' },
+    ],
+  });
+
+  const tomasInSokol = await prisma.member.create({
+    data: { userId: tomasUser.id, clubId: sokol.id, status: MemberStatus.ACTIVE },
+  });
+  await prisma.teamMembership.create({
+    data: { memberId: tomasInSokol.id, teamId: u11.id, role: TeamRole.HEAD_COACH },
+  });
+
+  const tomasInHvezda = await prisma.member.create({
+    data: { userId: tomasUser.id, clubId: hvezda.id, status: MemberStatus.ACTIVE },
+  });
+
+  // ── Sokol roster: 8 kids + 1 parent each ──
+  const sokolChildren: Array<{ id: string; firstName: string; surname: string }> = [];
+  for (let i = 0; i < 8; i++) {
+    const surname = pick(SURNAMES, i + 11);
+    const firstName = pick(CHILD_FIRST, i + 1);
+    const child = await createUserMember({
+      email: `${firstName.toLowerCase()}.${surname.toLowerCase()}@kid.sokoli`,
+      firstName, lastName: surname,
+      clubId: sokol.id, brandColor: '#16a34a', devHash,
+      isMinor: true, jerseyNumber: 11 + i, position: pick(['ÚT', 'OB', 'BR'], i),
+      teamRoles: [{ teamId: u11.id, role: TeamRole.PLAYER }],
+    });
+    sokolChildren.push({ id: child.memberId, firstName, surname });
+
+    const parentFirst = pick(PARENT_FIRST_M.concat(PARENT_FIRST_F), i + 3);
+    const parent = await createUserMember({
+      email: `${parentFirst.toLowerCase()}.${surname.toLowerCase()}@parent.sokoli`,
+      firstName: parentFirst, lastName: surname,
+      clubId: sokol.id, brandColor: '#16a34a', devHash,
+    });
+    await prisma.guardianLink.create({
       data: {
-        email: u.email,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        passwordHash: u.pw ? devHash : null,
-        dateOfBirth: u.dob ? d(u.dob) : null,
+        guardianId: parent.memberId, childId: child.memberId,
+        relationship: GuardianRelationship.PARENT, isPrimary: true,
+        canViewSchedule: true, canRsvp: true, canViewPayments: true,
+        canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+        verifiedAt: new Date(),
       },
     });
   }
 
-  // ---- Members (in ABC Braník) ----
-  const members: Record<string, Awaited<ReturnType<typeof prisma.member.create>>> = {};
-  const memberDefs: Array<{
-    key: string;
-    userKey: string;
-    minor?: boolean;
-    jersey?: number;
-    pos?: string;
-    medical?: string;
-  }> = [
-    // Staff
-    { key: 'admin',        userKey: 'admin' },
-    { key: 'headCoach',    userKey: 'headCoach' },
-    { key: 'assistCoach1', userKey: 'assistCoach1' },
-    { key: 'assistCoach2', userKey: 'assistCoach2' },
-    { key: 'coachU9',      userKey: 'coachU9' },
-    { key: 'teamMgr',      userKey: 'teamMgr' },
-    { key: 'medic',        userKey: 'medic' },
-    { key: 'commsMgr',     userKey: 'commsMgr' },
-    // Parents
-    { key: 'mom',           userKey: 'mom' },
-    { key: 'dad',           userKey: 'dad' },
-    { key: 'parentAlena',   userKey: 'parentAlena' },
-    { key: 'parentPavel',   userKey: 'parentPavel' },
-    { key: 'parentJirina',  userKey: 'parentJirina' },
-    { key: 'parentRadek',   userKey: 'parentRadek' },
-    { key: 'parentMarketa', userKey: 'parentMarketa' },
-    { key: 'parentMichal',  userKey: 'parentMichal' },
-    // Players (Alex, U19, U15, U12, U9, WU15)
-    { key: 'alex',      userKey: 'alex',      jersey: 10, pos: 'AM',  minor: false },
-    { key: 'vojta',     userKey: 'vojta',     jersey: 9,  pos: 'CF',  minor: false },
-    { key: 'albertCZ',  userKey: 'albertCZ',  jersey: 1,  pos: 'GK',  minor: false },
-    { key: 'jakub',     userKey: 'jakub',     jersey: 7,  pos: 'LW',  minor: true },
-    { key: 'tomasH',    userKey: 'tomasH',    jersey: 8,  pos: 'CM',  minor: true },
-    { key: 'marek',     userKey: 'marek',     jersey: 5,  pos: 'CB',  minor: true },
-    { key: 'oliver',    userKey: 'oliver',    jersey: 11, pos: 'RW',  minor: true },
-    { key: 'matejC',    userKey: 'matejC',    jersey: 4,  pos: 'DM',  minor: true },
-    { key: 'adela',     userKey: 'adela',     jersey: 6,  pos: 'RB',  minor: true, medical: 'Astma — inhalátor před tréninkem.' },
-    { key: 'eliska',    userKey: 'eliska',    jersey: 14, minor: true },
-    { key: 'jonas',     userKey: 'jonas',     jersey: 2,  minor: true },
-    { key: 'matyasBr',  userKey: 'matyasBr',  jersey: 7,  minor: true, medical: 'Potravinová alergie — arašídy. Adrenalinové pero v tašce.' },
-    { key: 'anicka',    userKey: 'anicka',    jersey: 12, minor: true },
-    { key: 'viktorie',  userKey: 'viktorie',  jersey: 13, minor: true },
-    { key: 'kubik',     userKey: 'kubik',     jersey: 15, minor: true },
-    { key: 'sarka',     userKey: 'sarka',     jersey: 16, minor: true },
-    { key: 'dominikP',  userKey: 'dominikP',  jersey: 17, minor: true },
-    { key: 'tereza',    userKey: 'tereza',    jersey: 3,  pos: 'LB',  minor: true },
-    { key: 'klara',     userKey: 'klara',     jersey: 10, pos: 'CF',  minor: true },
+  // Sokol — TEAM_MANAGER + assistant
+  await createUserMember({
+    email: 'asistent@sokoli.cz', firstName: 'Lukáš', lastName: 'Marek',
+    clubId: sokol.id, brandColor: '#16a34a', devHash,
+    teamRoles: [{ teamId: u11.id, role: TeamRole.ASSISTANT_COACH }],
+  });
+  await createUserMember({
+    email: 'manager@sokoli.cz', firstName: 'Eva', lastName: 'Hájková',
+    clubId: sokol.id, brandColor: '#16a34a', devHash,
+    teamRoles: [{ teamId: u11.id, role: TeamRole.TEAM_MANAGER }],
+  });
+
+  // ==========================================================================
+  // EVENTS — every EventType + every HomeAway + multi-team
+  // ==========================================================================
+
+  console.log('  📅 Events (PRACTICE/MATCH/TOURNAMENT/MEETING/SOCIAL × HOME/AWAY/NEUTRAL)…');
+
+  const u13Players = childMembersHvezda.map(c => c.id);
+  const u15Players = u15Children.map(c => c.id);
+  const u11Players = sokolChildren.map(c => c.id);
+
+  const u13Events  = await seedRichEvents({ clubId: hvezda.id, teamId: u13.id, coachId: coachU13.memberId, playerIds: u13Players, label: 'U13 Hvězda' });
+  const u15Events  = await seedRichEvents({ clubId: hvezda.id, teamId: u15.id, coachId: coachU15.memberId, playerIds: u15Players, label: 'U15 Hvězda' });
+  const u11Events  = await seedRichEvents({ clubId: sokol.id, teamId: u11.id, coachId: tomasInSokol.id,    playerIds: u11Players, label: 'U11 Sokoli' });
+
+  // ==========================================================================
+  // TRAINING TEMPLATE + materialized events + 1 detached event
+  // ==========================================================================
+
+  console.log('  📋 Training template + detached event…');
+
+  const tmpl = await prisma.trainingTemplate.create({
+    data: {
+      clubId: hvezda.id, teamId: u13.id,
+      name: 'Pondělí + středa 17:30 (UMT Strahov)',
+      eventType: EventType.PRACTICE,
+      daysOfWeek: [1, 3], // Monday + Wednesday
+      startTime: '17:30', endTime: '19:00',
+      location: 'UMT Strahov',
+      description: 'Pravidelný trénink U13.',
+      validFrom: offset(-30),
+      validUntil: offset(60),
+      active: true,
+      createdById: coachU13.memberId,
+    },
+  });
+
+  // Pick one of the future U13 events and link it to template; mark another as detached
+  if (u13Events.future[0]) {
+    await prisma.event.update({
+      where: { id: u13Events.future[0].id },
+      data: { templateId: tmpl.id },
+    });
+  }
+  if (u13Events.future[1]) {
+    await prisma.event.update({
+      where: { id: u13Events.future[1].id },
+      data: { templateId: tmpl.id, detached: true }, // was from template, then detached
+    });
+  }
+
+  // ==========================================================================
+  // FEES + PAYMENTS — every PaymentStatus
+  // ==========================================================================
+
+  console.log('  💸 Fees + payments (all statuses)…');
+
+  const feeJesen = await prisma.fee.create({
+    data: {
+      clubId: hvezda.id, teamId: u13.id,
+      name: 'Členský příspěvek — podzim 2025',
+      description: 'Čtvrtletní členský příspěvek (září–prosinec)',
+      amountCents: 350000, currency: 'CZK',
+      dueDate: offset(-30),
+    },
+  });
+
+  const feeSoustred = await prisma.fee.create({
+    data: {
+      clubId: hvezda.id, teamId: u13.id,
+      name: 'Soustředění Mariánské Lázně',
+      description: 'Týdenní soustředění (29. 6. – 5. 7. 2026)',
+      amountCents: 580000, currency: 'CZK',
+      dueDate: offset(40),
+    },
+  });
+
+  // Map first 5 children → 5 payment statuses
+  const statuses: PaymentStatus[] = [
+    PaymentStatus.PAID,
+    PaymentStatus.PENDING,
+    PaymentStatus.PROCESSING,
+    PaymentStatus.FAILED,
+    PaymentStatus.REFUNDED,
   ];
-  for (const m of memberDefs) {
-    members[m.key] = await prisma.member.create({
+  for (let i = 0; i < 5; i++) {
+    const child = childMembersHvezda[i];
+    if (!child) continue;
+    // Find this child's primary parent (guardian)
+    const guardianLink = await prisma.guardianLink.findFirst({
+      where: { childId: child.id, isPrimary: true },
+    });
+    if (!guardianLink) continue;
+    await prisma.payment.create({
       data: {
-        userId: users[m.userKey]!.id,
-        clubId: club.id,
-        isMinor: m.minor ?? false,
-        jerseyNumber: m.jersey,
-        position: m.pos,
-        medicalNotes: m.medical,
+        clubId: hvezda.id, feeId: feeJesen.id,
+        payerId: guardianLink.guardianId,
+        onBehalfOfId: child.id,
+        amountCents: 350000, currency: 'CZK',
+        status: statuses[i]!,
+        stripePaymentIntentId: statuses[i] === PaymentStatus.PAID ? `pi_demo_${i}` : null,
+        paidAt: statuses[i] === PaymentStatus.PAID ? offset(-25) : null,
       },
     });
   }
 
-  // ---- Club-level roles ----
-  await prisma.clubRole.createMany({
-    data: [
-      { memberId: members.admin!.id, role: ClubRoleType.OWNER },
-      { memberId: members.admin!.id, role: ClubRoleType.FINANCE },
-      { memberId: members.admin!.id, role: ClubRoleType.ADMIN },
-      { memberId: members.commsMgr!.id, role: ClubRoleType.COMMUNICATIONS },
-    ],
-  });
+  // ==========================================================================
+  // WAIVERS — every WaiverType + signatures
+  // ==========================================================================
 
-  // ---- Team memberships ----
-  const tm = (memberId: string, teamId: string, role: TeamRole) => ({ memberId, teamId, role });
-  await prisma.teamMembership.createMany({
-    data: [
-      // Muži A — coaching staff
-      tm(members.headCoach!.id, muziA.id, TeamRole.HEAD_COACH),
-      tm(members.medic!.id,     muziA.id, TeamRole.MEDIC),
+  console.log('  📝 Waivers (GDPR/HEALTH/LIABILITY/MEDIA_CONSENT)…');
 
-      // U19 — Alex + Vojta + Albert (fictional) + staff
-      tm(members.alex!.id,         u19.id, TeamRole.PLAYER),
-      tm(members.vojta!.id,        u19.id, TeamRole.PLAYER),
-      tm(members.albertCZ!.id,     u19.id, TeamRole.PLAYER),
-      tm(members.headCoach!.id,    u19.id, TeamRole.HEAD_COACH),
-      tm(members.assistCoach1!.id, u19.id, TeamRole.ASSISTANT_COACH),
+  const waiverTypes: Array<{ type: WaiverType; title: string; body: string }> = [
+    { type: WaiverType.GDPR,          title: 'Souhlas se zpracováním osobních údajů', body: 'Souhlasím se zpracováním osobních údajů hráče ve smyslu GDPR.' },
+    { type: WaiverType.HEALTH,        title: 'Prohlášení o zdravotní způsobilosti',   body: 'Prohlašuji, že hráč je zdravotně způsobilý k provozování sportu.' },
+    { type: WaiverType.LIABILITY,     title: 'Prohlášení o odpovědnosti',              body: 'Beru na vědomí rizika spojená se sportovní činností.' },
+    { type: WaiverType.MEDIA_CONSENT, title: 'Souhlas s focením a zveřejněním fotek',   body: 'Souhlasím s pořizováním a zveřejněním fotografií hráče v týmovém rámci.' },
+  ];
 
-      // U15 — Jakub, Tomáš H, Marek, Oliver, Matěj Č + Alex (multi-role)
-      tm(members.jakub!.id,        u15.id, TeamRole.PLAYER),
-      tm(members.tomasH!.id,       u15.id, TeamRole.PLAYER),
-      tm(members.marek!.id,        u15.id, TeamRole.PLAYER),
-      tm(members.oliver!.id,       u15.id, TeamRole.PLAYER),
-      tm(members.matejC!.id,       u15.id, TeamRole.PLAYER),
-      // (1) MULTI-ROLE: Alex is PLAYER on U15 AND ASSISTANT_COACH on U9
-      tm(members.alex!.id,         u15.id, TeamRole.PLAYER),
-      tm(members.assistCoach2!.id, u15.id, TeamRole.HEAD_COACH),
+  for (const w of waiverTypes) {
+    const waiver = await prisma.waiver.create({
+      data: {
+        clubId: hvezda.id, title: w.title, body: w.body,
+        version: 1, type: w.type, requiredForMinors: true,
+      },
+    });
+    // Sign for first 3 children (by their primary guardian)
+    for (let i = 0; i < 3; i++) {
+      const child = childMembersHvezda[i];
+      if (!child) continue;
+      const link = await prisma.guardianLink.findFirst({ where: { childId: child.id, isPrimary: true } });
+      if (!link) continue;
+      await prisma.waiverSignature.create({
+        data: {
+          waiverId: waiver.id, subjectId: child.id, signedById: link.guardianId,
+          ipAddress: '192.168.1.' + (10 + i),
+        },
+      });
+    }
+  }
 
-      // U12 — Adéla, Eliška, Jonáš
-      tm(members.adela!.id,        u12.id, TeamRole.PLAYER),
-      tm(members.eliska!.id,       u12.id, TeamRole.PLAYER),
-      tm(members.jonas!.id,        u12.id, TeamRole.PLAYER),
-      tm(members.teamMgr!.id,      u12.id, TeamRole.TEAM_MANAGER),
+  // ==========================================================================
+  // CONVERSATIONS — every ConversationType
+  // ==========================================================================
 
-      // U9 — Matyáš P, Anička, Viktorie, Kubík, Šárka, Dominik
-      tm(members.matyasBr!.id,     u9.id, TeamRole.PLAYER),
-      tm(members.anicka!.id,       u9.id, TeamRole.PLAYER),
-      tm(members.viktorie!.id,     u9.id, TeamRole.PLAYER),
-      tm(members.kubik!.id,        u9.id, TeamRole.PLAYER),
-      tm(members.sarka!.id,        u9.id, TeamRole.PLAYER),
-      tm(members.dominikP!.id,     u9.id, TeamRole.PLAYER),
-      tm(members.coachU9!.id,      u9.id, TeamRole.HEAD_COACH),
-      // (1) MULTI-ROLE: Alex is ASSISTANT_COACH on U9
-      tm(members.alex!.id,         u9.id, TeamRole.ASSISTANT_COACH),
+  console.log('  💬 Conversations (TEAM/COACHES/PARENTS/DM/GROUP/ANNOUNCEMENT)…');
 
-      // WU15 — girls from U12+U15 who also play women's youth
-      tm(members.adela!.id,        wu15.id, TeamRole.PLAYER),
-      tm(members.tereza!.id,       wu15.id, TeamRole.PLAYER),
-      tm(members.klara!.id,        wu15.id, TeamRole.PLAYER),
-      tm(members.assistCoach1!.id, wu15.id, TeamRole.HEAD_COACH),
-      tm(members.medic!.id,        wu15.id, TeamRole.MEDIC),
-    ],
-  });
-
-  // ---- Guardian links ----
-  const gl = (
-    guardianId: string,
-    childId: string,
-    rel: GuardianRelationship,
-    primary: boolean,
-    perms: { pay: boolean; medical: boolean; waivers: boolean },
-  ) => ({
-    guardianId,
-    childId,
-    relationship: rel,
-    isPrimary: primary,
-    canViewSchedule: true,
-    canRsvp: true,
-    canViewPayments: perms.pay,
-    canMakePayments: perms.pay,
-    canViewMedical: perms.medical,
-    canSignWaivers: perms.waivers,
-    verifiedAt: new Date(),
-  });
-
-  await prisma.guardianLink.createMany({
-    data: [
-      // (2) DIVORCED-PARENT PRIVACY: Mom=full, Dad=schedule+RSVP only
-      gl(members.mom!.id, members.matyasBr!.id, GuardianRelationship.PARENT, true,  { pay: true,  medical: true,  waivers: true }),
-      gl(members.dad!.id, members.matyasBr!.id, GuardianRelationship.PARENT, false, { pay: false, medical: false, waivers: false }),
-
-      // Fictional supporting families — normal full-permission guardian links
-      gl(members.parentAlena!.id,   members.jakub!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentAlena!.id,   members.adela!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentPavel!.id,   members.tomasH!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentPavel!.id,   members.kubik!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentJirina!.id,  members.marek!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentJirina!.id,  members.anicka!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentRadek!.id,   members.oliver!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentRadek!.id,   members.jonas!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentMarketa!.id, members.eliska!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentMarketa!.id, members.tereza!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentMichal!.id,  members.matejC!.id,   GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      gl(members.parentMichal!.id,  members.sarka!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-
-      // Staff-who-are-also-parents patterns
-      // Petra (assistant coach) is Viktorie's mom
-      gl(members.assistCoach1!.id,  members.viktorie!.id, GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      // Ondřej (assistant coach) is Dominik P.'s dad
-      gl(members.assistCoach2!.id,  members.dominikP!.id, GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      // Zuzana (comms manager) is Vojtěch's mom
-      gl(members.commsMgr!.id,      members.vojta!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      // Admin Jan is Albert Bečvář's dad
-      gl(members.admin!.id,         members.albertCZ!.id, GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-      // Head coach Martin is Klára's dad
-      gl(members.headCoach!.id,     members.klara!.id,    GuardianRelationship.PARENT, true, { pay: true, medical: true, waivers: true }),
-    ],
-  });
-
-  // ---- Conversations ----
-  const u9Chat = await prisma.conversation.create({
+  // 1. TEAM — U13 chat
+  const teamChat = await prisma.conversation.create({
     data: {
-      clubId: club.id, teamId: u9.id, type: ConversationType.TEAM,
-      title: 'U9 — Týmový chat',
+      clubId: hvezda.id, teamId: u13.id, type: ConversationType.TEAM,
+      title: 'U13 Strašnice — týmový chat',
       participants: { create: [
-        { memberId: members.mom!.id }, { memberId: members.dad!.id },
-        { memberId: members.coachU9!.id }, { memberId: members.alex!.id },
-        { memberId: members.parentJirina!.id }, { memberId: members.parentPavel!.id },
-      ]},
+        ...childMembersHvezda.map(c => ({ memberId: c.id })),
+        { memberId: coachU13.memberId },
+        { memberId: assistantU13.memberId },
+        { memberId: teamMgrU13.memberId },
+        { memberId: medicU13.memberId },
+        { memberId: adminH.memberId },
+      ] },
     },
   });
-  const u19Chat = await prisma.conversation.create({
-    data: {
-      clubId: club.id, teamId: u19.id, type: ConversationType.TEAM,
-      title: 'U19 — Týmový chat',
-      participants: { create: [
-        { memberId: members.headCoach!.id }, { memberId: members.assistCoach1!.id },
-        { memberId: members.alex!.id }, { memberId: members.vojta!.id },
-        { memberId: members.albertCZ!.id }, { memberId: members.medic!.id },
-      ]},
-    },
-  });
-  const u15Chat = await prisma.conversation.create({
-    data: {
-      clubId: club.id, teamId: u15.id, type: ConversationType.TEAM,
-      title: 'U15 — Týmový chat',
-      participants: { create: [
-        { memberId: members.assistCoach2!.id }, { memberId: members.teamMgr!.id },
-        { memberId: members.jakub!.id }, { memberId: members.tomasH!.id },
-        { memberId: members.parentAlena!.id }, { memberId: members.parentPavel!.id },
-        { memberId: members.parentJirina!.id },
-      ]},
-    },
-  });
-  const wu15Chat = await prisma.conversation.create({
-    data: {
-      clubId: club.id, teamId: wu15.id, type: ConversationType.TEAM,
-      title: 'WU15 — Týmový chat',
-      participants: { create: [
-        { memberId: members.assistCoach1!.id }, { memberId: members.tereza!.id },
-        { memberId: members.klara!.id }, { memberId: members.adela!.id },
-        { memberId: members.parentMarketa!.id }, { memberId: members.medic!.id },
-      ]},
-    },
-  });
-  // Coach-only channel
-  const coachesChannel = await prisma.conversation.create({
-    data: {
-      clubId: club.id, type: ConversationType.COACHES,
-      title: 'Trenérský kanál',
-      participants: { create: [
-        { memberId: members.headCoach!.id }, { memberId: members.assistCoach1!.id },
-        { memberId: members.assistCoach2!.id }, { memberId: members.coachU9!.id },
-        { memberId: members.admin!.id },
-      ]},
-    },
-  });
-  // PRIVATE DMs — Dad CANNOT see the Coach↔Mom DM
-  const coachMomDm = await prisma.conversation.create({
-    data: {
-      clubId: club.id, type: ConversationType.DM,
-      title: 'Trenér Dvořák & Lucie',
-      participants: { create: [
-        { memberId: members.coachU9!.id }, { memberId: members.mom!.id },
-      ]},
-    },
-  });
-  const adminCoachDm = await prisma.conversation.create({
-    data: {
-      clubId: club.id, type: ConversationType.DM,
-      title: 'Jan & Martin',
-      participants: { create: [
-        { memberId: members.admin!.id }, { memberId: members.headCoach!.id },
-      ]},
-    },
-  });
-  // Club-wide announcement
-  const announcements = await prisma.conversation.create({
-    data: {
-      clubId: club.id, type: ConversationType.ANNOUNCEMENT,
-      title: 'Klubové oznámení',
-      participants: { create: [
-        { memberId: members.admin!.id }, { memberId: members.commsMgr!.id },
-        { memberId: members.headCoach!.id }, { memberId: members.assistCoach1!.id },
-        { memberId: members.assistCoach2!.id }, { memberId: members.mom!.id },
-        { memberId: members.dad!.id }, { memberId: members.parentAlena!.id },
-        { memberId: members.parentPavel!.id }, { memberId: members.parentJirina!.id },
-        { memberId: members.parentRadek!.id }, { memberId: members.parentMarketa!.id },
-        { memberId: members.parentMichal!.id },
-      ]},
-    },
-  });
-
-  // ---- Messages ----
   await prisma.message.createMany({
     data: [
-      { conversationId: u9Chat.id, senderId: members.coachU9!.id, body: 'Připomínka: sobotní zápas začíná v 10:00. Doražte prosím do 9:30.', createdAt: past(3, 18) },
-      { conversationId: u9Chat.id, senderId: members.mom!.id, body: 'Matyáš tam bude! Má si vzít vlastní pití, nebo bude k dispozici?', createdAt: past(3, 19) },
-      { conversationId: u9Chat.id, senderId: members.coachU9!.id, body: 'Vezměte si vlastní lahve s vodou. O poločase budou pomeranče.', createdAt: past(3, 19) },
-      { conversationId: u9Chat.id, senderId: members.alex!.id, body: 'Můžu přijít dřív a pomoct s kužely, trenére.', createdAt: past(2, 20) },
-      { conversationId: u9Chat.id, senderId: members.coachU9!.id, body: 'To by bylo super, díky Alexi!', createdAt: past(2, 20) },
-
-      { conversationId: u19Chat.id, senderId: members.headCoach!.id, body: 'Čtvrteční trénink zrušen kvůli podmáčenému hřišti. Místo toho posilovna v 17:00.', createdAt: past(5, 16) },
-      { conversationId: u19Chat.id, senderId: members.alex!.id, body: 'Jasně, vezmu si sálovky.', createdAt: past(5, 17) },
-      { conversationId: u19Chat.id, senderId: members.vojta!.id, body: 'Můžu vzít kamaráda do posilovny? Přemýšlí, že se přidá ke klubu.', createdAt: past(5, 17) },
-      { conversationId: u19Chat.id, senderId: members.headCoach!.id, body: 'Jasně, Vojto, čím víc tím líp. Ať vyplní hostovský souhlas.', createdAt: past(5, 18) },
-
-      { conversationId: u15Chat.id, senderId: members.assistCoach2!.id, body: 'Sestava na neděli: Jakub LW, Tomáš CM, Marek CB. Kompletní soupiska v příloze.', createdAt: past(1, 10) },
-      { conversationId: u15Chat.id, senderId: members.parentAlena!.id, body: 'Jakub se těší, díky trenére!', createdAt: past(1, 11) },
-      { conversationId: u15Chat.id, senderId: members.teamMgr!.id, body: 'Dresy jsou vyprané a sbalené. Budu tam v 8:30 na přípravu.', createdAt: past(1, 12) },
-
-      { conversationId: wu15Chat.id, senderId: members.assistCoach1!.id, body: 'Holky, los soutěže je venku. Začínáme venku proti FK Slavoj Vyšehrad 25.', createdAt: past(7, 14) },
-      { conversationId: wu15Chat.id, senderId: members.tereza!.id, body: 'Super!! Už se nemůžu dočkat!', createdAt: past(7, 15) },
-      { conversationId: wu15Chat.id, senderId: members.klara!.id, body: 'Bude autobus, nebo vezou rodiče?', createdAt: past(7, 16) },
-      { conversationId: wu15Chat.id, senderId: members.assistCoach1!.id, body: 'Zatím rodiče. Sdílení jízd najdete v aplikaci v sekci Události.', createdAt: past(7, 16) },
-
-      { conversationId: coachMomDm.id, senderId: members.coachU9!.id, body: 'Rychlá poznámka k Matyášově alergii — můžete potvrdit, že má léky v tašce na sobotu?', createdAt: past(4, 9) },
-      { conversationId: coachMomDm.id, senderId: members.mom!.id, body: 'Ano, adrenalinové pero je v přední kapse. Záložní jsem dala do lékárničky, kterou jste mi dal.', createdAt: past(4, 10) },
-      { conversationId: coachMomDm.id, senderId: members.coachU9!.id, body: 'Výborně, děkuji Lucie.', createdAt: past(4, 10) },
-
-      { conversationId: adminCoachDm.id, senderId: members.admin!.id, body: 'Martine, musíme probrat rozpočet na příští sezónu. Můžeš dát dohromady seznam vybavení?', createdAt: past(10, 11) },
-      { conversationId: adminCoachDm.id, senderId: members.headCoach!.id, body: 'Pracuji na tom. Měl bych to mít do konce týdne. Potřebujeme nové rozlišováky a aspoň 20 míčů.', createdAt: past(10, 14) },
-      { conversationId: adminCoachDm.id, senderId: members.admin!.id, body: 'Jasně. Podívám se na stav účtu.', createdAt: past(9, 9) },
-
-      { conversationId: coachesChannel.id, senderId: members.headCoach!.id, body: 'Info pro tým: hřiště 1 a 2 se od pondělí renovují. Dva týdny používejte hřiště 3 a 4.', createdAt: past(6, 8) },
-      { conversationId: coachesChannel.id, senderId: members.assistCoach1!.id, body: 'Jasně. Aktualizuji rozvrh tréninků WU15.', createdAt: past(6, 9) },
-      { conversationId: coachesChannel.id, senderId: members.assistCoach2!.id, body: 'Stejně tak pro U15. Dnes pošlu rodičům aktualizované lokace.', createdAt: past(6, 9) },
-
-      { conversationId: announcements.id, senderId: members.admin!.id, body: 'Klubové grilování — sobota 24. května, 13:00 ve Sportovním areálu Braník. Všechny rodiny vítány!', createdAt: past(14, 10) },
-      { conversationId: announcements.id, senderId: members.commsMgr!.id, body: 'Registrace na sezónu 2026-27 se otevírá 1. června. Sleva 10 % pro stávající členy, kteří se registrují do 15. června.', createdAt: past(8, 10) },
-      { conversationId: announcements.id, senderId: members.admin!.id, body: 'Připomínka: všechny neuhrazené příspěvky musí být zaplaceny do konce dubna. Zkontrolujte sekci Platby v aplikaci.', createdAt: past(2, 10) },
+      { conversationId: teamChat.id, senderId: coachU13.memberId, body: 'Vítejte v sezóně 2025/26! 👋', createdAt: offset(-10, 9) },
+      { conversationId: teamChat.id, senderId: coachU13.memberId, body: 'Připomínám zítra trénink 17:30 na Strahově. Vezměte si štulpny.', createdAt: offset(-2, 18) },
+      { conversationId: teamChat.id, senderId: assistantU13.memberId, body: 'Pokud nestíháte přijít včas, dejte vědět. Děkuji!', createdAt: offset(-2, 19) },
     ],
   });
 
-  // ---- Fees ----
-  const [feeU9, feeU15, feeU19, feeWU15, feeClub] = await Promise.all([
-    prisma.fee.create({ data: { clubId: club.id, teamId: u9.id,  name: 'U9 Sezónní příspěvek 2025-26',  amountCents: 600000, currency: 'CZK', dueDate: d('2026-09-01') } }),
-    prisma.fee.create({ data: { clubId: club.id, teamId: u15.id, name: 'U15 Sezónní příspěvek 2025-26', amountCents: 800000, currency: 'CZK', dueDate: d('2026-09-01') } }),
-    prisma.fee.create({ data: { clubId: club.id, teamId: u19.id, name: 'U19 Sezónní příspěvek 2025-26', amountCents: 1000000, currency: 'CZK', dueDate: d('2026-09-01') } }),
-    prisma.fee.create({ data: { clubId: club.id, teamId: wu15.id,name: 'WU15 Sezónní příspěvek',        amountCents: 700000, currency: 'CZK', dueDate: d('2026-09-01') } }),
-    prisma.fee.create({ data: { clubId: club.id,                 name: 'Roční klubový příspěvek', description: 'Pojištění + přístup k zázemí', amountCents: 200000, currency: 'CZK', dueDate: d('2026-06-01') } }),
-  ]);
-
-  // ---- Payments (mix of PAID, PENDING, FAILED) ----
-  const pay = (feeId: string, payerId: string, onBehalfOfId: string | null, status: 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED', amountCents: number) => ({
-    clubId: club.id, feeId, payerId, onBehalfOfId, amountCents, currency: 'CZK', status: status as any,
-    paidAt: status === 'PAID' ? past(Math.floor(Math.random() * 30)) : null,
-  });
-  await prisma.payment.createMany({
-    data: [
-      // U9 fee
-      pay(feeU9.id, members.mom!.id, members.matyasBr!.id, 'PAID', 600000),
-      pay(feeU9.id, members.parentPavel!.id, members.kubik!.id, 'PAID', 600000),
-      pay(feeU9.id, members.parentJirina!.id, members.anicka!.id, 'PAID', 600000),
-      pay(feeU9.id, members.dad!.id, null, 'PENDING', 600000), // Dad hasn't paid his share
-
-      // U15 fee
-      pay(feeU15.id, members.parentAlena!.id, members.jakub!.id, 'PAID', 800000),
-      pay(feeU15.id, members.parentPavel!.id, members.tomasH!.id, 'PAID', 800000),
-      pay(feeU15.id, members.parentJirina!.id, members.marek!.id, 'PENDING', 800000),
-      pay(feeU15.id, members.parentRadek!.id, members.oliver!.id, 'PAID', 800000),
-
-      // U19 fee
-      pay(feeU19.id, members.alex!.id, null, 'PAID', 1000000), // Alex is 16, pays his own
-      pay(feeU19.id, members.admin!.id, members.albertCZ!.id, 'PAID', 1000000),
-      pay(feeU19.id, members.commsMgr!.id, members.vojta!.id, 'PAID', 1000000),
-
-      // WU15
-      pay(feeWU15.id, members.parentMarketa!.id, members.tereza!.id, 'PAID', 700000),
-      pay(feeWU15.id, members.headCoach!.id, members.klara!.id, 'PAID', 700000),
-      pay(feeWU15.id, members.parentAlena!.id, members.adela!.id, 'FAILED', 700000), // card declined
-
-      // Club membership fee
-      pay(feeClub.id, members.parentAlena!.id, null, 'PAID', 200000),
-      pay(feeClub.id, members.parentPavel!.id, null, 'PAID', 200000),
-      pay(feeClub.id, members.parentJirina!.id, null, 'PAID', 200000),
-      pay(feeClub.id, members.parentRadek!.id, null, 'PENDING', 200000),
-      pay(feeClub.id, members.parentMarketa!.id, null, 'PENDING', 200000),
-      pay(feeClub.id, members.parentMichal!.id, null, 'PAID', 200000),
-    ],
-  });
-
-  // ---- Events (past + upcoming) ----
-  const evt = (
-    teamId: string | null, type: EventType, title: string, start: Date, end: Date,
-    loc: string, extra?: { opponent?: string; homeAway?: HomeAway; desc?: string },
-  ) => ({
-    clubId: club.id, teamId, type, title, description: extra?.desc,
-    startsAt: start, endsAt: end, location: loc, opponent: extra?.opponent,
-    homeAway: extra?.homeAway, createdById: members.headCoach!.id,
-  });
-
-  const events = await Promise.all([
-    // Past events
-    prisma.event.create({ data: evt(u9.id,  EventType.MATCH, 'ABC Braník vs SK Dolní Chabry', past(7, 10), past(7, 11), 'Braník - UMT 1 (105x61m)', { opponent: 'SK Dolní Chabry', homeAway: HomeAway.HOME }) }),
-    prisma.event.create({ data: evt(u19.id, EventType.PRACTICE, 'U19 Posilovna', past(5, 17), past(5, 19), 'Sportovní areál Braník, Hřiště 2') }),
-    prisma.event.create({ data: evt(u15.id, EventType.MATCH, 'FK Meteor B vs ABC Braník', past(3, 14), past(3, 16), 'Stadion Dolní Chabry', { opponent: 'FK Meteor Praha B', homeAway: HomeAway.AWAY }) }),
-
-    // Upcoming events
-    prisma.event.create({ data: evt(u9.id,  EventType.PRACTICE, 'U9 Trénink',  future(1, 17), future(1, 18), 'Sportovní areál Braník, Hřiště 2') }),
-    prisma.event.create({ data: evt(u19.id, EventType.MATCH,    'ABC Braník vs FK Admira Praha', future(3, 15), future(3, 17), 'Braník - UMT 1 (105x61m)', { opponent: 'FK Admira Praha', homeAway: HomeAway.HOME }) }),
-    prisma.event.create({ data: evt(u15.id, EventType.PRACTICE, 'U15 Trénink', future(2, 17), future(2, 18), 'Sportovní areál Braník, Hřiště 2') }),
-    prisma.event.create({ data: evt(wu15.id,EventType.MATCH,    'WU15 vs FK Slavoj Vyšehrad', future(5, 14), future(5, 16), 'Hřiště FK Slavoj Vyšehrad', { opponent: 'FK Slavoj Vyšehrad', homeAway: HomeAway.AWAY }) }),
-    prisma.event.create({ data: evt(u12.id, EventType.PRACTICE, 'U12 Trénink', future(1, 16), future(1, 17), 'Sportovní areál Braník, Hřiště 2') }),
-    prisma.event.create({ data: evt(null,   EventType.SOCIAL,   'Klubové grilování', future(14, 13), future(14, 17), 'Sportovní areál Braník', { desc: 'Všechny rodiny vítány! Grilování, nápoje a turnaj v malém fotbale.' }) }),
-    prisma.event.create({ data: evt(null,   EventType.MEETING,  'Valná hromada', future(21, 19), future(21, 21), 'Klubovna ABC Braník', { desc: 'Shrnutí sezóny, finance, volby výboru. Účast všech členů vítána.' }) }),
-    prisma.event.create({ data: evt(u12.id, EventType.TOURNAMENT, 'Jarní pohár — U12', future(10, 9), future(10, 16), 'Stadion FK Dukla Praha', { desc: 'Turnaj 8 týmů, každý s každým. Vezměte si svačinu.' }) }),
-    prisma.event.create({ data: evt(u9.id,  EventType.MATCH,    'ABC Braník vs TJ Praga', future(8, 10), future(8, 11), 'Stadion TJ Praga', { opponent: 'TJ Praga', homeAway: HomeAway.AWAY }) }),
-  ]);
-
-  // ---- RSVPs (for upcoming events) ----
-  const rsvps: Array<{ eventId: string; memberId: string; respondedById: string; status: RSVPStatus; note?: string }> = [];
-  const upcoming = events.slice(3);
-
-  // U9 Training — Matyáš YES (mom), Kubík MAYBE, Anička YES
-  rsvps.push({ eventId: upcoming[0]!.id, memberId: members.matyasBr!.id, respondedById: members.mom!.id, status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[0]!.id, memberId: members.kubik!.id, respondedById: members.parentPavel!.id, status: RSVPStatus.MAYBE, note: 'Závisí na pracovním rozvrhu' });
-  rsvps.push({ eventId: upcoming[0]!.id, memberId: members.anicka!.id, respondedById: members.parentJirina!.id, status: RSVPStatus.YES });
-
-  // U19 Match — Alex YES, Albert YES, Vojta MAYBE
-  rsvps.push({ eventId: upcoming[1]!.id, memberId: members.alex!.id,     respondedById: members.alex!.id,     status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[1]!.id, memberId: members.albertCZ!.id, respondedById: members.admin!.id,    status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[1]!.id, memberId: members.vojta!.id,    respondedById: members.commsMgr!.id, status: RSVPStatus.MAYBE, note: 'Možná škola' });
-
-  // U15 Training — Jakub YES, Tomáš H YES, Marek NO (vacation)
-  rsvps.push({ eventId: upcoming[2]!.id, memberId: members.jakub!.id,  respondedById: members.parentAlena!.id, status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[2]!.id, memberId: members.tomasH!.id, respondedById: members.parentPavel!.id, status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[2]!.id, memberId: members.marek!.id,  respondedById: members.parentJirina!.id, status: RSVPStatus.NO, note: 'Rodinná dovolená' });
-
-  // WU15 Match — Tereza YES, Klára YES, Adéla MAYBE
-  rsvps.push({ eventId: upcoming[3]!.id, memberId: members.tereza!.id, respondedById: members.parentMarketa!.id, status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[3]!.id, memberId: members.klara!.id,  respondedById: members.headCoach!.id,     status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[3]!.id, memberId: members.adela!.id,  respondedById: members.parentAlena!.id,   status: RSVPStatus.MAYBE, note: 'Může kolidovat s U12' });
-
-  // Klubové grilování — various
-  rsvps.push({ eventId: upcoming[5]!.id, memberId: members.admin!.id,        respondedById: members.admin!.id,        status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[5]!.id, memberId: members.headCoach!.id,    respondedById: members.headCoach!.id,    status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[5]!.id, memberId: members.mom!.id,          respondedById: members.mom!.id,          status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[5]!.id, memberId: members.parentAlena!.id,  respondedById: members.parentAlena!.id,  status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[5]!.id, memberId: members.parentMarketa!.id,respondedById: members.parentMarketa!.id,status: RSVPStatus.MAYBE });
-
-  // Jarní pohár — U12 players
-  rsvps.push({ eventId: upcoming[7]!.id, memberId: members.adela!.id,  respondedById: members.parentAlena!.id,   status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[7]!.id, memberId: members.eliska!.id, respondedById: members.parentMarketa!.id, status: RSVPStatus.YES });
-  rsvps.push({ eventId: upcoming[7]!.id, memberId: members.jonas!.id,  respondedById: members.parentRadek!.id,   status: RSVPStatus.YES });
-
-  await prisma.eventAttendance.createMany({ data: rsvps });
-
-  // ---- Waivers ----
-  const [gdpr, health, media, liability] = await Promise.all([
-    prisma.waiver.create({ data: { clubId: club.id, title: 'Souhlas GDPR',              body: 'Souhlasím se zpracováním osobních údajů pro provoz klubu, včetně kontaktování zákonných zástupců, správy soupisek a zveřejňování výsledků zápasů.', type: WaiverType.GDPR } }),
-    prisma.waiver.create({ data: { clubId: club.id, title: 'Zdravotní prohlášení',       body: 'Prohlašuji, že výše uvedený hráč je v dobrém zdravotním stavu a je způsobilý k účasti na fotbalovém tréninku a soutěžních zápasech. Případné zdravotní potíže jsou uvedeny v sekci zdravotních poznámek.', type: WaiverType.HEALTH } }),
-    prisma.waiver.create({ data: { clubId: club.id, title: 'Souhlas s focením',          body: 'Souhlasím s pořizováním fotografií a videí mého dítěte během klubových aktivit a jejich zveřejněním na webových stránkách klubu a sociálních sítích pro propagační účely.', type: WaiverType.MEDIA_CONSENT } }),
-    prisma.waiver.create({ data: { clubId: club.id, title: 'Prohlášení o odpovědnosti',  body: 'Beru na vědomí rizika spojená s účastí ve fotbale a souhlasím se zproštěním ABC Braník odpovědnosti za zranění vzniklá během tréninků a zápasů.', type: WaiverType.LIABILITY } }),
-  ]);
-
-  const waiverSigs: Array<{ waiverId: string; subjectId: string; signedById: string }> = [];
-  const sigAllWaivers = (subjectId: string, signerId: string) => {
-    for (const w of [gdpr, health, media, liability]) {
-      waiverSigs.push({ waiverId: w.id, subjectId, signedById: signerId });
-    }
-  };
-  // Most parents sign all waivers for their kids
-  sigAllWaivers(members.matyasBr!.id, members.mom!.id);
-  sigAllWaivers(members.jakub!.id,    members.parentAlena!.id);
-  sigAllWaivers(members.adela!.id,    members.parentAlena!.id);
-  sigAllWaivers(members.tomasH!.id,   members.parentPavel!.id);
-  sigAllWaivers(members.kubik!.id,    members.parentPavel!.id);
-  sigAllWaivers(members.marek!.id,    members.parentJirina!.id);
-  sigAllWaivers(members.anicka!.id,   members.parentJirina!.id);
-  sigAllWaivers(members.oliver!.id,   members.parentRadek!.id);
-  sigAllWaivers(members.jonas!.id,    members.parentRadek!.id);
-  sigAllWaivers(members.eliska!.id,   members.parentMarketa!.id);
-  sigAllWaivers(members.tereza!.id,   members.parentMarketa!.id);
-  sigAllWaivers(members.matejC!.id,   members.parentMichal!.id);
-  sigAllWaivers(members.sarka!.id,    members.parentMichal!.id);
-  sigAllWaivers(members.viktorie!.id, members.assistCoach1!.id);
-  sigAllWaivers(members.dominikP!.id, members.assistCoach2!.id);
-  sigAllWaivers(members.vojta!.id,    members.commsMgr!.id);
-  sigAllWaivers(members.albertCZ!.id, members.admin!.id);
-  sigAllWaivers(members.klara!.id,    members.headCoach!.id);
-  // Matyáš Peroutka (dad's side) — only GDPR + health signed by mom, dad refuses media/liability
-  // (documented path — already covered above by sigAllWaivers on matyasBr)
-  // We'll leave Šárka WITHOUT media consent to show a pending state:
-  // — Handled below by removing one specific signature
-  waiverSigs.pop(); // drop one of Klára's sigs to create variety — but actually we want klara full. Re-add:
-  waiverSigs.push({ waiverId: liability.id, subjectId: members.klara!.id, signedById: members.headCoach!.id });
-  // Create an intentional onboarding-gap for Dominik P: remove his media consent
-  const idxDominikMedia = waiverSigs.findIndex(
-    (s) => s.subjectId === members.dominikP!.id && s.waiverId === media.id,
-  );
-  if (idxDominikMedia >= 0) waiverSigs.splice(idxDominikMedia, 1);
-
-  await prisma.waiverSignature.createMany({ data: waiverSigs });
-
-  // ==========================================================================
-  //  TRAINING TEMPLATES for U9 Braník (MVP demo)
-  // ==========================================================================
-  const tz = 'Europe/Prague';
-  const seedValidFrom = new Date(); seedValidFrom.setHours(0, 0, 0, 0);
-  const seedValidUntil = new Date(); seedValidUntil.setDate(seedValidUntil.getDate() + 90); seedValidUntil.setHours(23, 59, 0, 0);
-
-  function tzOffsetMsForSeed(utcMs: number, zone: string): number {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone: zone, hour12: false,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    });
-    const parts = dtf.formatToParts(new Date(utcMs));
-    const lookup: Record<string, string> = {};
-    for (const p of parts) if (p.type !== 'literal') lookup[p.type] = p.value;
-    const hour = lookup.hour === '24' ? 0 : Number(lookup.hour);
-    const local = Date.UTC(
-      Number(lookup.year), Number(lookup.month) - 1, Number(lookup.day),
-      hour, Number(lookup.minute), Number(lookup.second),
-    );
-    return local - utcMs;
-  }
-  function zonedToUtcForSeed(y: number, m: number, day: number, hh: number, mm: number, zone: string): Date {
-    const naive = Date.UTC(y, m, day, hh, mm, 0, 0);
-    let offset = tzOffsetMsForSeed(naive, zone);
-    let utc = naive - offset;
-    const offset2 = tzOffsetMsForSeed(utc, zone);
-    if (offset2 !== offset) { utc = naive - offset2; }
-    return new Date(utc);
-  }
-  function localDayOfWeekForSeed(utc: Date, zone: string): number {
-    const w = new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short' }).format(utc);
-    return ({ Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 } as Record<string, number>)[w] ?? 0;
-  }
-  function localPartsForSeed(utc: Date, zone: string): { y: number; m: number; d: number } {
-    const dtf = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' });
-    const parts = dtf.formatToParts(utc);
-    const l: Record<string, string> = {};
-    for (const p of parts) if (p.type !== 'literal') l[p.type] = p.value;
-    return { y: Number(l.year), m: Number(l.month) - 1, d: Number(l.day) };
-  }
-
-  const templates = [
-    {
-      key: 'umt',
-      name: 'U9 UMT úterý + čtvrtek',
-      daysOfWeek: [2, 4],
-      startTime: '16:30',
-      endTime: '18:00',
-      location: 'Sportovní areál Braník, UMT 2',
+  // 2. COACHES — interní chat trenérů
+  const coachesChat = await prisma.conversation.create({
+    data: {
+      clubId: hvezda.id, teamId: u13.id, type: ConversationType.COACHES,
+      title: 'U13 — trenéři',
+      participants: { create: [
+        { memberId: coachU13.memberId },
+        { memberId: assistantU13.memberId },
+        { memberId: teamMgrU13.memberId },
+      ] },
     },
-    {
-      key: 'gym',
-      name: 'U9 Sobotní posilovna',
-      daysOfWeek: [6],
-      startTime: '09:00',
-      endTime: '10:00',
-      location: 'Posilovna Kavčí hory',
-    },
-  ];
+  });
+  await prisma.message.create({
+    data: { conversationId: coachesChat.id, senderId: coachU13.memberId, body: 'Tohle vidíme jen my, trenéři. Pojďme probrat sestavu na sobotu.', createdAt: offset(-1, 22) },
+  });
 
-  let totalGeneratedEvents = 0;
-  for (const t of templates) {
-    const tpl = await prisma.trainingTemplate.create({
+  // 3. PARENTS — chat rodičů
+  const parentsChat = await prisma.conversation.create({
+    data: {
+      clubId: hvezda.id, teamId: u13.id, type: ConversationType.PARENTS,
+      title: 'U13 — rodiče',
+      participants: { create: [{ memberId: adminH.memberId }, { memberId: commsH.memberId }] },
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: parentsChat.id, senderId: commsH.memberId, body: 'Milí rodiče, podzimní rozpis je v kalendáři. Případné dotazy směřujte sem.', createdAt: offset(-7, 10) },
+  });
+
+  // 4. DM — Coach ↔ Mom (Dad NOT participant — privacy demo)
+  const mom = await prisma.user.findUnique({ where: { email: 'parent@hvezda.cz' } });
+  const momMember = mom ? await prisma.member.findFirst({ where: { userId: mom.id, clubId: hvezda.id } }) : null;
+  if (momMember) {
+    const dm = await prisma.conversation.create({
       data: {
-        clubId: club.id,
-        teamId: u9.id,
-        name: t.name,
-        eventType: EventType.PRACTICE,
-        daysOfWeek: t.daysOfWeek,
-        startTime: t.startTime,
-        endTime: t.endTime,
-        location: t.location,
-        validFrom: seedValidFrom,
-        validUntil: seedValidUntil,
-        active: true,
-        createdById: members.coachU9!.id,
+        clubId: hvezda.id, type: ConversationType.DM,
+        participants: { create: [{ memberId: coachU13.memberId }, { memberId: momMember.id }] },
       },
     });
-
-    const [sh, sm] = t.startTime.split(':').map(Number) as [number, number];
-    const [eh, em] = t.endTime.split(':').map(Number) as [number, number];
-    const daySet = new Set(t.daysOfWeek);
-    const candidates: Array<Parameters<typeof prisma.event.createMany>[0]['data'] extends Array<infer U> ? U : never> = [];
-
-    let cursor = localPartsForSeed(seedValidFrom, tz);
-    const end = localPartsForSeed(seedValidUntil, tz);
-    let cursorUtc = Date.UTC(cursor.y, cursor.m, cursor.d);
-    const endUtc = Date.UTC(end.y, end.m, end.d);
-
-    while (cursorUtc <= endUtc) {
-      const startsAt = zonedToUtcForSeed(cursor.y, cursor.m, cursor.d, sh, sm, tz);
-      const endsAt = zonedToUtcForSeed(cursor.y, cursor.m, cursor.d, eh, em, tz);
-      const dow = localDayOfWeekForSeed(startsAt, tz);
-      if (daySet.has(dow) && startsAt >= seedValidFrom && startsAt <= seedValidUntil) {
-        candidates.push({
-          clubId: club.id,
-          teamId: u9.id,
-          templateId: tpl.id,
-          type: EventType.PRACTICE,
-          title: t.name,
-          startsAt,
-          endsAt,
-          location: t.location,
-          createdById: members.coachU9!.id,
-          detached: false,
-        });
-      }
-      cursorUtc += 24 * 3600 * 1000;
-      const next = localPartsForSeed(new Date(cursorUtc), tz);
-      cursor = next;
-      cursorUtc = Date.UTC(cursor.y, cursor.m, cursor.d);
-    }
-
-    const res = await prisma.event.createMany({ data: candidates, skipDuplicates: true });
-    totalGeneratedEvents += res.count;
-    console.log(`  Template "${t.name}": generated ${res.count} events`);
-  }
-  console.log(`  Total Braník training-template events: ${totalGeneratedEvents}`);
-
-  // ==========================================================================
-  //  CLUB 2 — TJ Spartak Kbely (REAL Týmuj roster — 27 players + 5 staff)
-  //  Proves multi-tenant RLS isolation and demonstrates a full real-world team.
-  // ==========================================================================
-  const club2 = await prisma.club.create({
-    data: {
-      slug: 'spartak-kbely',
-      name: 'TJ Spartak Kbely',
-      country: 'CZ',
-      timezone: 'Europe/Prague',
-      // Per-tenant customization — Spartak has the `messages` module DISABLED
-      // (demonstrates that a club without a flag gets 404 on /conversations)
-      // and is on the default `basic` tier with the default 200-member cap.
-      features: {
-        messages: false,
-        trainingTemplates: true,
-        payments: true,
-        notifications: true,
-        waivers: true,
-        calendar: true,
-        gallery: false,
-        springCup: false,
-      },
-      config: {
-        tier: 'basic',
-        limits: { maxMembers: 200, maxTeams: 10 },
-      },
-    },
-  });
-  const skTeam = await prisma.team.create({
-    data: { clubId: club2.id, name: 'Spartak Kbely U9', sport: 'football', ageGroup: 'U9', season: '2025-26' },
-  });
-
-  // ---- Spartak Staff (5) ----
-  type SpartakUserDef = { key: string; email: string; firstName: string; lastName: string; dob?: string; pw?: boolean };
-  const spartakStaff: SpartakUserDef[] = [
-    { key: 'skAdmin',  email: 'admin@spartak-kbely.example.com',        firstName: 'Vít',       lastName: 'Mrkvička',     pw: true },
-    { key: 'skCoach1', email: 'pavel.stejskal@spartak-kbely.example.com', firstName: 'Pavel',   lastName: 'Stejskal',     pw: true },
-    { key: 'skCoach2', email: 'tomas.simak@spartak-kbely.example.com',  firstName: 'Tomáš',     lastName: 'Šimák',        pw: true },
-    { key: 'skCoach3', email: 'filip.vana@spartak-kbely.example.com',   firstName: 'Filip',     lastName: 'Váňa',         pw: true },
-    { key: 'skCoach4', email: 'michaela.frydrychova@spartak-kbely.example.com', firstName: 'Michaela', lastName: 'Frydrychová', pw: true },
-  ];
-
-  // ---- Spartak Players (27 — real roster) ----
-  // Alex Mertin is NOT created here — he already exists (see Braník users) and
-  // we only add a Member row for him in club2.
-  const spartakPlayers: SpartakUserDef[] = [
-    { key: 'sk_matyas_d',      email: 'matyas.danihelka@spartak-kbely.example.com',  firstName: 'Matyáš',    lastName: 'Danihelka',  dob: '2017-03-15' },
-    { key: 'sk_mirek_d',       email: 'mirek.danihelka@spartak-kbely.example.com',    firstName: 'Mirek',     lastName: 'Danihelka',  dob: '2017-07-22' },
-    { key: 'sk_dominik_donev', email: 'dominik.donev@spartak-kbely.example.com',      firstName: 'Dominik',   lastName: 'Donev',      dob: '2017-01-10' },
-    { key: 'sk_samuel_h',      email: 'samuel.hladik@spartak-kbely.example.com',      firstName: 'Samuel',    lastName: 'Hladík',     dob: '2017-05-04' },
-    { key: 'sk_adam_hruby',    email: 'adam.hruby@spartak-kbely.example.com',         firstName: 'Adam',      lastName: 'Hrubý',      dob: '2017-11-28' },
-    { key: 'sk_viktor_k',      email: 'viktor.korencik@spartak-kbely.example.com',    firstName: 'Viktor',    lastName: 'Korenčík',   dob: '2017-09-16' },
-    { key: 'sk_vlad_k',        email: 'vladyslav.korovskyi@spartak-kbely.example.com',firstName: 'Vladyslav', lastName: 'Korovskyi',  dob: '2017-02-19' },
-    { key: 'sk_pavel_krenek',  email: 'pavel.krenek@spartak-kbely.example.com',       firstName: 'Pavel',     lastName: 'Křenek',     dob: '2017-06-05' },
-    { key: 'sk_lukas_n',       email: 'lukas.neuvirth@spartak-kbely.example.com',     firstName: 'Lukáš',     lastName: 'Neuvirth',   dob: '2017-10-12' },
-    { key: 'sk_marek_niess',   email: 'marek.niessner@spartak-kbely.example.com',     firstName: 'Marek',     lastName: 'Niessner',   dob: '2017-04-23' },
-    { key: 'sk_tim_niess',     email: 'tim.niessner@spartak-kbely.example.com',       firstName: 'Tim',       lastName: 'Niessner',   dob: '2017-04-23' },
-    { key: 'sk_albert_n',      email: 'albert.novak@spartak-kbely.example.com',       firstName: 'Albert',    lastName: 'Novák',      dob: '2017-08-30' },
-    { key: 'sk_kristyna_n',    email: 'kristyna.novakova@spartak-kbely.example.com',  firstName: 'Kristýna',  lastName: 'Nováková',   dob: '2017-12-07' },
-    { key: 'sk_jan_pecka',     email: 'jan.pecka@spartak-kbely.example.com',          firstName: 'Jan',       lastName: 'Pecka',      dob: '2017-02-02' },
-    { key: 'sk_matyas_p',      email: 'matyas.pechar@spartak-kbely.example.com',      firstName: 'Matyáš',    lastName: 'Pechar',     dob: '2017-06-18' },
-    { key: 'sk_hubert_r',      email: 'hubert.rajtr@spartak-kbely.example.com',       firstName: 'Hubert',    lastName: 'Rajtr',      dob: '2017-01-25' },
-    { key: 'sk_adam_r',        email: 'adam.ruzicka@spartak-kbely.example.com',       firstName: 'Adam',      lastName: 'Růžička',    dob: '2017-07-11' },
-    { key: 'sk_jiri_s',        email: 'jiri.slavata@spartak-kbely.example.com',       firstName: 'Jiří',      lastName: 'Slavata',    dob: '2017-05-21' },
-    { key: 'sk_david_snihura', email: 'david.snihura@spartak-kbely.example.com',      firstName: 'David',     lastName: 'Snihura',    dob: '2017-03-08' },
-    { key: 'sk_richard_t',     email: 'richard.tomasuk@spartak-kbely.example.com',    firstName: 'Richard',   lastName: 'Tomašuk',    dob: '2017-09-04' },
-    { key: 'sk_lukas_v',       email: 'lukas.vavra@spartak-kbely.example.com',        firstName: 'Lukáš',     lastName: 'Vávra',      dob: '2017-11-17' },
-    { key: 'sk_david_v',       email: 'david.velicka@spartak-kbely.example.com',      firstName: 'David',     lastName: 'Velička',    dob: '2017-04-29' },
-    { key: 'sk_jonas_v',       email: 'jonas.venhuda@spartak-kbely.example.com',      firstName: 'Jonáš',     lastName: 'Venhuda',    dob: '2017-08-14' },
-    { key: 'sk_albert_vom',    email: 'albert.vomacka@spartak-kbely.example.com',     firstName: 'Albert',    lastName: 'Vomáčka',    dob: '2017-06-26' },
-    { key: 'sk_richard_z',     email: 'richard.zavoral@spartak-kbely.example.com',    firstName: 'Richard',   lastName: 'Zavoral',    dob: '2017-10-03' },
-    { key: 'sk_daniel_z',      email: 'daniel.zaba@spartak-kbely.example.com',        firstName: 'Daniel',    lastName: 'Žaba',       dob: '2017-12-20' },
-  ];
-
-  const spartakUsers: Record<string, Awaited<ReturnType<typeof prisma.user.create>>> = {};
-  for (const u of [...spartakStaff, ...spartakPlayers]) {
-    spartakUsers[u.key] = await prisma.user.create({
-      data: {
-        email: u.email,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        passwordHash: u.pw ? devHash : null,
-        dateOfBirth: u.dob ? d(u.dob) : null,
-      },
-    });
-  }
-
-  // ---- Spartak Members ----
-  const spartakMembers: Record<string, Awaited<ReturnType<typeof prisma.member.create>>> = {};
-
-  // Staff — adults, no jersey
-  for (const s of spartakStaff) {
-    spartakMembers[s.key] = await prisma.member.create({
-      data: { userId: spartakUsers[s.key]!.id, clubId: club2.id, isMinor: false },
-    });
-  }
-
-  // Players — minors, sequential jerseys (skip 7, reserved for Alex)
-  let jerseyCounter = 1;
-  for (const p of spartakPlayers) {
-    if (jerseyCounter === 7) jerseyCounter++; // Alex owns #7
-    spartakMembers[p.key] = await prisma.member.create({
-      data: {
-        userId: spartakUsers[p.key]!.id,
-        clubId: club2.id,
-        isMinor: true,
-        jerseyNumber: jerseyCounter++,
-      },
-    });
-  }
-
-  // Alex is also a Spartak member (multi-tenant proof) — jersey #7 as in Týmuj
-  const alexSk = await prisma.member.create({
-    data: { userId: users.alex!.id, clubId: club2.id, jerseyNumber: 7, isMinor: false },
-  });
-  spartakMembers['alex'] = alexSk;
-
-  // ---- Spartak Club roles + Team memberships ----
-  await prisma.clubRole.createMany({
-    data: [
-      { memberId: spartakMembers.skAdmin!.id, role: ClubRoleType.OWNER },
-      { memberId: spartakMembers.skAdmin!.id, role: ClubRoleType.ADMIN },
-      { memberId: spartakMembers.skAdmin!.id, role: ClubRoleType.FINANCE },
-    ],
-  });
-
-  const skTm = (memberId: string, role: TeamRole) => ({ memberId, teamId: skTeam.id, role });
-  await prisma.teamMembership.createMany({
-    data: [
-      // Coaching staff (Vít is HEAD_COACH, others ASSISTANT_COACH)
-      skTm(spartakMembers.skAdmin!.id,  TeamRole.HEAD_COACH),
-      skTm(spartakMembers.skCoach1!.id, TeamRole.ASSISTANT_COACH),
-      skTm(spartakMembers.skCoach2!.id, TeamRole.ASSISTANT_COACH),
-      skTm(spartakMembers.skCoach3!.id, TeamRole.ASSISTANT_COACH),
-      skTm(spartakMembers.skCoach4!.id, TeamRole.ASSISTANT_COACH),
-
-      // All 27 players
-      skTm(spartakMembers.alex!.id,             TeamRole.PLAYER),
-      skTm(spartakMembers.sk_matyas_d!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_mirek_d!.id,       TeamRole.PLAYER),
-      skTm(spartakMembers.sk_dominik_donev!.id, TeamRole.PLAYER),
-      skTm(spartakMembers.sk_samuel_h!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_adam_hruby!.id,    TeamRole.PLAYER),
-      skTm(spartakMembers.sk_viktor_k!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_vlad_k!.id,        TeamRole.PLAYER),
-      skTm(spartakMembers.sk_pavel_krenek!.id,  TeamRole.PLAYER),
-      skTm(spartakMembers.sk_lukas_n!.id,       TeamRole.PLAYER),
-      skTm(spartakMembers.sk_marek_niess!.id,   TeamRole.PLAYER),
-      skTm(spartakMembers.sk_tim_niess!.id,     TeamRole.PLAYER),
-      skTm(spartakMembers.sk_albert_n!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_kristyna_n!.id,    TeamRole.PLAYER),
-      skTm(spartakMembers.sk_jan_pecka!.id,     TeamRole.PLAYER),
-      skTm(spartakMembers.sk_matyas_p!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_hubert_r!.id,      TeamRole.PLAYER),
-      skTm(spartakMembers.sk_adam_r!.id,        TeamRole.PLAYER),
-      skTm(spartakMembers.sk_jiri_s!.id,        TeamRole.PLAYER),
-      skTm(spartakMembers.sk_david_snihura!.id, TeamRole.PLAYER),
-      skTm(spartakMembers.sk_richard_t!.id,     TeamRole.PLAYER),
-      skTm(spartakMembers.sk_lukas_v!.id,       TeamRole.PLAYER),
-      skTm(spartakMembers.sk_david_v!.id,       TeamRole.PLAYER),
-      skTm(spartakMembers.sk_jonas_v!.id,       TeamRole.PLAYER),
-      skTm(spartakMembers.sk_albert_vom!.id,    TeamRole.PLAYER),
-      skTm(spartakMembers.sk_richard_z!.id,     TeamRole.PLAYER),
-      skTm(spartakMembers.sk_daniel_z!.id,      TeamRole.PLAYER),
-    ],
-  });
-
-  // ---- Spartak fee ----
-  await prisma.fee.create({
-    data: {
-      clubId: club2.id,
-      teamId: skTeam.id,
-      name: 'U9 Sezónní příspěvek Spartak Kbely',
-      amountCents: 500000,
-      currency: 'CZK',
-      dueDate: d('2026-06-01'),
-    },
-  });
-
-  // ---- Spartak training templates (úterý + čtvrtek 16:30) ----
-  // Mirrors Týmuj pattern: tréninky Út+Čt 16:30–18:00.
-  const skTemplate = await prisma.trainingTemplate.create({
-    data: {
-      clubId: club2.id,
-      teamId: skTeam.id,
-      name: 'Spartak U9 úterý + čtvrtek',
-      eventType: EventType.PRACTICE,
-      daysOfWeek: [2, 4],
-      startTime: '16:30',
-      endTime: '18:00',
-      location: 'Hřiště TJ Spartak Kbely',
-      validFrom: seedValidFrom,
-      validUntil: seedValidUntil,
-      active: true,
-      createdById: spartakMembers.skAdmin!.id,
-    },
-  });
-
-  // Generate Spartak training events
-  {
-    const sh = 16, sm = 30, eh = 18, em = 0;
-    const daySet = new Set([2, 4]);
-    const candidates: Array<Parameters<typeof prisma.event.createMany>[0]['data'] extends Array<infer U> ? U : never> = [];
-
-    let cursor = localPartsForSeed(seedValidFrom, tz);
-    const end = localPartsForSeed(seedValidUntil, tz);
-    let cursorUtc = Date.UTC(cursor.y, cursor.m, cursor.d);
-    const endUtc = Date.UTC(end.y, end.m, end.d);
-
-    while (cursorUtc <= endUtc) {
-      const startsAt = zonedToUtcForSeed(cursor.y, cursor.m, cursor.d, sh, sm, tz);
-      const endsAt = zonedToUtcForSeed(cursor.y, cursor.m, cursor.d, eh, em, tz);
-      const dow = localDayOfWeekForSeed(startsAt, tz);
-      if (daySet.has(dow) && startsAt >= seedValidFrom && startsAt <= seedValidUntil) {
-        candidates.push({
-          clubId: club2.id,
-          teamId: skTeam.id,
-          templateId: skTemplate.id,
-          type: EventType.PRACTICE,
-          title: skTemplate.name,
-          startsAt,
-          endsAt,
-          location: skTemplate.location!,
-          createdById: spartakMembers.skAdmin!.id,
-          detached: false,
-        });
-      }
-      cursorUtc += 24 * 3600 * 1000;
-      const next = localPartsForSeed(new Date(cursorUtc), tz);
-      cursor = next;
-      cursorUtc = Date.UTC(cursor.y, cursor.m, cursor.d);
-    }
-
-    const res = await prisma.event.createMany({ data: candidates, skipDuplicates: true });
-    console.log(`  Spartak template: generated ${res.count} events`);
-  }
-
-  // One upcoming match for Spartak (mirrors Týmuj schedule)
-  await prisma.event.create({
-    data: {
-      clubId: club2.id,
-      teamId: skTeam.id,
-      type: EventType.MATCH,
-      title: 'FK Admira Praha vs Spartak Kbely U9',
-      startsAt: future(2, 17),
-      endsAt: future(2, 18),
-      location: 'Stadion FK Admira Praha',
-      opponent: 'FK Admira Praha',
-      homeAway: HomeAway.AWAY,
-      createdById: spartakMembers.skAdmin!.id,
-    },
-  });
-
-  // ==========================================================================
-  //  PLATFORM ADMIN (global — can edit features/config for any club)
-  //  Logs in via /auth/login like any user, then uses /platform-admin/* routes.
-  // ==========================================================================
-  await prisma.user.create({
-    data: {
-      email: 'platform@example.com',
-      firstName: 'Tomáš',
-      lastName: 'Mertin (SaaS)',
-      passwordHash: devHash,
-      isPlatformAdmin: true,
-    },
-  });
-
-  // ==========================================================================
-  //  Notifications (Braník-scoped)
-  // ==========================================================================
-  const notificationDefs: Array<{
-    memberId: string;
-    type: NotificationType;
-    title: string;
-    body?: string;
-    link?: string;
-    read?: boolean;
-    hoursAgo: number;
-  }> = [
-    // Admin
-    { memberId: members.admin!.id, type: NotificationType.EVENT_CREATED, title: 'Nový trénink: U15 Příprava', body: 'Středa 16. dubna, 17:00 — Braník UMT 1', link: '/admin/events', hoursAgo: 1 },
-    { memberId: members.admin!.id, type: NotificationType.PAYMENT_DUE, title: '3 nezaplacené příspěvky', body: 'Sezónní příspěvky mají splatnost 1. 5.', link: '/admin/payments', hoursAgo: 3 },
-    { memberId: members.admin!.id, type: NotificationType.WAIVER_PENDING, title: 'Nepodepsaný souhlas: Dominik Procházka', body: 'Souhlas s focením — čeká na podpis rodiče', link: '/admin/members', hoursAgo: 5 },
-    { memberId: members.admin!.id, type: NotificationType.MESSAGE, title: 'Nová zpráva od Martina Procházky', body: 'Ahoj, potřebuju řešit rozpis na víkend...', link: '/admin/messages', hoursAgo: 8 },
-    { memberId: members.admin!.id, type: NotificationType.RSVP_REMINDER, title: 'Nízká účast: Sobotní zápas', body: 'Pouze 6 z 15 hráčů potvrdilo účast', link: '/admin/events', hoursAgo: 12 },
-    { memberId: members.admin!.id, type: NotificationType.PAYMENT_RECEIVED, title: 'Platba přijata: Radek Nový', body: '8 000 Kč — U15 Sezónní příspěvek', link: '/admin/payments', hoursAgo: 24, read: true },
-    { memberId: members.admin!.id, type: NotificationType.ANNOUNCEMENT, title: 'Nové klubové oznámení odesláno', body: 'Letní kemp 2026 — informace', hoursAgo: 48, read: true },
-    // Head coach
-    { memberId: members.headCoach!.id, type: NotificationType.EVENT_UPDATED, title: 'Změna: U15 Přátelák vs. Meteor', body: 'Přesunutý čas: 10:00 → 11:00', link: '/admin/events', hoursAgo: 2 },
-    { memberId: members.headCoach!.id, type: NotificationType.RSVP_REMINDER, title: 'Čeká na odpověď: 4 hráči', body: 'Středeční trénink — deadline zítra', link: '/admin/events', hoursAgo: 6 },
-    { memberId: members.headCoach!.id, type: NotificationType.MESSAGE, title: 'Nová zpráva v kanálu Trenéři', body: 'Petra: Mám nový rozpis na květen...', link: '/admin/messages', hoursAgo: 10 },
-    // Mom
-    { memberId: members.mom!.id, type: NotificationType.EVENT_CREATED, title: 'Nová akce: U9 Turnaj Kbely', body: 'Sobota 19. 4. — celý den', link: '/admin/events', hoursAgo: 4 },
-    { memberId: members.mom!.id, type: NotificationType.PAYMENT_DUE, title: 'Platba k úhradě: U9 Příspěvek', body: '6 000 Kč — splatnost 1. 5.', link: '/admin/payments', hoursAgo: 18 },
-    { memberId: members.mom!.id, type: NotificationType.ANNOUNCEMENT, title: 'Klubové oznámení: Letní kemp', body: 'Přihlášky otevřeny do 30. 4.', link: '/admin/messages', hoursAgo: 26 },
-    { memberId: members.mom!.id, type: NotificationType.EVENT_CANCELLED, title: 'Zrušeno: Čtvrteční trénink', body: 'Důvod: údržba hřiště', link: '/admin/events', hoursAgo: 50, read: true },
-  ];
-
-  for (const n of notificationDefs) {
-    await prisma.notification.create({
-      data: {
-        clubId: club.id,
-        memberId: n.memberId,
-        type: n.type,
-        title: n.title,
-        body: n.body ?? null,
-        link: n.link ?? null,
-        read: n.read ?? false,
-        createdAt: new Date(Date.now() - n.hoursAgo * 3600_000),
-      },
-    });
-  }
-
-  // ==========================================================================
-  //  Verification
-  // ==========================================================================
-  console.log('\n=== Verification ===');
-
-  const alexRoles = await prisma.teamMembership.findMany({
-    where: { member: { userId: users.alex!.id } },
-    include: { team: { select: { name: true, club: { select: { name: true } } } } },
-  });
-  console.log(
-    `\n(1) Alex's roles across ALL clubs (${alexRoles.length} expected: 4):`,
-    alexRoles.map((r) => `${r.team.club.name} / ${r.team.name} = ${r.role}`),
-  );
-
-  const matyasGuardians = await prisma.guardianLink.findMany({
-    where: { childId: members.matyasBr!.id },
-    include: { guardian: { include: { user: true } } },
-  });
-  console.log(
-    `\n(2) Matyáš Peroutka's guardians and permission masks:`,
-    matyasGuardians.map((g) => ({
-      name: `${g.guardian.user.firstName} ${g.guardian.user.lastName}`,
-      payments: g.canViewPayments,
-      medical: g.canViewMedical,
-      waivers: g.canSignWaivers,
-    })),
-  );
-
-  const dadVisibleConversations = await prisma.conversation.findMany({
-    where: { participants: { some: { memberId: members.dad!.id } } },
-    select: { title: true, type: true },
-  });
-  console.log(
-    `\n(3) Conversations Dad can see (should NOT include "Trenér Dvořák & Lucie"):`,
-    dadVisibleConversations,
-  );
-
-  const dadVisiblePayments = await prisma.payment.findMany({
-    where: {
-      OR: [
-        { payerId: members.dad!.id },
-        { onBehalfOf: { guardianLinks: { some: { guardianId: members.dad!.id, canViewPayments: true } } } },
+    await prisma.message.createMany({
+      data: [
+        { conversationId: dm.id, senderId: coachU13.memberId, body: 'Dobrý den, paní Pekařová, jak je Aně po sobotě?', createdAt: offset(-3, 19) },
+        { conversationId: dm.id, senderId: momMember.id, body: 'Dobrý den, díky — kotník už je lepší. Dnes byla u doktora.', createdAt: offset(-3, 20), editedAt: offset(-3, 20, 5) },
+        // Soft-deleted message
+        { conversationId: dm.id, senderId: momMember.id, body: '[smazáno]', createdAt: offset(-3, 20, 10), deletedAt: offset(-3, 20, 12) },
       ],
+    });
+  }
+
+  // 5. GROUP — výjezd do Mariánských Lázní (subset rodičů)
+  const groupChat = await prisma.conversation.create({
+    data: {
+      clubId: hvezda.id, type: ConversationType.GROUP,
+      title: 'Soustředění M.L. — organizace',
+      participants: { create: [
+        { memberId: teamMgrU13.memberId },
+        ...childMembersHvezda.slice(0, 4).map(async c => {
+          const link = await prisma.guardianLink.findFirst({ where: { childId: c.id, isPrimary: true } });
+          return link ? { memberId: link.guardianId } : null;
+        }).filter(Boolean) as any[],
+      ] },
+    },
+  }).catch(() => null);
+  if (groupChat) {
+    await prisma.message.create({
+      data: { conversationId: groupChat.id, senderId: teamMgrU13.memberId, body: 'Posílám info k odjezdu — sraz v 7:00 na Strahově.', createdAt: offset(-4) },
+    });
+  }
+
+  // 6. ANNOUNCEMENT — celoklubový broadcast
+  const annChat = await prisma.conversation.create({
+    data: {
+      clubId: hvezda.id, type: ConversationType.ANNOUNCEMENT,
+      title: 'Klubová oznámení',
+      participants: { create: [
+        { memberId: adminH.memberId },
+        { memberId: commsH.memberId },
+      ] },
     },
   });
-  console.log(
-    `\n(4) Payments Dad can see (should be 1 — his own pending): ${dadVisiblePayments.length}`,
-  );
-
-  // Per-club member counts (proves no data mixing)
-  const branikMemberCount  = await prisma.member.count({ where: { clubId: club.id } });
-  const spartakMemberCount = await prisma.member.count({ where: { clubId: club2.id } });
-  console.log(
-    `\n(5) Members per club — Braník: ${branikMemberCount}, Spartak Kbely: ${spartakMemberCount}`,
-  );
-
-  // Cross-club name check — any lastName appearing in BOTH clubs besides Alex Mertin?
-  const branikSurnames = new Set(
-    (await prisma.member.findMany({ where: { clubId: club.id }, include: { user: true } }))
-      .map((m) => m.user.lastName),
-  );
-  const spartakSurnamesAll = await prisma.member.findMany({
-    where: { clubId: club2.id },
-    include: { user: true },
+  await prisma.message.create({
+    data: { conversationId: annChat.id, senderId: commsH.memberId, body: '📢 Pozor: tento víkend od 9:00 brigáda na hřišti — všichni vítáni!', createdAt: offset(-5, 9) },
   });
-  const overlap = spartakSurnamesAll
-    .filter((m) => branikSurnames.has(m.user.lastName) && m.user.firstName !== 'Alex')
-    .map((m) => `${m.user.firstName} ${m.user.lastName}`);
-  console.log(
-    `\n(6) Surname overlap between clubs (should be [] — only Alex Mertin crosses): ${JSON.stringify(overlap)}`,
-  );
+
+  // Sokol team chat
+  const sokolTeamConv = await prisma.conversation.create({
+    data: {
+      clubId: sokol.id, teamId: u11.id, type: ConversationType.TEAM,
+      title: 'U11 Sokoli — týmový chat',
+      participants: { create: [
+        { memberId: tomasInSokol.id },
+        ...sokolChildren.map(c => ({ memberId: c.id })),
+      ] },
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: sokolTeamConv.id, senderId: tomasInSokol.id, body: 'Tak co, jste připraveni na první zápas sezóny? 🏑', createdAt: offset(-1, 17) },
+  });
+
+  // ==========================================================================
+  // NOTIFICATIONS — every NotificationType
+  // ==========================================================================
+
+  console.log('  🔔 Notifications (all 10 types)…');
+
+  const sampleEvent = u13Events.future[0]?.id ?? null;
+
+  await prisma.notification.createMany({
+    data: [
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.EVENT_CREATED,    title: 'Nový zápas v kalendáři', body: 'Sobota — Slavia U13', link: sampleEvent ? `/admin/events/${sampleEvent}` : null, read: false, createdAt: offset(-1, 8) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.EVENT_UPDATED,    title: 'Změna místa tréninku', body: 'Středeční trénink přesunut na UMT Tatran.', read: false, createdAt: offset(-1, 12) },
+      { clubId: hvezda.id, memberId: coachU13.memberId,  type: NotificationType.EVENT_CANCELLED,  title: 'Zápas zrušen', body: 'Sobotní zápas zrušen kvůli počasí.', read: true,  createdAt: offset(-2) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.RSVP_REMINDER,    title: '3 hráči nepotvrdili účast', read: false, createdAt: offset(-1, 14) },
+      { clubId: hvezda.id, memberId: coachU13.memberId,  type: NotificationType.MESSAGE,          title: 'Nová zpráva v U13 chatu',  read: false, createdAt: offset(-1, 19) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.PAYMENT_DUE,      title: '5 plateb po splatnosti',   read: false, createdAt: offset(-3) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.PAYMENT_RECEIVED, title: 'Nová platba 3 500 Kč', body: 'Platba za podzimní příspěvek došla.', read: true, createdAt: offset(-25) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.ANNOUNCEMENT,     title: 'Vítejte v Sport manageru!', read: true, createdAt: offset(-30) },
+      { clubId: hvezda.id, memberId: adminH.memberId,    type: NotificationType.WAIVER_PENDING,   title: '2 souhlasy čekají na podpis', read: false, createdAt: offset(-2) },
+      { clubId: hvezda.id, memberId: coachU13.memberId,  type: NotificationType.GENERAL,          title: 'Tipy pro nové trenéry',     body: 'Mrkni na náš onboarding průvodce.', read: false, createdAt: offset(-7) },
+    ],
+  });
+
+  // ==========================================================================
+  // CLUB FEATURE AUDIT — platform admin enabled payments for Hvězda
+  // ==========================================================================
+
+  console.log('  📊 Feature audit log…');
+
+  await prisma.clubFeatureAudit.create({
+    data: {
+      clubId: hvezda.id,
+      changedByUserId: platformAdmin.id,
+      reason: 'Klub upgradoval na Pro tarif a požádal o aktivaci plateb.',
+      before: { features: { ...(hvezda.features as object), payments: false }, config: hvezda.config },
+      after:  { features: hvezda.features, config: hvezda.config },
+      changedAt: offset(-15),
+    },
+  });
+
+  // ==========================================================================
+  // SUMMARY
+  // ==========================================================================
 
   const counts = {
     clubs: await prisma.club.count(),
@@ -1223,25 +805,241 @@ async function main() {
     members: await prisma.member.count(),
     teams: await prisma.team.count(),
     teamMemberships: await prisma.teamMembership.count(),
+    clubRoles: await prisma.clubRole.count(),
     guardianLinks: await prisma.guardianLink.count(),
     events: await prisma.event.count(),
-    eventsFromTemplates: await prisma.event.count({ where: { templateId: { not: null } } }),
+    eventAttendances: await prisma.eventAttendance.count(),
     trainingTemplates: await prisma.trainingTemplate.count(),
-    rsvps: await prisma.eventAttendance.count(),
-    conversations: await prisma.conversation.count(),
-    messages: await prisma.message.count(),
     fees: await prisma.fee.count(),
     payments: await prisma.payment.count(),
     waivers: await prisma.waiver.count(),
-    signatures: await prisma.waiverSignature.count(),
+    waiverSignatures: await prisma.waiverSignature.count(),
+    conversations: await prisma.conversation.count(),
+    messages: await prisma.message.count(),
     notifications: await prisma.notification.count(),
+    pushTokens: await prisma.pushToken.count(),
+    featureAudit: await prisma.clubFeatureAudit.count(),
   };
-  console.log('\n(7) Row counts:', counts);
-  console.log('\nSeed complete.');
+
+  console.log('\n✅ Seed complete:');
+  console.table(counts);
+  console.log('\n🔑 Login (heslo123 for all):');
+  console.table([
+    { email: 'admin@hvezda.cz',         name: 'Pavel Dvořák',     role: 'Hvězda OWNER + ADMIN + FINANCE' },
+    { email: 'coach@hvezda.cz',         name: 'Miroslav Horák',   role: 'Hvězda U13 HEAD_COACH' },
+    { email: 'parent@hvezda.cz',        name: 'Lucie Pekařová',   role: 'Hvězda parent (Mom of Anna — divorced)' },
+    { email: 'petr.pekar@hvezda.cz',    name: 'Petr Pekař',       role: 'Hvězda parent (Dad — privacy: nevidí DM)' },
+    { email: 'simon.assist@hvezda.cz',  name: 'Šimon Růžička',    role: 'multi-role: U15 PLAYER + U13 ASSISTANT_COACH' },
+    { email: 'admin@sokoli.cz',         name: 'Jana Procházková', role: 'Sokol OWNER' },
+    { email: 'tomas@example.com',       name: 'Tomáš Mertin',     role: 'multi-tenant: Hvězda parent + Sokol HEAD_COACH' },
+    { email: 'platform@example.com',    name: 'Petr Platforma',   role: 'Platform admin' },
+  ]);
 }
 
+// ============================================================================
+// User + Member helper
+// ============================================================================
+
+type CreateUserMemberArgs = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  clubId: string;
+  devHash: string;
+  brandColor: string;
+  status?: MemberStatus;
+  isMinor?: boolean;
+  jerseyNumber?: number;
+  position?: string;
+  clubRoles?: ClubRoleType[];
+  teamRoles?: { teamId: string; role: TeamRole }[];
+};
+
+async function createUserMember(args: CreateUserMemberArgs) {
+  const fullName = `${args.firstName} ${args.lastName}`;
+  const user = await prisma.user.create({
+    data: {
+      email: args.email, passwordHash: args.devHash,
+      firstName: args.firstName, lastName: args.lastName, locale: 'cs',
+      avatarUrl: avatarUrl(fullName, args.brandColor),
+    },
+  });
+
+  const member = await prisma.member.create({
+    data: {
+      userId: user.id, clubId: args.clubId,
+      status: args.status ?? MemberStatus.ACTIVE,
+      isMinor: args.isMinor ?? false,
+      jerseyNumber: args.jerseyNumber,
+      position: args.position,
+    },
+  });
+
+  if (args.clubRoles?.length) {
+    await prisma.clubRole.createMany({
+      data: args.clubRoles.map(role => ({ memberId: member.id, role })),
+    });
+  }
+
+  if (args.teamRoles?.length) {
+    await prisma.teamMembership.createMany({
+      data: args.teamRoles.map(tr => ({ memberId: member.id, teamId: tr.teamId, role: tr.role })),
+    });
+  }
+
+  return { userId: user.id, memberId: member.id };
+}
+
+// ============================================================================
+// Events helper — covers every EventType + every HomeAway
+// ============================================================================
+
+async function seedRichEvents(args: {
+  clubId: string;
+  teamId: string;
+  coachId: string;
+  playerIds: string[];
+  label: string;
+}) {
+  const past: Array<{ id: string }> = [];
+  const future: Array<{ id: string }> = [];
+  const isHvezda = args.label.includes('Hvězda');
+  const venueHome = isHvezda ? 'UMT Strahov' : 'Sokolovna Měcholupy';
+  const venueAway = isHvezda ? 'Eden Aréna' : 'Hala TJ JM Chodov';
+  const venueNeutral = 'Strahovský stadion';
+
+  // Past trainings (PRACTICE, no homeAway)
+  for (let d = -28; d <= -1; d += 4) {
+    const ev = await prisma.event.create({
+      data: {
+        clubId: args.clubId, teamId: args.teamId, type: EventType.PRACTICE,
+        title: `Trénink — ${args.label}`,
+        startsAt: offset(d, 17, 30), endsAt: offset(d, 19, 0),
+        location: venueHome, createdById: args.coachId,
+      },
+    });
+    past.push({ id: ev.id });
+  }
+
+  // Past matches — HOME, AWAY, NEUTRAL
+  const matchVariants = [
+    { home: HomeAway.HOME,    location: venueHome,    title: `Liga — ${args.label} vs Sparta` },
+    { home: HomeAway.AWAY,    location: venueAway,    title: `Liga — Bohemka vs ${args.label}` },
+    { home: HomeAway.NEUTRAL, location: venueNeutral, title: `Pohárový zápas — ${args.label} vs Slavia` },
+  ];
+  for (let i = 0; i < matchVariants.length; i++) {
+    const m = matchVariants[i]!;
+    const dayOffset = -21 + i * 7;
+    const ev = await prisma.event.create({
+      data: {
+        clubId: args.clubId, teamId: args.teamId, type: EventType.MATCH,
+        title: m.title,
+        startsAt: offset(dayOffset, 10, 0), endsAt: offset(dayOffset, 11, 30),
+        location: m.location, opponent: 'Soupeř ' + i, homeAway: m.home,
+        createdById: args.coachId,
+      },
+    });
+    past.push({ id: ev.id });
+  }
+
+  // TOURNAMENT (past, weekend)
+  const tournament = await prisma.event.create({
+    data: {
+      clubId: args.clubId, teamId: args.teamId, type: EventType.TOURNAMENT,
+      title: `Podzimní turnaj — ${args.label}`,
+      startsAt: offset(-14, 8, 0), endsAt: offset(-14, 17, 0),
+      location: venueNeutral, opponent: 'Více soupeřů', homeAway: HomeAway.NEUTRAL,
+      createdById: args.coachId,
+    },
+  });
+  past.push({ id: tournament.id });
+
+  // MEETING (past — schůze rodičů)
+  const meeting = await prisma.event.create({
+    data: {
+      clubId: args.clubId, teamId: args.teamId, type: EventType.MEETING,
+      title: `Schůzka rodičů — ${args.label}`,
+      startsAt: offset(-10, 18, 0), endsAt: offset(-10, 19, 30),
+      location: 'Klubovna', createdById: args.coachId,
+    },
+  });
+  past.push({ id: meeting.id });
+
+  // SOCIAL (future — týmové posezení)
+  const social = await prisma.event.create({
+    data: {
+      clubId: args.clubId, teamId: args.teamId, type: EventType.SOCIAL,
+      title: `Týmové posezení — ${args.label}`,
+      startsAt: offset(20, 18, 0), endsAt: offset(20, 21, 0),
+      location: 'Pizza Coloseum Strašnice', createdById: args.coachId,
+    },
+  });
+  future.push({ id: social.id });
+
+  // Future trainings
+  for (let d = 1; d <= 28; d += 4) {
+    const ev = await prisma.event.create({
+      data: {
+        clubId: args.clubId, teamId: args.teamId, type: EventType.PRACTICE,
+        title: `Trénink — ${args.label}`,
+        startsAt: offset(d, 17, 30), endsAt: offset(d, 19, 0),
+        location: venueHome, rsvpDeadline: offset(d, 12, 0),
+        createdById: args.coachId,
+      },
+    });
+    future.push({ id: ev.id });
+  }
+
+  // Future matches
+  for (let i = 0; i < matchVariants.length; i++) {
+    const m = matchVariants[i]!;
+    const dayOffset = 7 + i * 7;
+    const ev = await prisma.event.create({
+      data: {
+        clubId: args.clubId, teamId: args.teamId, type: EventType.MATCH,
+        title: m.title.replace('Sparta', 'Slavia').replace('Bohemka', 'Sparta').replace('Slavia', 'Viktorka'),
+        startsAt: offset(dayOffset, 10, 0), endsAt: offset(dayOffset, 11, 30),
+        location: m.location, opponent: 'Budoucí soupeř ' + i, homeAway: m.home,
+        rsvpDeadline: offset(dayOffset - 1, 18, 0),
+        createdById: args.coachId,
+      },
+    });
+    future.push({ id: ev.id });
+  }
+
+  // Attendance — every RSVPStatus
+  const PAST_PATTERN: Array<{ status: RSVPStatus; attended: boolean | null }> = [
+    { status: RSVPStatus.YES,   attended: true },
+    { status: RSVPStatus.YES,   attended: false }, // RSVP'd yes but didn't show
+    { status: RSVPStatus.NO,    attended: false },
+    { status: RSVPStatus.MAYBE, attended: true },
+    { status: RSVPStatus.PENDING, attended: false },
+  ];
+  const FUTURE_PATTERN: RSVPStatus[] = [RSVPStatus.YES, RSVPStatus.YES, RSVPStatus.MAYBE, RSVPStatus.NO, RSVPStatus.PENDING];
+
+  for (const ev of past) {
+    for (let i = 0; i < args.playerIds.length; i++) {
+      const r = PAST_PATTERN[i % PAST_PATTERN.length]!;
+      await prisma.eventAttendance.create({
+        data: { eventId: ev.id, memberId: args.playerIds[i]!, respondedById: args.playerIds[i]!, status: r.status, attended: r.attended },
+      });
+    }
+  }
+  for (const ev of future) {
+    for (let i = 0; i < args.playerIds.length; i++) {
+      await prisma.eventAttendance.create({
+        data: { eventId: ev.id, memberId: args.playerIds[i]!, respondedById: args.playerIds[i]!, status: FUTURE_PATTERN[i % FUTURE_PATTERN.length]! },
+      });
+    }
+  }
+
+  return { past, future };
+}
+
+// ============================================================================
+
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })
