@@ -511,14 +511,14 @@ export default function TrainingTemplateDetailPage() {
               {/* Left column */}
               <div className="space-y-4">
                 <div>
-                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Tým
                   </div>
                   <div className="text-sm font-medium">{tpl.teamName}</div>
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Typ události
                   </div>
                   <Badge variant="default">
@@ -527,14 +527,14 @@ export default function TrainingTemplateDetailPage() {
                 </div>
 
                 <div>
-                  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Dny v týdnu
                   </div>
                   <DayBadges days={tpl.daysOfWeek} />
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Čas
                   </div>
                   <div className="font-mono text-sm">
@@ -546,7 +546,7 @@ export default function TrainingTemplateDetailPage() {
               {/* Right column */}
               <div className="space-y-4">
                 <div>
-                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Platnost
                   </div>
                   <div className="text-sm">
@@ -555,7 +555,7 @@ export default function TrainingTemplateDetailPage() {
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Stav
                   </div>
                   {tpl.active ? (
@@ -567,7 +567,7 @@ export default function TrainingTemplateDetailPage() {
 
                 {tpl.location && (
                   <div>
-                    <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Místo
                     </div>
                     <div className="flex items-center gap-1.5 text-sm">
@@ -589,7 +589,7 @@ export default function TrainingTemplateDetailPage() {
 
                 {tpl.description && (
                   <div>
-                    <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Popis
                     </div>
                     <p className="text-sm text-muted-foreground">{tpl.description}</p>

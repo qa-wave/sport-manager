@@ -102,7 +102,7 @@ export default function TeamsPage() {
                       {team.ageGroup ?? '--'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="font-mono tabular-nums text-xs text-muted-foreground">
                     {team.season}
                   </TableCell>
                   <TableCell>
@@ -122,7 +122,7 @@ export default function TeamsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono text-sm font-bold text-primary">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono tabular-nums text-sm font-bold text-primary">
                       {team.memberCount}
                     </span>
                   </TableCell>

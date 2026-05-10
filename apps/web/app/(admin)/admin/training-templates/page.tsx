@@ -146,7 +146,7 @@ export default function TrainingTemplatesPage() {
                   <TableCell>
                     <DayBadges days={tpl.daysOfWeek} />
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="font-mono tabular-nums text-xs text-muted-foreground">
                     {tpl.startTime}–{tpl.endTime}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
