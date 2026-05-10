@@ -311,6 +311,34 @@ events.patch(
 );
 
 // ---------------------------------------------------------------------------
+// DELETE /v1/events/:eventId
+// ---------------------------------------------------------------------------
+events.delete(
+  '/:eventId',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH'),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+
+    const result = await prisma.withClub(member.clubId, async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) return null;
+
+      // Delete attendances first (FK constraint)
+      await tx.eventAttendance.deleteMany({ where: { eventId } });
+      await tx.event.delete({ where: { id: eventId } });
+      return { id: eventId };
+    });
+
+    if (!result) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    return c.body(null, 204);
+  },
+);
+
+// ---------------------------------------------------------------------------
 // POST /v1/events/:eventId/rsvp
 // ---------------------------------------------------------------------------
 events.post('/:eventId/rsvp', requireAuth(), async (c) => {
