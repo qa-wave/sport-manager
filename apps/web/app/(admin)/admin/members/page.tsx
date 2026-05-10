@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Search, UserCircle, UserPlus } from 'lucide-react';
+import { Download, Search, UserCircle, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type MemberSummary } from '@/lib/api';
@@ -18,6 +18,34 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROLE_VARIANT, STATUS_VARIANT } from '@/lib/role-colors';
+
+function exportMembersCSV(members: MemberSummary[]) {
+  const BOM = '\uFEFF';
+  const header = 'Jméno;Příjmení;Email;Věk;Dres;Pozice;Stav;Týmy;Role\n';
+  const rows = members
+    .map((m) =>
+      [
+        m.firstName,
+        m.lastName,
+        m.email,
+        m.dateOfBirth ? age(m.dateOfBirth) : '',
+        m.jerseyNumber ?? '',
+        m.position ?? '',
+        m.status,
+        m.teamRoles.map((t) => t.teamName).join(', '),
+        m.clubRoles.join(', '),
+      ].join(';')
+    )
+    .join('\n');
+
+  const blob = new Blob([BOM + header + rows], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `clenove-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function age(dob: string | null): string {
   if (!dob) return '--';
@@ -58,12 +86,20 @@ export default function MembersPage() {
         subtitle={`${data?.length ?? '--'} members in club`}
         actions={
           canManage ? (
-            <Button size="sm" asChild>
-              <Link href="/admin/members/new">
-                <UserPlus className="mr-1.5 h-4 w-4" />
-                Pridat clena
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              {data && data.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => exportMembersCSV(data)}>
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Export CSV
+                </Button>
+              )}
+              <Button size="sm" asChild>
+                <Link href="/admin/members/new">
+                  <UserPlus className="mr-1.5 h-4 w-4" />
+                  Přidat člena
+                </Link>
+              </Button>
+            </div>
           ) : undefined
         }
       />
