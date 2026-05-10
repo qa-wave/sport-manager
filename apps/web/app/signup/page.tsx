@@ -80,19 +80,17 @@ export default function SignupPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-primary/[0.03] blur-[100px]" />
-        <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-cyan-500/[0.02] blur-[80px]" />
-      </div>
+      <div className="pointer-events-none absolute inset-0 mesh-gradient" />
+      <div className="pointer-events-none absolute inset-0 dot-grid opacity-15" />
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-sm animate-fade-up">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.4)]">
-            <Trophy className="h-5 w-5 text-primary" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-brand text-white shadow-lg">
+            <Trophy className="h-5 w-5" />
           </div>
           <div>
             <div className="text-base font-bold tracking-tight">Sport Manager</div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
               {step === 'account' ? 'Registrace' : 'Založení klubu'}
             </div>
           </div>
@@ -104,8 +102,7 @@ export default function SignupPage() {
           <div className={`h-1 flex-1 rounded-full ${step === 'club' ? 'bg-primary' : 'bg-border'}`} />
         </div>
 
-        <Card className="gradient-card overflow-hidden border-border/60">
-          <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        <Card className="overflow-hidden border-border/50 shadow-xl">
           <CardContent className="p-6">
             {step === 'account' ? (
               <form onSubmit={handleAccountSubmit} className="space-y-4">
