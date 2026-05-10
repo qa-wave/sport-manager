@@ -115,7 +115,7 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : !feed ? null : (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-fade-up">
           {/* This Week */}
           <section>
             <div className="mb-3 flex items-center justify-between">

@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar onMobileOpen={() => setMobileSidebarOpen(true)} />
           <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            <div className="mx-auto max-w-6xl space-y-6">{children}</div>
+            <div className="mx-auto max-w-6xl space-y-6 animate-fade-in">{children}</div>
           </main>
         </div>
       </div>

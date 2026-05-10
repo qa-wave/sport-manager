@@ -315,6 +315,9 @@ export default function MemberProfilePage() {
 
         {/* Attendance */}
         <TabsContent value="attendance">
+          {m.recentAttendance.length > 0 && (
+            <AttendanceStats attendance={m.recentAttendance} />
+          )}
           <Card>
             {m.recentAttendance.length === 0 ? (
               <CardContent className="py-8 text-center text-xs text-muted-foreground">
@@ -469,6 +472,157 @@ export default function MemberProfilePage() {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+// ---------- Attendance statistics ----------
+
+type AttendanceRecord = {
+  eventTitle: string;
+  eventType: string;
+  eventDate: string;
+  status: string;
+  attended: boolean | null;
+};
+
+function attendanceColor(pct: number): string {
+  if (pct >= 80) return 'bg-green-500/15 text-green-700 dark:text-green-400';
+  if (pct >= 50) return 'bg-amber-500/15 text-amber-700 dark:text-amber-400';
+  return 'bg-red-500/15 text-red-700 dark:text-red-400';
+}
+
+function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
+  const total = attendance.length;
+
+  // Percentage attended (where attended is not null)
+  const withRecord = attendance.filter((a) => a.attended !== null);
+  const attendedCount = withRecord.filter((a) => a.attended === true).length;
+  const attendancePct = withRecord.length > 0 ? Math.round((attendedCount / withRecord.length) * 100) : null;
+
+  // RSVP reliability: RSVP matched actual outcome
+  // YES + attended=true, NO + attended=false, MAYBE/PENDING excluded (unclear intent)
+  const rsvpComparable = attendance.filter(
+    (a) => a.attended !== null && (a.status === 'YES' || a.status === 'NO'),
+  );
+  const rsvpMatched = rsvpComparable.filter(
+    (a) => (a.status === 'YES' && a.attended === true) || (a.status === 'NO' && a.attended === false),
+  ).length;
+  const rsvpPct =
+    rsvpComparable.length > 0 ? Math.round((rsvpMatched / rsvpComparable.length) * 100) : null;
+
+  // Current consecutive streak (most-recent first — assume array is newest first)
+  // Sort defensively by date desc
+  const sorted = [...attendance].sort(
+    (a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime(),
+  );
+  let streak = 0;
+  for (const a of sorted) {
+    if (a.attended === true) {
+      streak++;
+    } else if (a.attended === false) {
+      break;
+    }
+    // attended === null → skip (no record), don't break streak
+  }
+
+  // Last 10 events for mini bar chart (chronological order, oldest first)
+  const last10 = [...attendance]
+    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
+    .slice(-10);
+
+  return (
+    <div className="mb-3 space-y-3">
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">Celkem událostí</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums">{total}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">Účast</div>
+            {attendancePct !== null ? (
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-bold tabular-nums">{attendancePct}%</span>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(attendancePct)}`}>
+                  {attendancePct >= 80 ? 'Výborná' : attendancePct >= 50 ? 'Průměrná' : 'Nízká'}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-muted-foreground">Bez záznamu</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground">RSVP spolehlivost</div>
+            {rsvpPct !== null ? (
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-bold tabular-nums">{rsvpPct}%</span>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(rsvpPct)}`}>
+                  {rsvpComparable.length} zázn.
+                </span>
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-muted-foreground">Nedostatek dat</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Streak + mini bar chart */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Streak */}
+            <div className="shrink-0">
+              <div className="text-xs text-muted-foreground">Aktuální série</div>
+              <div className="mt-1 text-base font-semibold">
+                {streak > 0 ? (
+                  <span className="text-green-600 dark:text-green-400">{streak} {streak === 1 ? 'trénink' : streak < 5 ? 'tréninky' : 'tréninků'} v řadě</span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
+            </div>
+
+            {/* Mini bar chart — last 10 events */}
+            {last10.length > 0 && (
+              <div className="flex-1">
+                <div className="mb-1 text-xs text-muted-foreground">Posledních {last10.length} událostí</div>
+                <div className="flex items-end gap-1 h-10">
+                  {last10.map((a, i) => {
+                    const colorClass =
+                      a.attended === true
+                        ? 'bg-green-500'
+                        : a.attended === false
+                          ? 'bg-red-400'
+                          : 'bg-muted-foreground/25';
+                    const title = `${a.eventTitle} (${formatDate(a.eventDate)}): ${a.attended === true ? 'Přítomen' : a.attended === false ? 'Nepřítomen' : 'Bez záznamu'}`;
+                    return (
+                      <div
+                        key={i}
+                        title={title}
+                        className={`flex-1 rounded-sm ${colorClass} transition-opacity hover:opacity-75`}
+                        style={{ height: a.attended === true ? '100%' : a.attended === false ? '60%' : '25%' }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                  <span>starší</span>
+                  <span>nejnovější</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

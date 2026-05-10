@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 
 export function EmptyState({
   icon: Icon,
@@ -15,18 +14,21 @@ export function EmptyState({
   cta?: ReactNode;
 }) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+    <Card className="border-dashed border-border/60">
+      <CardContent className="flex flex-col items-center justify-center py-16 text-center animate-fade-up">
         {Icon && (
-          <div className="mb-3 rounded-full bg-muted p-3">
-            <Icon className="h-6 w-6 text-muted-foreground" />
+          <div className="mb-5 relative">
+            <div className="absolute inset-0 rounded-2xl bg-primary/5 blur-xl scale-150" />
+            <div className="relative rounded-2xl bg-gradient-to-br from-muted to-muted/50 p-4">
+              <Icon className="h-7 w-7 text-muted-foreground/60" />
+            </div>
           </div>
         )}
-        <h3 className="text-sm font-medium">{title}</h3>
-        <p className="mt-1 max-w-md text-xs text-muted-foreground">
+        <h3 className="text-base font-semibold">{title}</h3>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground leading-relaxed">
           {description}
         </p>
-        {cta ? <div className="mt-4">{cta}</div> : null}
+        {cta ? <div className="mt-6">{cta}</div> : null}
       </CardContent>
     </Card>
   );
