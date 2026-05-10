@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MessageCircle,
   Users,
@@ -10,13 +11,18 @@ import {
   Shield,
   Hash,
   User,
+  Plus,
+  Search,
+  X,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
-import { apiFetch, ApiError, type ConversationSummary } from '@/lib/api';
+import { apiFetch, ApiError, type ConversationSummary, type MemberSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /* ── Helpers ───────────────────────────────────────── */
@@ -89,7 +95,12 @@ function AvatarGroup({ conv }: { conv: ConversationSummary }) {
 
 export default function MessagesPage() {
   const auth = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: memberCtx } = useMemberContext();
+  const [showNewDM, setShowNewDM] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, isError } = useQuery<ConversationSummary[], ApiError>({
     queryKey: ['conversations', auth.clubId],
@@ -97,6 +108,47 @@ export default function MessagesPage() {
     enabled: auth.isAuthenticated && !!auth.clubId,
     retry: false,
   });
+
+  const { data: members } = useQuery<MemberSummary[], ApiError>({
+    queryKey: ['members', auth.clubId],
+    queryFn: () => apiFetch<MemberSummary[]>('/members'),
+    enabled: showNewDM && auth.isAuthenticated && !!auth.clubId,
+    retry: false,
+  });
+
+  const createDM = useMutation({
+    mutationFn: (participantMemberId: string) =>
+      apiFetch<{ id: string }>('/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'DM', participantIds: [participantMemberId] }),
+      }),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setShowNewDM(false);
+      setMemberSearch('');
+      router.push(`/admin/messages/${result.id}` as any);
+    },
+  });
+
+  // Focus search when form opens
+  useEffect(() => {
+    if (showNewDM) {
+      setTimeout(() => searchRef.current?.focus(), 50);
+    }
+  }, [showNewDM]);
+
+  const filteredMembers = useMemo(() => {
+    if (!members || !memberCtx) return [];
+    const q = memberSearch.toLowerCase();
+    return members
+      .filter((m) => m.id !== memberCtx.memberId)
+      .filter((m) =>
+        q === '' ||
+        `${m.firstName} ${m.lastName}`.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q),
+      )
+      .slice(0, 8);
+  }, [members, memberCtx, memberSearch]);
 
   // Split into categories
   const { channels, dms } = useMemo(() => {
@@ -116,9 +168,78 @@ export default function MessagesPage() {
   return (
     <>
       <PageHeader
-        title="Messages"
-        subtitle="Team chats, DMs & announcements"
+        title="Zprávy"
+        subtitle="Týmové chaty, DM a oznámení"
+        actions={
+          <Button
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setShowNewDM((v) => !v)}
+          >
+            {showNewDM ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            {showNewDM ? 'Zrušit' : 'Nová konverzace'}
+          </Button>
+        }
       />
+
+      {/* New DM form */}
+      {showNewDM && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-semibold">Nová přímá zpráva</span>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                ref={searchRef}
+                placeholder="Hledat člena..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                className="h-8 pl-8 text-sm"
+              />
+            </div>
+            {!members ? (
+              <div className="space-y-1.5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2 text-center">
+                {memberSearch ? 'Žádný člen nenalezen.' : 'Žádní další členové.'}
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {filteredMembers.map((m) => (
+                  <button
+                    key={m.id}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-primary/[0.06] disabled:opacity-50"
+                    onClick={() => createDM.mutate(m.id)}
+                    disabled={createDM.isPending}
+                  >
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
+                      {m.firstName[0]}{m.lastName[0]}
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <div className="font-medium truncate">{m.firstName} {m.lastName}</div>
+                      {m.clubRoles.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {m.clubRoles.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {createDM.isError && (
+              <p className="text-xs text-destructive">Nepodařilo se vytvořit konverzaci.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {!auth.isAuthenticated ? (
         <EmptyState

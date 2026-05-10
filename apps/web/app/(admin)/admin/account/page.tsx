@@ -12,6 +12,7 @@ import {
   Palette,
   RotateCcw,
   Save,
+  Settings,
   Shield,
   Sun,
   Monitor,
@@ -167,6 +168,22 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
+        {/* Club settings — only for OWNER / ADMIN */}
+        {memberCtx &&
+          (memberCtx.clubRoles.includes('OWNER') ||
+            memberCtx.clubRoles.includes('ADMIN')) &&
+          me.data && (
+            <ClubSettingsCard
+              clubId={auth.clubId!}
+              currentName={
+                me.data.members.find((m) => m.clubId === auth.clubId)?.club.name ?? ''
+              }
+              currentTimezone={
+                me.data.members.find((m) => m.clubId === auth.clubId)?.club.timezone ?? 'Europe/Prague'
+              }
+            />
+          )}
+
         {/* Club theming — only for OWNER / ADMIN */}
         {memberCtx &&
           (memberCtx.clubRoles.includes('OWNER') ||
@@ -318,6 +335,131 @@ function EditProfileCard({ user }: { user: MeResponse }) {
             Zrušit
           </Button>
           <Button size="sm" className="h-7 text-xs" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            {mutation.isPending ? 'Ukládám...' : 'Uložit'}
+          </Button>
+        </div>
+        {mutation.isError && (
+          <div className="text-xs text-destructive">Nepodařilo se uložit.</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Club settings — name + timezone
+// ---------------------------------------------------------------------------
+
+const COMMON_TIMEZONES = [
+  'Europe/Prague',
+  'Europe/Bratislava',
+  'Europe/Vienna',
+  'Europe/Berlin',
+  'Europe/Warsaw',
+  'Europe/Budapest',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Rome',
+  'Europe/Madrid',
+  'UTC',
+];
+
+function ClubSettingsCard({
+  clubId,
+  currentName,
+  currentTimezone,
+}: {
+  clubId: string;
+  currentName: string;
+  currentTimezone: string;
+}) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(currentName);
+  const [timezone, setTimezone] = useState(currentTimezone);
+
+  const isDirty = name !== currentName || timezone !== currentTimezone;
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch('/clubs/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ name, timezone }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      setEditing(false);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="divide-y divide-border/30 p-0">
+          <button
+            className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03]"
+            onClick={() => setEditing(true)}
+          >
+            <Settings className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Nastavení klubu</div>
+              <div className="text-xs text-muted-foreground">
+                {currentName} · {currentTimezone}
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-3 pb-1">
+          <Settings className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Nastavení klubu</span>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Název klubu</label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Časové pásmo</label>
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>{tz}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2 justify-end pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => {
+              setName(currentName);
+              setTimezone(currentTimezone);
+              setEditing(false);
+            }}
+          >
+            Zrušit
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => mutation.mutate()}
+            disabled={!isDirty || mutation.isPending}
+          >
             {mutation.isPending ? 'Ukládám...' : 'Uložit'}
           </Button>
         </div>

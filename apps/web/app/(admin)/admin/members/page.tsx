@@ -4,11 +4,12 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Search, UserCircle } from 'lucide-react';
+import { Search, UserCircle, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type MemberSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useMemberContext, isAdmin } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,6 +29,8 @@ export default function MembersPage() {
   const auth = useAuth();
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const { data: memberCtx } = useMemberContext();
+  const canManage = memberCtx ? isAdmin(memberCtx) : false;
 
   const { data, isLoading, isError } = useQuery<MemberSummary[], ApiError>({
     queryKey: ['members', auth.clubId],
@@ -53,6 +56,16 @@ export default function MembersPage() {
       <PageHeader
         title="Members"
         subtitle={`${data?.length ?? '--'} members in club`}
+        actions={
+          canManage ? (
+            <Button size="sm" asChild>
+              <Link href="/admin/members/new">
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Pridat clena
+              </Link>
+            </Button>
+          ) : undefined
+        }
       />
 
       {/* Search */}
@@ -124,7 +137,7 @@ export default function MembersPage() {
                   className="group cursor-pointer border-border/30 transition-colors hover:bg-primary/[0.03]"
                   onClick={() => router.push(`/admin/members/${m.id}`)}
                 >
-                  <TableCell className="font-mono text-xs font-bold text-primary/70">
+                  <TableCell className="font-mono tabular-nums text-xs font-bold text-primary/70">
                     {m.jerseyNumber ?? <span className="text-muted-foreground/50">--</span>}
                   </TableCell>
                   <TableCell>
@@ -140,7 +153,7 @@ export default function MembersPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
+                  <TableCell className="font-mono tabular-nums text-xs text-muted-foreground">
                     {age(m.dateOfBirth)}
                   </TableCell>
                   <TableCell className="text-xs font-medium text-muted-foreground">

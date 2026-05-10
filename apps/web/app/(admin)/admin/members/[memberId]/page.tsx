@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, ApiError, type MemberDetail } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useMemberContext, isAdmin } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROLE_VARIANT, PAYMENT_VARIANT, STATUS_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
+
+type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+
+const STATUS_OPTIONS: Array<{ value: MemberStatus; label: string }> = [
+  { value: 'ACTIVE', label: 'Aktivni' },
+  { value: 'INACTIVE', label: 'Neaktivni' },
+  { value: 'SUSPENDED', label: 'Pozastaveny' },
+  { value: 'ARCHIVED', label: 'Archivovany' },
+];
 
 function formatDate(d: string | null): string {
   if (!d) return '--';
@@ -33,12 +43,27 @@ function memberAge(dob: string | null): string | null {
 export default function MemberProfilePage() {
   const { memberId } = useParams<{ memberId: string }>();
   const auth = useAuth();
+  const queryClient = useQueryClient();
+  const { data: memberCtx } = useMemberContext();
+  const canManage = memberCtx ? isAdmin(memberCtx) : false;
 
   const { data: m, isLoading, isError } = useQuery<MemberDetail, ApiError>({
     queryKey: ['member', memberId, auth.clubId],
     queryFn: () => apiFetch<MemberDetail>(`/members/${memberId}`),
     enabled: auth.isAuthenticated && !!auth.clubId && !!memberId,
     retry: false,
+  });
+
+  const statusMutation = useMutation<{ id: string; status: string }, ApiError, MemberStatus>({
+    mutationFn: (status) =>
+      apiFetch<{ id: string; status: string }>(`/members/${memberId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['member', memberId, auth.clubId] });
+      queryClient.invalidateQueries({ queryKey: ['members', auth.clubId] });
+    },
   });
 
   if (isLoading) {
@@ -117,9 +142,33 @@ export default function MemberProfilePage() {
               )}
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-lg font-bold tracking-tight">{m.firstName} {m.lastName}</h2>
-                <Badge variant={STATUS_VARIANT[m.status] ?? 'default'}>{m.status}</Badge>
+                {canManage ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Stav:</span>
+                    <select
+                      value={m.status}
+                      disabled={statusMutation.isPending}
+                      onChange={(e) => statusMutation.mutate(e.target.value as MemberStatus)}
+                      className="h-7 rounded-md border border-input bg-transparent px-2 py-0 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    {statusMutation.isPending && (
+                      <span className="text-[11px] text-muted-foreground">Ukladam...</span>
+                    )}
+                    {statusMutation.isError && (
+                      <span className="text-[11px] text-destructive">Chyba</span>
+                    )}
+                  </div>
+                ) : (
+                  <Badge variant={STATUS_VARIANT[m.status] ?? 'default'}>{m.status}</Badge>
+                )}
               </div>
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span>{m.email}</span>
@@ -332,7 +381,7 @@ export default function MemberProfilePage() {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{p.feeName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Unpaid'}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(p.amountCents, p.currency)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
                         <TableCell>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
                         </TableCell>
@@ -364,7 +413,7 @@ export default function MemberProfilePage() {
                         <TableCell className="font-medium">{p.feeName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.paidBy}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Unpaid'}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(p.amountCents, p.currency)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
                         <TableCell>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
                         </TableCell>

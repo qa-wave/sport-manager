@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator';
 import { prisma } from '../prisma';
-import { requireAuth } from '../middleware/rbac.middleware';
+import { requireAuth, requireRole } from '../middleware/rbac.middleware';
 import type { HonoEnv } from '../../types/hono';
 
 /**
- * /v1/members — member list and detail.
+ * /v1/members — member list, detail, invite, status change.
  */
 const members = new Hono<HonoEnv>();
 
@@ -301,5 +303,123 @@ members.get('/:memberId', async (c) => {
 
   return c.json(result);
 });
+
+// ---------------------------------------------------------------------------
+// POST /v1/members — invite / create a new member in the active club.
+// Requires OWNER or ADMIN.
+// ---------------------------------------------------------------------------
+const InviteMemberInput = z.object({
+  firstName: z.string().min(1).max(60),
+  lastName: z.string().min(1).max(60),
+  email: z.string().email(),
+  teamId: z.string().cuid().optional(),
+  teamRole: z
+    .enum(['PLAYER', 'HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'MEDIC'])
+    .optional(),
+});
+
+members.post(
+  '/',
+  requireRole('OWNER', 'ADMIN'),
+  zValidator('json', InviteMemberInput),
+  async (c) => {
+    const clubId = c.get('clubId');
+    if (!clubId) {
+      return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+    }
+
+    const input = c.req.valid('json');
+
+    const result = await prisma.withClub(clubId, async (tx) => {
+      // Upsert user — existing users just get linked to the new club.
+      let user = await tx.user.findUnique({ where: { email: input.email } });
+      if (!user) {
+        user = await tx.user.create({
+          data: {
+            email: input.email,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            // Temp password — in a real flow an invite email + magic link would be sent.
+            passwordHash: '',
+          },
+        });
+      }
+
+      // Check if already a member of this club.
+      const existing = await tx.member.findUnique({
+        where: { userId_clubId: { userId: user.id, clubId } },
+      });
+      if (existing) {
+        return { error: 'Conflict', message: 'User is already a member of this club' } as const;
+      }
+
+      const member = await tx.member.create({
+        data: {
+          userId: user.id,
+          clubId,
+          status: 'ACTIVE',
+        },
+      });
+
+      // Optionally add team membership.
+      if (input.teamId && input.teamRole) {
+        await tx.teamMembership.create({
+          data: {
+            memberId: member.id,
+            teamId: input.teamId,
+            role: input.teamRole,
+          },
+        });
+      }
+
+      return { id: member.id, userId: user.id };
+    });
+
+    if ('error' in result) {
+      return c.json({ error: result.error, message: result.message }, 409);
+    }
+
+    return c.json(result, 201);
+  },
+);
+
+// ---------------------------------------------------------------------------
+// PATCH /v1/members/:memberId — update member status.
+// Requires OWNER or ADMIN.
+// ---------------------------------------------------------------------------
+const PatchMemberInput = z.object({
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ARCHIVED']),
+});
+
+members.patch(
+  '/:memberId',
+  requireRole('OWNER', 'ADMIN'),
+  zValidator('json', PatchMemberInput),
+  async (c) => {
+    const clubId = c.get('clubId');
+    if (!clubId) {
+      return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+    }
+    const memberId = c.req.param('memberId');
+    const input = c.req.valid('json');
+
+    const result = await prisma.withClub(clubId, async (tx) => {
+      const existing = await tx.member.findUnique({ where: { id: memberId } });
+      if (!existing) return null;
+
+      return tx.member.update({
+        where: { id: memberId },
+        data: { status: input.status },
+        select: { id: true, status: true },
+      });
+    });
+
+    if (!result) {
+      return c.json({ error: 'Not Found', message: 'Member not found' }, 404);
+    }
+
+    return c.json(result);
+  },
+);
 
 export { members as membersRoutes };

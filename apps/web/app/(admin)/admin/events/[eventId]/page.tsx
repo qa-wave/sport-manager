@@ -1,22 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, CheckCheck, ChevronLeft, Clock, MapPin, User, ExternalLink, X } from 'lucide-react';
+import { Check, CheckCheck, ChevronLeft, Clock, MapPin, Pencil, Trash2, User, ExternalLink, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
-import { apiFetch, ApiError, type EventDetail } from '@/lib/api';
+import { apiFetch, ApiError, type EventDetail, type TeamSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EVENT_TYPE_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
+
+const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
+
+function toLocalDatetimeValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function formatDateTime(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', {
@@ -36,9 +46,25 @@ function isPast(d: string): boolean {
 export default function EventDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const auth = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: memberCtx } = useMemberContext();
   const [bulkAttendance, setBulkAttendance] = useState<Record<string, boolean>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Edit form state
+  const [editType, setEditType] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editTeamId, setEditTeamId] = useState('');
+  const [editStartsAt, setEditStartsAt] = useState('');
+  const [editEndsAt, setEditEndsAt] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editOpponent, setEditOpponent] = useState('');
+  const [editHomeAway, setEditHomeAway] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+
   const isCoachOrAdmin = memberCtx && (
     memberCtx.clubRoles.includes('OWNER') ||
     memberCtx.clubRoles.includes('ADMIN') ||
@@ -51,6 +77,64 @@ export default function EventDetailPage() {
     enabled: auth.isAuthenticated && !!auth.clubId && !!eventId,
     retry: false,
   });
+
+  const { data: teams } = useQuery<TeamSummary[], ApiError>({
+    queryKey: ['teams', auth.clubId],
+    queryFn: () => apiFetch<TeamSummary[]>('/teams'),
+    enabled: auth.isAuthenticated && !!auth.clubId && isEditing,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (body: any) =>
+      apiFetch(`/events/${eventId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      setIsEditing(false);
+      setEditError(null);
+    },
+    onError: (err: any) => setEditError(err?.message ?? 'Nepodařilo se uložit změny'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiFetch(`/events/${eventId}`, { method: 'DELETE' }),
+    onSuccess: () => router.push('/admin/events'),
+  });
+
+  function openEditForm() {
+    if (!event) return;
+    setEditType(event.type);
+    setEditTitle(event.title);
+    setEditTeamId(event.teamId ?? '');
+    setEditStartsAt(toLocalDatetimeValue(event.startsAt));
+    setEditEndsAt(toLocalDatetimeValue(event.endsAt));
+    setEditLocation(event.location ?? '');
+    setEditOpponent(event.opponent ?? '');
+    setEditHomeAway(event.homeAway ?? '');
+    setEditDescription(event.description ?? '');
+    setEditError(null);
+    setIsEditing(true);
+  }
+
+  function handleEditSubmit(e: FormEvent) {
+    e.preventDefault();
+    setEditError(null);
+    if (!editTitle.trim() || !editStartsAt || !editEndsAt) {
+      setEditError('Název, začátek a konec jsou povinné.');
+      return;
+    }
+    const body: any = {
+      type: editType,
+      title: editTitle.trim(),
+      startsAt: new Date(editStartsAt).toISOString(),
+      endsAt: new Date(editEndsAt).toISOString(),
+      teamId: editTeamId || null,
+      location: editLocation.trim() || null,
+      opponent: editOpponent.trim() || null,
+      homeAway: editHomeAway || null,
+      description: editDescription.trim() || null,
+    };
+    updateMutation.mutate(body);
+  }
 
   const rsvpMutation = useMutation({
     mutationFn: (args: { memberId: string; status: string; note?: string }) =>
@@ -103,17 +187,206 @@ export default function EventDetailPage() {
 
   const past = isPast(event.endsAt);
 
+  const showOpponentFields = editType === 'MATCH' || editType === 'TOURNAMENT';
+
   return (
     <>
       <PageHeader
         title={event.title}
         subtitle={`Created by ${event.createdBy}`}
         actions={
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Back to events</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {isCoachOrAdmin && !isEditing && (
+              <>
+                <Button variant="outline" size="sm" onClick={openEditForm}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Upravit
+                </Button>
+                {!deleteConfirm ? (
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm(true)}>
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />Smazat
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1 text-xs">
+                    <span className="text-destructive font-medium">Opravdu smazat?</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-6 px-2 text-[11px]"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => deleteMutation.mutate()}
+                    >
+                      Ano
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => setDeleteConfirm(false)}
+                    >
+                      Zrušit
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Zpět na události</Link>
+            </Button>
+          </div>
         }
       />
+
+      {/* Edit form */}
+      {isEditing && (
+        <Card>
+          <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          <CardContent className="p-6">
+            <form onSubmit={handleEditSubmit} className="space-y-5">
+              {/* Type */}
+              <div className="space-y-1.5">
+                <Label>Typ události</Label>
+                <div className="flex flex-wrap gap-2">
+                  {EVENT_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setEditType(t)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        editType === t
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-title">Název</Label>
+                <Input
+                  id="edit-title"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Team */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-team">Tým</Label>
+                <select
+                  id="edit-team"
+                  value={editTeamId}
+                  onChange={(e) => setEditTeamId(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Celý klub (bez konkrétního týmu)</option>
+                  {teams?.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date/time */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-startsAt">Začátek</Label>
+                  <Input
+                    id="edit-startsAt"
+                    type="datetime-local"
+                    required
+                    value={editStartsAt}
+                    onChange={(e) => setEditStartsAt(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-endsAt">Konec</Label>
+                  <Input
+                    id="edit-endsAt"
+                    type="datetime-local"
+                    required
+                    value={editEndsAt}
+                    onChange={(e) => setEditEndsAt(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-location">Místo</Label>
+                <Input
+                  id="edit-location"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                />
+              </div>
+
+              {/* Opponent (conditional) */}
+              {showOpponentFields && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-opponent">Soupeř</Label>
+                    <Input
+                      id="edit-opponent"
+                      value={editOpponent}
+                      onChange={(e) => setEditOpponent(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-homeAway">Domácí / Hosté</Label>
+                    <select
+                      id="edit-homeAway"
+                      value={editHomeAway}
+                      onChange={(e) => setEditHomeAway(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="">Nenastaveno</option>
+                      <option value="HOME">Domácí</option>
+                      <option value="AWAY">Hosté</option>
+                      <option value="NEUTRAL">Neutrální</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-description">Popis (volitelné)</Label>
+                <textarea
+                  id="edit-description"
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              {editError && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {editError}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Ukládám...' : 'Uložit'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { setIsEditing(false); setEditError(null); }}
+                  disabled={updateMutation.isPending}
+                >
+                  Zrušit
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hero */}
       <Card className="relative overflow-hidden ">
@@ -171,7 +444,7 @@ export default function EventDetailPage() {
 
             {/* RSVP summary */}
             <div className="w-full rounded-lg bg-secondary/30 p-4 sm:w-56">
-              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">RSVP Summary</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">RSVP Summary</div>
               <RsvpBar summary={event.rsvpSummary} className="mb-3" />
               <div className="grid grid-cols-4 gap-1 text-center text-xs">
                 <div>
