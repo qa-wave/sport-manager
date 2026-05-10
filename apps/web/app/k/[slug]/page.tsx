@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QueryProvider } from '@/components/query-provider';
 
 type PublicClubData = {
   slug: string;
@@ -25,6 +26,14 @@ type PublicClubData = {
 };
 
 export default function PublicClubPage() {
+  return (
+    <QueryProvider>
+      <PublicClubContent />
+    </QueryProvider>
+  );
+}
+
+function PublicClubContent() {
   const { slug } = useParams<{ slug: string }>();
 
   const { data, isLoading, isError } = useQuery<PublicClubData, ApiError>({
