@@ -104,7 +104,7 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Open-source sportovní SaaS
+            Sportovní platforma pro kluby
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl leading-[1.1]">
@@ -115,7 +115,7 @@ export default function LandingPage() {
 
           <p className="mx-auto mt-6 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
             Kalendář, docházka, komunikace, platby — vše v jedné platformě.
-            Postaveno pro trenéry, rodiče a klubové adminy.
+            Postaveno pro trenéry, rodiče a vedoucí klubů.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
