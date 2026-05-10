@@ -41,13 +41,10 @@ export function Sidebar({
           collapsed ? 'w-14' : 'w-56'
         )}
       >
-        {/* Subtle gradient background */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-transparent" />
-
         {/* Brand */}
         <div className="relative flex h-14 items-center gap-2.5 border-b border-border/60 px-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 shadow-sm transition-shadow hover:shadow-md">
-            <Trophy className="h-4 w-4 text-primary" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
+            <Trophy className="h-4 w-4" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
@@ -84,13 +81,13 @@ export function Sidebar({
               >
                 {/* Active indicator bar */}
                 {active && (
-                  <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-sm" />
+                  <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-brand" />
                 )}
                 <Icon
                   className={cn(
-                    'h-4 w-4 shrink-0 transition-all duration-200',
+                    'h-4 w-4 shrink-0 transition-colors duration-200',
                     active
-                      ? 'text-primary drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)]'
+                      ? 'text-primary'
                       : 'text-muted-foreground group-hover:text-foreground'
                   )}
                 />

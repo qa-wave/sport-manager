@@ -43,16 +43,13 @@ export function Topbar() {
     : '';
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-border/60 bg-card px-5">
-      {/* Subtle bottom gradient line */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
+    <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-card/80 backdrop-blur-sm px-5">
       <div className="flex items-center gap-2.5 text-sm">
-        <Badge variant="success" className="font-mono text-[11px] uppercase tracking-wider shadow-sm">
+        <span className="rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
           {clubName ?? 'No club'}
-        </Badge>
-        <span className="text-muted-foreground/40">/</span>
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{roleLabel ?? 'Admin'}</span>
+        </span>
+        <span className="text-border">/</span>
+        <span className="text-xs font-medium text-muted-foreground">{roleLabel ?? 'Admin'}</span>
       </div>
 
       <div className="flex items-center gap-3">
