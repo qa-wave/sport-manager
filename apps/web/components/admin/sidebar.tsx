@@ -52,7 +52,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight">
-                Club App
+                Sport Manager
               </span>
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 {roleLabel}

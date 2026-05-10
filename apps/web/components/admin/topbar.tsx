@@ -111,9 +111,9 @@ export function Topbar() {
 /* ── Dev-only role switcher ──────────────────────── */
 
 const DEV_ACCOUNTS = [
-  { email: 'admin@example.com', label: 'Admin', short: 'ADM' },
-  { email: 'coach@example.com', label: 'Coach', short: 'COA' },
-  { email: 'mom@example.com', label: 'Parent', short: 'PAR' },
+  { email: 'admin@hvezda.cz', label: 'Admin', short: 'ADM' },
+  { email: 'coach@hvezda.cz', label: 'Coach', short: 'COA' },
+  { email: 'parent@hvezda.cz', label: 'Parent', short: 'PAR' },
 ] as const;
 
 function DevRoleSwitcher() {
@@ -127,7 +127,7 @@ function DevRoleSwitcher() {
         method: 'POST',
         credentials: 'include',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, password: 'password' }),
+        body: JSON.stringify({ email, password: 'heslo123' }),
       });
       if (!res.ok) return;
       const { accessToken } = (await res.json()) as { accessToken: string };
