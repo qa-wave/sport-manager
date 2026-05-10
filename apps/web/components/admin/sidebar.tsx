@@ -46,7 +46,7 @@ export function Sidebar({
 
         {/* Brand */}
         <div className="relative flex h-14 items-center gap-2.5 border-b border-border/60 px-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 shadow-[0_0_12px_-3px_hsl(var(--primary)/0.4)] transition-shadow hover:shadow-[0_0_16px_-2px_hsl(var(--primary)/0.5)]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 shadow-sm transition-shadow hover:shadow-md">
             <Trophy className="h-4 w-4 text-primary" />
           </div>
           {!collapsed && (
@@ -54,7 +54,7 @@ export function Sidebar({
               <span className="text-sm font-bold tracking-tight">
                 Club App
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 {roleLabel}
               </span>
             </div>
@@ -77,14 +77,14 @@ export function Sidebar({
                 className={cn(
                   'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
                   active
-                    ? 'bg-primary/10 font-medium text-foreground shadow-[inset_0_0_12px_-6px_hsl(var(--primary)/0.2)]'
+                    ? 'bg-primary/10 font-medium text-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground',
                   collapsed && 'justify-center px-0'
                 )}
               >
                 {/* Active indicator bar */}
                 {active && (
-                  <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.5)]" />
+                  <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-sm" />
                 )}
                 <Icon
                   className={cn(
@@ -118,7 +118,7 @@ export function Sidebar({
         {/* Footer */}
         <div className="relative flex items-center justify-between px-3 py-2.5">
           {!collapsed && (
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
               v0.0.1
             </span>
           )}

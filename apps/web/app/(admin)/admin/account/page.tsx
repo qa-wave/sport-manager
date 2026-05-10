@@ -87,7 +87,7 @@ export default function AccountPage() {
               {roleLabel && (
                 <Badge
                   variant={ROLE_VARIANT[memberCtx?.clubRoles[0] ?? ''] ?? 'default'}
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px]"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px]"
                 >
                   {roleLabel}
                 </Badge>
@@ -111,7 +111,7 @@ export default function AccountPage() {
                   <div className="text-lg font-bold text-primary">
                     {memberCtx.teamRoles.length}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Teams
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export default function AccountPage() {
                   <div className="text-lg font-bold">
                     {memberCtx.clubRoles.length}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Roles
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export default function AccountPage() {
                     <div className="text-lg font-bold text-emerald-500">
                       {memberCtx.guardianOf.length}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                       Children
                     </div>
                   </div>
@@ -155,7 +155,7 @@ export default function AccountPage() {
                   onClick={() => setTheme(value)}
                   className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-xs font-medium transition-all ${
                     theme === value
-                      ? 'border-primary bg-primary/10 text-primary shadow-[0_0_12px_-4px_hsl(var(--primary)/0.3)]'
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
                       : 'border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
                   }`}
                 >

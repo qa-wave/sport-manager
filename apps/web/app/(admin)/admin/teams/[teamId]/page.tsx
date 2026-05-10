@@ -114,7 +114,7 @@ export default function TeamDetailPage() {
 
       {/* Realizacni tym */}
       {coaches.length > 0 && (
-        <Card className="gradient-card">
+        <Card className="">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Realizacni tym</CardTitle>
           </CardHeader>
@@ -129,7 +129,7 @@ export default function TeamDetailPage() {
       )}
 
       {/* Soupiska */}
-      <Card className="overflow-hidden gradient-card">
+      <Card className="overflow-hidden ">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">
             Soupiska{players.length > 0 ? ` (${players.length})` : ''}
@@ -145,11 +145,11 @@ export default function TeamDetailPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[10px] uppercase tracking-wider">Hrac</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Role</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Dres</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Pozice</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Stav</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Hrac</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Role</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Dres</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Pozice</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Stav</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,7 +161,7 @@ export default function TeamDetailPage() {
                   <TableCell>
                     <div className="flex items-center gap-2.5">
                       <Avatar className="h-7 w-7">
-                        <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
+                        <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
                           {m.firstName[0]}{m.lastName[0]}
                         </AvatarFallback>
                       </Avatar>
@@ -207,9 +207,9 @@ export default function TeamDetailPage() {
 
 function InfoTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <Card className="gradient-card">
+    <Card className="">
       <CardContent className="p-4">
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="mt-1 text-sm font-semibold">{value}</div>
       </CardContent>
     </Card>
@@ -221,15 +221,15 @@ function CoachChip({ member }: { member: TeamRosterEntry }) {
     <Link href={`/admin/members/${member.memberId}` as any}>
       <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary/60">
         <Avatar className="h-7 w-7">
-          <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
+          <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
             {member.firstName[0]}{member.lastName[0]}
           </AvatarFallback>
         </Avatar>
         <div>
           <div className="text-xs font-medium">{member.firstName} {member.lastName}</div>
-          <div className="text-[10px] text-muted-foreground">{ROLE_LABEL[member.role] ?? member.role}</div>
+          <div className="text-[11px] text-muted-foreground">{ROLE_LABEL[member.role] ?? member.role}</div>
         </div>
-        <Badge variant={ROLE_VARIANT[member.role] ?? 'default'} className="ml-1 text-[10px]">
+        <Badge variant={ROLE_VARIANT[member.role] ?? 'default'} className="ml-1 text-[11px]">
           {member.role.replace(/_/g, ' ')}
         </Badge>
       </div>

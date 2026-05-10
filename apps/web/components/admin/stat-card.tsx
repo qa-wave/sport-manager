@@ -23,7 +23,7 @@ export function StatCard({
   return (
     <Card className={cn(
       'group relative overflow-hidden transition-all duration-300 hover:border-glow shine',
-      'gradient-card',
+      '',
       variant === 'primary' && 'border-primary/20 hover:border-primary/40',
       variant === 'success' && 'border-green-500/20 hover:border-green-500/40',
       variant === 'warning' && 'border-yellow-500/20 hover:border-yellow-500/40',
@@ -43,11 +43,11 @@ export function StatCard({
         <div className="flex items-start justify-between">
           <div className={cn(
             'rounded-lg p-2.5 transition-all duration-300 group-hover:scale-110',
-            variant === 'default' && 'bg-primary/10 text-primary shadow-[0_0_12px_-3px_hsl(var(--primary)/0.3)]',
-            variant === 'primary' && 'bg-primary/15 text-primary shadow-[0_0_12px_-3px_hsl(var(--primary)/0.4)]',
-            variant === 'success' && 'bg-green-500/15 text-green-500 shadow-[0_0_12px_-3px_rgba(34,197,94,0.3)]',
-            variant === 'warning' && 'bg-yellow-500/15 text-yellow-500 shadow-[0_0_12px_-3px_rgba(234,179,8,0.3)]',
-            variant === 'danger' && 'bg-red-500/15 text-red-500 shadow-[0_0_12px_-3px_rgba(239,68,68,0.3)]',
+            variant === 'default' && 'bg-primary/10 text-primary shadow-sm',
+            variant === 'primary' && 'bg-primary/15 text-primary shadow-sm',
+            variant === 'success' && 'bg-green-500/15 text-green-500 shadow-sm',
+            variant === 'warning' && 'bg-yellow-500/15 text-yellow-500 shadow-sm',
+            variant === 'danger' && 'bg-red-500/15 text-red-500 shadow-sm',
           )}>
             <Icon className="h-5 w-5" />
           </div>
@@ -55,9 +55,9 @@ export function StatCard({
             <span
               className={cn(
                 'h-2.5 w-2.5 rounded-full animate-pulse-subtle',
-                status === 'ok' && 'bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.6)]',
-                status === 'warning' && 'bg-warning shadow-[0_0_8px_hsl(var(--warning)/0.6)]',
-                status === 'error' && 'bg-destructive shadow-[0_0_8px_hsl(var(--destructive)/0.6)]'
+                status === 'ok' && 'bg-primary shadow-sm',
+                status === 'warning' && 'bg-warning shadow-sm',
+                status === 'error' && 'bg-destructive shadow-sm'
               )}
             />
           )}

@@ -99,7 +99,7 @@ export default function MemberProfilePage() {
       />
 
       {/* Hero card */}
-      <Card className="relative overflow-hidden gradient-card">
+      <Card className="relative overflow-hidden ">
         {/* Sport accent gradient */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-500/[0.02]" />
         <CardContent className="relative p-6">
@@ -111,7 +111,7 @@ export default function MemberProfilePage() {
                 </AvatarFallback>
               </Avatar>
               {m.jerseyNumber != null && (
-                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm">
                   {m.jerseyNumber}
                 </div>
               )}
@@ -141,7 +141,7 @@ export default function MemberProfilePage() {
             <div className="hidden text-right text-xs text-muted-foreground sm:block">
               <div className="rounded-md bg-secondary/50 px-2.5 py-1.5">
                 <div className="font-medium text-foreground/80">Joined {formatDate(m.joinedAt)}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-wide">{m.locale}</div>
+                <div className="mt-0.5 text-[11px] uppercase tracking-wide">{m.locale}</div>
               </div>
             </div>
           </div>

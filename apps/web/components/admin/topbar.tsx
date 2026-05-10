@@ -48,7 +48,7 @@ export function Topbar() {
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       <div className="flex items-center gap-2.5 text-sm">
-        <Badge variant="success" className="font-mono text-[10px] uppercase tracking-wider shadow-[0_0_8px_-2px_hsl(var(--primary)/0.3)]">
+        <Badge variant="success" className="font-mono text-[11px] uppercase tracking-wider shadow-sm">
           {clubName ?? 'No club'}
         </Badge>
         <span className="text-muted-foreground/40">/</span>
@@ -99,7 +99,7 @@ export function Topbar() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild size="sm" className="shadow-[0_0_12px_-4px_hsl(var(--primary)/0.3)]">
+          <Button asChild size="sm" className="shadow-sm">
             <Link href="/login">Sign in</Link>
           </Button>
         )}
@@ -142,7 +142,7 @@ function DevRoleSwitcher() {
 
   return (
     <div className="flex items-center gap-1 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5">
-      <span className="mr-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-500/70">
+      <span className="mr-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-500/70">
         {switching ? <RefreshCw className="inline h-3 w-3 animate-spin" /> : 'DEV'}
       </span>
       {DEV_ACCOUNTS.map((acc) => (
@@ -150,7 +150,7 @@ function DevRoleSwitcher() {
           key={acc.email}
           onClick={() => switchTo(acc.email)}
           disabled={switching}
-          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-500/80 transition-colors hover:bg-amber-500/15 hover:text-amber-400 disabled:opacity-50"
+          className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-amber-500/80 transition-colors hover:bg-amber-500/15 hover:text-amber-400 disabled:opacity-50"
           title={acc.email}
         >
           {acc.label}

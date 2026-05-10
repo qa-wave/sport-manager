@@ -131,7 +131,7 @@ export function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
             {count > 99 ? '99+' : count}
           </span>
         )}
@@ -212,7 +212,7 @@ export function NotificationBell() {
                             {item.body}
                           </p>
                         )}
-                        <p className="mt-1 text-[10px] text-muted-foreground/50">
+                        <p className="mt-1 text-[11px] text-muted-foreground/50">
                           {timeAgo(item.createdAt)}
                         </p>
                       </div>

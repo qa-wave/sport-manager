@@ -156,7 +156,7 @@ export default function MessagesPage() {
           {channels.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Channels
                 </h3>
                 <div className="h-px flex-1 bg-border/50" />
@@ -178,7 +178,7 @@ export default function MessagesPage() {
           {dms.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Direct Messages
                 </h3>
                 <div className="h-px flex-1 bg-border/50" />
@@ -216,7 +216,7 @@ function ConversationRow({
   return (
     <Link
       href={`/admin/messages/${conv.id}` as any}
-      className={`group flex items-center gap-3 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/40 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.15)] ${
+      className={`group flex items-center gap-3 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/40 hover:shadow-md ${
         conv.hasUnread
           ? 'border-primary/30 bg-primary/[0.03]'
           : 'border-border/50'
@@ -231,7 +231,7 @@ function ConversationRow({
           }`}>
             {title}
           </span>
-          <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">
+          <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[11px] font-semibold uppercase text-muted-foreground">
             {typeLabel}
           </span>
           {conv.hasUnread && (
@@ -257,11 +257,11 @@ function ConversationRow({
 
       <div className="shrink-0 text-right">
         {conv.lastMessage && (
-          <span className="text-[10px] text-muted-foreground/60">
+          <span className="text-[11px] text-muted-foreground/60">
             {timeAgo(conv.lastMessage.createdAt)}
           </span>
         )}
-        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground/40">
+        <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground/40">
           <Users className="h-3 w-3" />
           <span>{conv.participantCount}</span>
         </div>

@@ -14,7 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
-import { apiFetch, ApiError, type DashboardFeed, type EventSummary } from '@/lib/api';
+import { apiFetch, ApiError, type DashboardFeed, type EventSummary, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,13 @@ function getRoleGreeting(roleLabel: string): string {
   }
 }
 
+function getTimeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Dobré ráno';
+  if (h < 18) return 'Dobré odpoledne';
+  return 'Dobrý večer';
+}
+
 export default function DashboardPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -76,17 +83,24 @@ export default function DashboardPage() {
     refetchInterval: 30_000,
   });
 
+  const me = useQuery<MeResponse, ApiError>({
+    queryKey: ['me', auth.accessToken],
+    queryFn: () => apiFetch<MeResponse>('/me'),
+    enabled: auth.isAuthenticated,
+  });
+
   const admin = memberCtx ? isAdmin(memberCtx) : true;
   const coach = memberCtx ? isCoach(memberCtx) : false;
   const guardian = memberCtx ? isGuardian(memberCtx) : false;
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : 'Admin';
+  const firstName = me.data?.firstName;
 
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        subtitle={feed ? (admin
-          ? `${feed.stats.members} members · ${feed.stats.teams} teams · ${feed.stats.upcomingEvents} upcoming events`
+        title={firstName ? `${getTimeGreeting()}, ${firstName}` : 'Dashboard'}
+        subtitle={feed?.stats ? (admin
+          ? `${feed.stats.members} členů · ${feed.stats.teams} týmů · ${feed.stats.upcomingEvents} nadcházejících`
           : getRoleGreeting(roleLabel)
         ) : undefined}
       />
@@ -105,7 +119,7 @@ export default function DashboardPage() {
           {/* This Week */}
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <CalendarDays className="h-4 w-4 text-primary" />
                 This Week
               </h2>
@@ -117,7 +131,7 @@ export default function DashboardPage() {
             </div>
 
             {feed.thisWeek.length === 0 ? (
-              <Card className="gradient-card">
+              <Card className="">
                 <CardContent className="py-8 text-center">
                   <p className="text-sm text-muted-foreground">No events this week</p>
                   <Button asChild size="sm" className="mt-3">
@@ -137,7 +151,7 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={event.id}
-                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.15)] border-l-[3px] ${
+                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md border-l-[3px] ${
                         EVENT_BORDER[event.type] ?? 'border-l-border'
                       }`}
                       onClick={() => router.push(`/admin/events/${event.id}`)}
@@ -145,7 +159,7 @@ export default function DashboardPage() {
                       <div className="flex items-stretch">
                         <div className="flex w-[64px] shrink-0 flex-col items-center justify-center border-r border-border/30 py-3">
                           <span className="text-xl font-bold leading-none">{dayNum(event.startsAt)}</span>
-                          <span className="mt-0.5 text-[9px] font-medium tracking-wider text-muted-foreground">{weekdayShort(event.startsAt)}</span>
+                          <span className="mt-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">{weekdayShort(event.startsAt)}</span>
                           <span className="mt-1 text-[11px] font-semibold text-primary">{formatTime(event.startsAt)}</span>
                         </div>
                         <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-2.5">
@@ -186,7 +200,7 @@ export default function DashboardPage() {
           {/* Needs Attention — only shown to admins and coaches */}
           {(admin || coach) && feed.needsAttention.length > 0 && (
             <section>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <AlertTriangle className="h-4 w-4 text-warning" />
                 Needs Attention
               </h2>
@@ -221,7 +235,7 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <section>
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Quick Actions
             </h2>
             <div className={`grid gap-3 ${admin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
@@ -273,10 +287,10 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           {feed.recentActivity.length > 0 && (
             <section>
-              <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Recent Activity
               </h2>
-              <Card className="gradient-card">
+              <Card className="">
                 <CardContent className="divide-y divide-border/30 p-0">
                   {feed.recentActivity.map((item, i) => (
                     <div
@@ -286,7 +300,7 @@ export default function DashboardPage() {
                     >
                       <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/50" />
                       <p className="flex-1 text-xs text-muted-foreground">{item.message}</p>
-                      <span className="shrink-0 text-[10px] text-muted-foreground/50">
+                      <span className="shrink-0 text-[11px] text-muted-foreground/50">
                         {relativeTime(item.timestamp)}
                       </span>
                     </div>
@@ -316,11 +330,11 @@ function QuickAction({
 }) {
   return (
     <Link href={href}>
-      <Card className={`group relative overflow-hidden transition-all duration-200 hover:border-primary/30 shine ${
+      <Card className={`group relative overflow-hidden transition-all duration-200 hover:border-primary/30 ${
         primary ? 'border-primary/20 bg-primary/[0.03]' : ''
       }`}>
         <CardContent className="flex items-center gap-3 p-4">
-          <div className={`rounded-lg p-2 transition-all group-hover:shadow-[0_0_10px_-2px_hsl(var(--primary)/0.3)] ${
+          <div className={`rounded-lg p-2 transition-all group-hover:shadow-md ${
             primary ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
           }`}>
             <Icon className="h-4 w-4" />

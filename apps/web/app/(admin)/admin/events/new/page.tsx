@@ -90,7 +90,7 @@ export default function NewEventPage() {
         }
       />
 
-      <Card className="gradient-card">
+      <Card className="">
         <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -105,7 +105,7 @@ export default function NewEventPage() {
                     onClick={() => setType(t)}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                       type === t
-                        ? 'bg-primary text-primary-foreground shadow-[0_0_10px_-2px_hsl(var(--primary)/0.4)]'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'bg-secondary text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -246,7 +246,7 @@ export default function NewEventPage() {
 
             <Button
               type="submit"
-              className="w-full shadow-[0_0_16px_-4px_hsl(var(--primary)/0.4)]"
+              className="w-full shadow-md"
               disabled={createMutation.isPending}
             >
               {createMutation.isPending ? 'Creating...' : 'Create Event'}

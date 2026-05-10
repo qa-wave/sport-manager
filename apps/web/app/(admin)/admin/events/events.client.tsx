@@ -252,7 +252,7 @@ export default function EventsPage() {
           {groups.map((group) => (
             <div key={group.label}>
               <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {group.label}
                 </h3>
                 <div className="h-px flex-1 bg-border/50" />
@@ -264,7 +264,7 @@ export default function EventsPage() {
                   return (
                     <div
                       key={event.id}
-                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-[0_0_20px_-6px_hsl(var(--primary)/0.15)] border-l-[3px] ${
+                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md border-l-[3px] ${
                         EVENT_BORDER_COLOR[event.type] ?? 'border-l-border'
                       }`}
                       onClick={() => router.push(`/admin/events/${event.id}`)}
@@ -275,19 +275,19 @@ export default function EventsPage() {
                           <span className="text-2xl font-bold leading-none">
                             {dayNum(event.startsAt)}
                           </span>
-                          <span className="mt-0.5 text-[10px] font-medium tracking-wider text-muted-foreground">
+                          <span className="mt-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">
                             {weekdayShort(event.startsAt)}
                           </span>
                           <span className="mt-1.5 text-xs font-semibold text-primary">
                             {formatTime(event.startsAt)}
                           </span>
                           {isToday(event.startsAt) && (
-                            <span className="mt-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                            <span className="mt-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[11px] font-bold text-primary">
                               TODAY
                             </span>
                           )}
                           {isTomorrow(event.startsAt) && (
-                            <span className="mt-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary/70">
+                            <span className="mt-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary/70">
                               TMRW
                             </span>
                           )}
@@ -302,7 +302,7 @@ export default function EventsPage() {
                                 {isMatch ? event.title : EVENT_TYPE_LABEL[event.type] ?? event.type}
                               </span>
                               {event.homeAway && (
-                                <span className="rounded bg-secondary px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                                <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                                   {event.homeAway}
                                 </span>
                               )}
@@ -335,7 +335,7 @@ export default function EventsPage() {
                           {/* RSVP status */}
                           <div className="shrink-0 text-right">
                             <RsvpBadge summary={event.rsvpSummary} />
-                            <div className="mt-1.5 flex items-center justify-end gap-0.5 text-[10px] text-muted-foreground/40 transition-colors group-hover:text-primary/50">
+                            <div className="mt-1.5 flex items-center justify-end gap-0.5 text-[11px] text-muted-foreground/40 transition-colors group-hover:text-primary/50">
                               <span>Details</span>
                               <ChevronDown className="h-3 w-3 -rotate-90" />
                             </div>

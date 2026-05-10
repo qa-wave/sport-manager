@@ -74,15 +74,15 @@ export default function TeamsPage() {
           description="Create your first team to start building rosters."
         />
       ) : (
-        <Card className="overflow-hidden gradient-card">
+        <Card className="overflow-hidden ">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[10px] uppercase tracking-wider">Team</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Age</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Season</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Coaches</TableHead>
-                <TableHead className="text-right text-[10px] uppercase tracking-wider">Players</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Team</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Age</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Season</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Coaches</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">Players</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

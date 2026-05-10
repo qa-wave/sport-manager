@@ -297,7 +297,7 @@ export default function ConversationPage() {
                   {showDate && (
                     <div className="flex items-center gap-3 py-3">
                       <div className="h-px flex-1 bg-border/50" />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                         {dateSeparatorLabel(msg.createdAt)}
                       </span>
                       <div className="h-px flex-1 bg-border/50" />
@@ -313,7 +313,7 @@ export default function ConversationPage() {
                     {!isMe ? (
                       showSender ? (
                         <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${getAvatarColor(
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${getAvatarColor(
                             msg.senderId,
                           )}`}
                         >
@@ -331,7 +331,7 @@ export default function ConversationPage() {
                       }`}
                     >
                       {showSender && !isMe && (
-                        <p className="mb-0.5 text-[10px] font-semibold text-muted-foreground/70 ml-1">
+                        <p className="mb-0.5 text-[11px] font-semibold text-muted-foreground/70 ml-1">
                           {msg.senderName}
                         </p>
                       )}
@@ -345,7 +345,7 @@ export default function ConversationPage() {
                         {msg.body}
                       </div>
                       <p
-                        className={`mt-0.5 text-[9px] text-muted-foreground/40 ${
+                        className={`mt-0.5 text-[11px] text-muted-foreground/40 ${
                           isMe ? 'text-right mr-1' : 'ml-1'
                         }`}
                       >
@@ -401,7 +401,7 @@ export default function ConversationPage() {
             </Button>
           </div>
           {isAnnouncement && (
-            <p className="mt-1.5 text-[10px] text-muted-foreground/50 text-center">
+            <p className="mt-1.5 text-[11px] text-muted-foreground/50 text-center">
               Only admins and coaches can post here
             </p>
           )}

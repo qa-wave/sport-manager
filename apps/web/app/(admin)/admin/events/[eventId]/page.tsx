@@ -116,7 +116,7 @@ export default function EventDetailPage() {
       />
 
       {/* Hero */}
-      <Card className="relative overflow-hidden gradient-card">
+      <Card className="relative overflow-hidden ">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-500/[0.02]" />
         <CardContent className="relative p-6">
           <div className="flex flex-wrap items-start gap-4">
@@ -126,9 +126,9 @@ export default function EventDetailPage() {
                   {event.type}
                 </Badge>
                 {event.homeAway && (
-                  <Badge variant="outline" className="text-[10px]">{event.homeAway}</Badge>
+                  <Badge variant="outline" className="text-[11px]">{event.homeAway}</Badge>
                 )}
-                {past && <Badge variant="outline" className="text-[10px] text-muted-foreground">PAST</Badge>}
+                {past && <Badge variant="outline" className="text-[11px] text-muted-foreground">PAST</Badge>}
               </div>
 
               <div className="space-y-1.5 text-sm text-muted-foreground">
@@ -197,7 +197,7 @@ export default function EventDetailPage() {
       </Card>
 
       {/* Roster table */}
-      <Card className="overflow-hidden gradient-card">
+      <Card className="overflow-hidden ">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm">
             Attendance Roster ({event.attendees.length} members)
@@ -271,10 +271,10 @@ export default function EventDetailPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-[10px] uppercase tracking-wider">Member</TableHead>
-              <TableHead className="text-[10px] uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-[10px] uppercase tracking-wider">Note</TableHead>
-              {past && <TableHead className="text-[10px] uppercase tracking-wider">Attended</TableHead>}
+              <TableHead className="text-[11px] uppercase tracking-wider">Member</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wider">Note</TableHead>
+              {past && <TableHead className="text-[11px] uppercase tracking-wider">Attended</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -283,7 +283,7 @@ export default function EventDetailPage() {
                 <TableCell>
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+                      <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
                         {a.name.split(' ').map((n) => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
@@ -291,7 +291,7 @@ export default function EventDetailPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={RSVP_VARIANT[a.status] ?? 'default'} className="text-[10px]">
+                  <Badge variant={RSVP_VARIANT[a.status] ?? 'default'} className="text-[11px]">
                     {a.status}
                   </Badge>
                 </TableCell>
@@ -301,13 +301,13 @@ export default function EventDetailPage() {
                 {past && (
                   <TableCell>
                     {a.attended != null && !(a.memberId in bulkAttendance) ? (
-                      <Badge variant={a.attended ? 'success' : 'danger'} className="text-[10px]">
+                      <Badge variant={a.attended ? 'success' : 'danger'} className="text-[11px]">
                         {a.attended ? 'Ano' : 'Ne'}
                       </Badge>
                     ) : (
                       <div className="flex gap-1">
                         <button
-                          className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                          className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
                             bulkAttendance[a.memberId] === true
                               ? 'bg-emerald-500/20 text-emerald-500'
                               : 'text-muted-foreground hover:text-emerald-500'
@@ -317,7 +317,7 @@ export default function EventDetailPage() {
                           ✓
                         </button>
                         <button
-                          className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                          className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
                             bulkAttendance[a.memberId] === false
                               ? 'bg-red-500/20 text-red-500'
                               : 'text-muted-foreground hover:text-red-500'

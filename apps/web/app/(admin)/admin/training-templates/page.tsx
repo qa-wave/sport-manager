@@ -31,7 +31,7 @@ function DayBadges({ days }: { days: number[] }) {
       {sorted.map((d) => (
         <span
           key={d}
-          className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+          className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary"
         >
           {DAY_LABELS[d]}
         </span>
@@ -112,17 +112,17 @@ export default function TrainingTemplatesPage() {
           }
         />
       ) : (
-        <Card className="overflow-hidden gradient-card">
+        <Card className="overflow-hidden ">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[10px] uppercase tracking-wider">Název</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Tým</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Dny</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Čas</TableHead>
-                <TableHead className="w-24 text-[10px] uppercase tracking-wider">Platnost</TableHead>
-                <TableHead className="w-20 text-center text-[10px] uppercase tracking-wider">Události</TableHead>
-                <TableHead className="w-20 text-[10px] uppercase tracking-wider">Stav</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Název</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Tým</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Dny</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Čas</TableHead>
+                <TableHead className="w-24 text-[11px] uppercase tracking-wider">Platnost</TableHead>
+                <TableHead className="w-20 text-center text-[11px] uppercase tracking-wider">Události</TableHead>
+                <TableHead className="w-20 text-[11px] uppercase tracking-wider">Stav</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,7 +155,7 @@ export default function TrainingTemplatesPage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="text-sm font-bold">{tpl.upcomingEventsCount}</div>
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-[11px] text-muted-foreground">
                       {tpl.generatedEventsCount} celkem
                     </div>
                   </TableCell>

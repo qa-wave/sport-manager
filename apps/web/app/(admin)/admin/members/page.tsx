@@ -105,16 +105,16 @@ export default function MembersPage() {
           description={search ? `No members matching "${search}".` : 'No members found in this club.'}
         />
       ) : (
-        <Card className="overflow-hidden gradient-card">
+        <Card className="overflow-hidden ">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="w-10 text-[10px] uppercase tracking-wider">#</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Name</TableHead>
-                <TableHead className="w-14 text-[10px] uppercase tracking-wider">Age</TableHead>
-                <TableHead className="w-14 text-[10px] uppercase tracking-wider">Pos</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Teams & Roles</TableHead>
-                <TableHead className="w-20 text-[10px] uppercase tracking-wider">Status</TableHead>
+                <TableHead className="w-10 text-[11px] uppercase tracking-wider">#</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Name</TableHead>
+                <TableHead className="w-14 text-[11px] uppercase tracking-wider">Age</TableHead>
+                <TableHead className="w-14 text-[11px] uppercase tracking-wider">Pos</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Teams & Roles</TableHead>
+                <TableHead className="w-20 text-[11px] uppercase tracking-wider">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -130,7 +130,7 @@ export default function MembersPage() {
                   <TableCell>
                     <div className="flex items-center gap-2.5">
                       <Avatar className="h-8 w-8 ring-1 ring-border/50 transition-all group-hover:ring-primary/30">
-                        <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+                        <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
                           {m.firstName[0]}{m.lastName[0]}
                         </AvatarFallback>
                       </Avatar>

@@ -62,7 +62,7 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub?: s
     <div className="rounded-lg bg-secondary/30 p-4 text-center">
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      {sub && <div className="text-[10px] text-muted-foreground/60">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground/60">{sub}</div>}
     </div>
   );
 }
@@ -203,7 +203,7 @@ function EditForm({
   }
 
   return (
-    <Card className="gradient-card">
+    <Card className="">
       <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -236,7 +236,7 @@ function EditForm({
                   onClick={() => setEventType(t)}
                   className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                     eventType === t
-                      ? 'bg-primary text-primary-foreground shadow-[0_0_10px_-2px_hsl(var(--primary)/0.4)]'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'bg-secondary text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -256,7 +256,7 @@ function EditForm({
                   onClick={() => toggleDay(value)}
                   className={`h-9 w-10 rounded-md text-sm font-semibold transition-all ${
                     daysOfWeek.includes(value)
-                      ? 'bg-primary text-primary-foreground shadow-[0_0_10px_-2px_hsl(var(--primary)/0.4)]'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'bg-secondary text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -504,21 +504,21 @@ export default function TrainingTemplateDetailPage() {
         />
       ) : (
         /* Detail view */
-        <Card className="relative overflow-hidden gradient-card">
+        <Card className="relative overflow-hidden ">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-500/[0.02]" />
           <CardContent className="relative p-6">
             <div className="grid gap-6 sm:grid-cols-2">
               {/* Left column */}
               <div className="space-y-4">
                 <div>
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Tým
                   </div>
                   <div className="text-sm font-medium">{tpl.teamName}</div>
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Typ události
                   </div>
                   <Badge variant="default">
@@ -527,14 +527,14 @@ export default function TrainingTemplateDetailPage() {
                 </div>
 
                 <div>
-                  <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Dny v týdnu
                   </div>
                   <DayBadges days={tpl.daysOfWeek} />
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Čas
                   </div>
                   <div className="font-mono text-sm">
@@ -546,7 +546,7 @@ export default function TrainingTemplateDetailPage() {
               {/* Right column */}
               <div className="space-y-4">
                 <div>
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Platnost
                   </div>
                   <div className="text-sm">
@@ -555,7 +555,7 @@ export default function TrainingTemplateDetailPage() {
                 </div>
 
                 <div>
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     Stav
                   </div>
                   {tpl.active ? (
@@ -567,7 +567,7 @@ export default function TrainingTemplateDetailPage() {
 
                 {tpl.location && (
                   <div>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       Místo
                     </div>
                     <div className="flex items-center gap-1.5 text-sm">
@@ -589,7 +589,7 @@ export default function TrainingTemplateDetailPage() {
 
                 {tpl.description && (
                   <div>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                       Popis
                     </div>
                     <p className="text-sm text-muted-foreground">{tpl.description}</p>
