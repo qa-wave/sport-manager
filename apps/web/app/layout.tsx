@@ -10,8 +10,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Sport Manager',
-  description: 'Řízení sportovního klubu — jednoduše.',
+  title: { default: 'Sport Manager', template: '%s | Sport Manager' },
+  description: 'Kalendář, docházka, komunikace, platby — vše v jedné platformě pro sportovní kluby.',
+  metadataBase: new URL('https://sport-manager.qawave.ai'),
+  openGraph: {
+    title: 'Sport Manager',
+    description: 'Kalendář, docházka, komunikace, platby — vše v jedné platformě pro sportovní kluby.',
+    siteName: 'Sport Manager',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Sport Manager',
+    description: 'Řízení sportovního klubu — jednoduše.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

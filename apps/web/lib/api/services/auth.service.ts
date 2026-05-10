@@ -189,6 +189,60 @@ export async function refresh(
 }
 
 // ---------------------------------------------------------------------------
+// forgotPassword — issue a short-lived reset JWT (no DB changes needed).
+// ---------------------------------------------------------------------------
+export async function forgotPassword(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  // Always succeed — don't reveal whether the email exists.
+  if (!user) return;
+
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new Error('JWT_ACCESS_SECRET env var not set');
+
+  const resetToken = await new SignJWT({ sub: user.id, purpose: 'reset' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(new TextEncoder().encode(secret));
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
+  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+  // TODO: send email — for now log to console
+  console.info(`[auth] Password reset URL for ${email}: ${resetUrl}`);
+}
+
+// ---------------------------------------------------------------------------
+// resetPassword — verify reset JWT, update password, invalidate sessions.
+// ---------------------------------------------------------------------------
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new Error('JWT_ACCESS_SECRET env var not set');
+
+  let userId: string;
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    if (payload['purpose'] !== 'reset' || !payload.sub) {
+      throw new Error('invalid purpose');
+    }
+    userId = payload.sub as string;
+  } catch {
+    throw Object.assign(new Error('Neplatný nebo vypršelý token pro reset hesla'), {
+      statusCode: 400,
+      code: 'INVALID_RESET_TOKEN',
+    });
+  }
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+  // Update password and invalidate all existing sessions atomically.
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+    prisma.session.deleteMany({ where: { userId } }),
+  ]);
+}
+
+// ---------------------------------------------------------------------------
 // logout — idempotent session delete.
 // ---------------------------------------------------------------------------
 export async function logout(refreshToken: string | undefined) {

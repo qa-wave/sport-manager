@@ -1,8 +1,18 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import { LoginInput, RegisterInput } from '@sport-manager/contracts';
 import * as authService from '../services/auth.service';
 import type { HonoEnv } from '../../types/hono';
+
+const ForgotPasswordInput = z.object({
+  email: z.string().email(),
+});
+
+const ResetPasswordInput = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, 'Heslo musí mít alespoň 8 znaků'),
+});
 
 const COOKIE_NAME = 'club_rt';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -107,6 +117,25 @@ auth.post('/logout', async (c) => {
   await authService.logout(refreshToken);
   clearRefreshCookie(c);
   return c.body(null, 204);
+});
+
+/**
+ * POST /v1/auth/forgot-password
+ * Always returns 200 to avoid email enumeration.
+ */
+auth.post('/forgot-password', zValidator('json', ForgotPasswordInput), async (c) => {
+  const { email } = c.req.valid('json');
+  await authService.forgotPassword(email);
+  return c.json({ message: 'Pokud účet existuje, poslali jsme vám email s odkazem pro reset hesla.' });
+});
+
+/**
+ * POST /v1/auth/reset-password
+ */
+auth.post('/reset-password', zValidator('json', ResetPasswordInput), async (c) => {
+  const { token, password } = c.req.valid('json');
+  await authService.resetPassword(token, password);
+  return c.json({ message: 'Heslo bylo úspěšně změněno.' });
 });
 
 export { auth as authRoutes };

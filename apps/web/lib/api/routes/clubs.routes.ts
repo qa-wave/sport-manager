@@ -223,4 +223,79 @@ clubs.patch(
   },
 );
 
+/**
+ * POST /v1/clubs/invite-link
+ *
+ * Generate an invite link for the club. Anyone with the link can
+ * join the club after registration. Token is a JWT valid for 7 days.
+ * Requires OWNER or ADMIN role.
+ */
+clubs.post(
+  '/invite-link',
+  requireRole('OWNER', 'ADMIN'),
+  async (c) => {
+    const clubId = c.get('clubId')!;
+    const club = await prisma.club.findUnique({ where: { id: clubId }, select: { name: true, slug: true } });
+    if (!club) {
+      throw Object.assign(new Error('Club not found'), { statusCode: 404, code: 'CLUB_NOT_FOUND' });
+    }
+
+    const { SignJWT } = await import('jose');
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+    const token = await new SignJWT({ clubId, slug: club.slug, purpose: 'invite' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(secret);
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sport-manager.qawave.ai';
+    const link = `${baseUrl}/join?token=${token}`;
+
+    return c.json({ link, expiresIn: '7 dní' });
+  },
+);
+
+/**
+ * POST /v1/clubs/join
+ *
+ * Join a club using an invite token. Authenticated user is added
+ * as a member of the club.
+ */
+clubs.post(
+  '/join',
+  requireAuth(),
+  async (c) => {
+    const user = c.get('user')!;
+    const body = await c.req.json() as { token: string };
+
+    const { jwtVerify } = await import('jose');
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+
+    let payload: { clubId?: string; purpose?: string };
+    try {
+      const { payload: p } = await jwtVerify(body.token, secret);
+      payload = p as typeof payload;
+    } catch {
+      throw Object.assign(new Error('Invalid or expired invite link'), { statusCode: 400, code: 'INVALID_TIME' });
+    }
+
+    if (payload.purpose !== 'invite' || !payload.clubId) {
+      throw Object.assign(new Error('Invalid invite token'), { statusCode: 400, code: 'INVALID_TIME' });
+    }
+
+    // Check if already member
+    const existing = await prisma.member.findUnique({
+      where: { userId_clubId: { userId: user.id, clubId: payload.clubId } },
+    });
+    if (existing) {
+      return c.json({ clubId: payload.clubId, message: 'Already a member' });
+    }
+
+    await prisma.member.create({
+      data: { userId: user.id, clubId: payload.clubId },
+    });
+
+    return c.json({ clubId: payload.clubId, message: 'Joined successfully' }, 201);
+  },
+);
+
 export { clubs as clubsRoutes };

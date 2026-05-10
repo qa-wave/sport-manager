@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, type FormEvent, Suspense } from 'react';
 import Link from 'next/link';
 import { Trophy } from 'lucide-react';
 import { apiFetch, ApiError, type MeResponse } from '@/lib/api';
@@ -11,8 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === '1';
+
   const [email, setEmail] = useState('admin@hvezda.cz');
   const [password, setPassword] = useState('heslo123');
   const [busy, setBusy] = useState(false);
@@ -74,6 +77,12 @@ export default function LoginPage() {
         <Card className="overflow-hidden border-border/50 shadow-xl">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {resetSuccess && (
+                <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2.5 text-xs text-green-700 dark:text-green-400">
+                  Heslo bylo úspěšně změněno. Přihlaste se novým heslem.
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -112,6 +121,15 @@ export default function LoginPage() {
                 {busy ? 'Přihlašuji...' : 'Přihlásit se'}
               </Button>
 
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Zapomněli jste heslo?
+                </Link>
+              </div>
+
               <div className="text-center text-xs text-muted-foreground">
                 Nemáš účet?{' '}
                 <Link href="/signup" className="text-primary hover:underline font-medium">
@@ -145,5 +163,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background" />}>
+      <LoginForm />
+    </Suspense>
   );
 }
