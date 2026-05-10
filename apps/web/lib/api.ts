@@ -1,15 +1,12 @@
 /**
- * Thin typed fetch wrapper.
+ * Thin typed fetch wrapper with automatic 401 refresh.
  *
  * - Always sends `credentials: 'include'` so the httpOnly refresh cookie
  *   (`club_rt`) rides along.
  * - Automatically attaches `Authorization: Bearer <access>` + `x-club-id`
  *   from the auth store when they're present.
- * - `clubId` can be overridden per-call (e.g. admin tooling that operates
- *   across clubs).
- *
- * TODO: 401 refresh flow — on 401, POST /auth/refresh, retry once. Left as
- * a follow-up so the login smoke test can land first.
+ * - On 401, attempts POST /auth/refresh once. If successful, retries the
+ *   original request with the new token. If refresh fails, clears session.
  */
 import { authStore } from './auth-store';
 
@@ -25,25 +22,47 @@ export class ApiError extends Error {
   }
 }
 
-type FetchOpts = RequestInit & { clubId?: string | null };
+type FetchOpts = RequestInit & { clubId?: string | null; _retried?: boolean };
+
+async function rawFetch(path: string, token: string | null, clubId: string | null, opts: RequestInit): Promise<Response> {
+  return fetch(`${API_URL}${path}`, {
+    credentials: 'include',
+    ...opts,
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(clubId ? { 'x-club-id': clubId } : {}),
+      ...opts.headers,
+    },
+  });
+}
 
 export async function apiFetch<T>(path: string, opts: FetchOpts = {}): Promise<T> {
-  const { clubId: clubIdOverride, headers, ...rest } = opts;
+  const { clubId: clubIdOverride, _retried, headers, ...rest } = opts;
 
   const token = authStore.getAccessToken();
   const clubId =
     clubIdOverride === undefined ? authStore.getClubId() : clubIdOverride;
 
-  const res = await fetch(`${API_URL}${path}`, {
-    credentials: 'include',
-    headers: {
-      'content-type': 'application/json',
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-      ...(clubId ? { 'x-club-id': clubId } : {}),
-      ...headers,
-    },
-    ...rest,
-  });
+  const res = await rawFetch(path, token, clubId, { headers, ...rest });
+
+  // Auto-refresh on 401 (once)
+  if (res.status === 401 && !_retried && token) {
+    try {
+      const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (refreshRes.ok) {
+        const { accessToken } = (await refreshRes.json()) as { accessToken: string };
+        authStore.setSession(accessToken, clubId);
+        return apiFetch<T>(path, { ...opts, _retried: true });
+      }
+    } catch {
+      // refresh failed — fall through to error
+    }
+    authStore.clear();
+  }
 
   if (!res.ok) {
     throw new ApiError(res.status, `${res.status} ${res.statusText}`);

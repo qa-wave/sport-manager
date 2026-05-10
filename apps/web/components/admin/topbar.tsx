@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { LogOut, RefreshCw, Settings, User } from 'lucide-react';
+import { Check, ChevronDown, LogOut, Menu, RefreshCw, Settings, User } from 'lucide-react';
 import { ApiStatus } from './api-status';
 import { NotificationBell } from './notification-bell';
 import { API_URL, apiFetch, type MeResponse, ApiError } from '@/lib/api';
@@ -22,9 +22,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export function Topbar() {
+export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
   const auth = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const me = useQuery<MeResponse, ApiError>({
     queryKey: ['me', auth.accessToken],
@@ -45,11 +46,51 @@ export function Topbar() {
   return (
     <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-card/80 backdrop-blur-sm px-5">
       <div className="flex items-center gap-2.5 text-sm">
-        <span className="rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-          {clubName ?? 'No club'}
-        </span>
-        <span className="text-border">/</span>
-        <span className="text-xs font-medium text-muted-foreground">{roleLabel ?? 'Admin'}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground md:hidden"
+          onClick={onMobileOpen}
+          aria-label="Open navigation"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        {me.data && me.data.members.length > 1 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:brightness-110">
+                <span className="max-w-[120px] truncate">{clubName ?? 'No club'}</span>
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Přepnout klub
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {me.data.members.map((m) => (
+                <DropdownMenuItem
+                  key={m.clubId}
+                  onClick={() => {
+                    authStore.setSession(auth.accessToken!, m.clubId);
+                    queryClient.clear();
+                    window.location.reload();
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span className={m.clubId === auth.clubId ? 'font-semibold' : ''}>{m.club.name}</span>
+                  {m.clubId === auth.clubId && <Check className="h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <span className="rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+            {clubName ?? 'No club'}
+          </span>
+        )}
+        <span className="hidden sm:inline text-border">/</span>
+        <span className="hidden sm:inline text-xs font-medium text-muted-foreground">{roleLabel ?? 'Admin'}</span>
       </div>
 
       <div className="flex items-center gap-3">
