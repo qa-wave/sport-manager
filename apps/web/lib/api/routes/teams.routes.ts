@@ -172,4 +172,43 @@ teams.post('/', async (c) => {
   return c.json(team, 201);
 });
 
+/**
+ * PATCH /v1/teams/:teamId
+ * Update team name, sport, ageGroup, season.
+ */
+const updateTeamSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  sport: z.string().min(1).max(50).optional(),
+  ageGroup: z.string().max(20).optional().nullable(),
+  season: z.string().min(1).max(20).optional(),
+});
+
+teams.patch('/:teamId', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id required' }, 400);
+  const member = c.get('member');
+  if (!member || !(member.clubRoles.includes('OWNER') || member.clubRoles.includes('ADMIN'))) {
+    return c.json({ error: 'Forbidden', message: 'Insufficient role' }, 403);
+  }
+
+  const teamId = c.req.param('teamId');
+  const body = updateTeamSchema.parse(await c.req.json());
+
+  const team = await prisma.team.findFirst({ where: { id: teamId, clubId } });
+  if (!team) return c.json({ error: 'Not Found', message: 'Team not found' }, 404);
+
+  const updated = await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.sport !== undefined && { sport: body.sport }),
+      ...(body.ageGroup !== undefined && { ageGroup: body.ageGroup }),
+      ...(body.season !== undefined && { season: body.season }),
+    },
+    select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+  });
+
+  return c.json(updated);
+});
+
 export { teams as teamsRoutes };

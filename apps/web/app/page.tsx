@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Trophy, Users, Calendar, MessageSquare, Shield, Zap, ArrowRight } from 'lucide-react';
+import { AuthRedirect } from '@/components/auth-redirect';
 
 const FEATURES = [
   { icon: Calendar, title: 'Kalendář & RSVP', desc: 'Tréninky, zápasy, turnaje — vše na jednom místě. RSVP na 2 kliknutí.' },
@@ -13,6 +14,7 @@ const FEATURES = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <AuthRedirect />
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg px-6 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between">

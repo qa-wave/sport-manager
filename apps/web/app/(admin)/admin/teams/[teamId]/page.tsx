@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Users } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft, Pencil, Users } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, ApiError, type TeamDetail, type TeamRosterEntry } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -28,6 +31,10 @@ const COACHING_ROLES = new Set(['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER']
 export default function TeamDetailPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const auth = useAuth();
+  const queryClient = useQueryClient();
+  const { data: memberCtx } = useMemberContext();
+  const [editing, setEditing] = useState(false);
+  const isAdminUser = memberCtx && (memberCtx.clubRoles.includes('OWNER') || memberCtx.clubRoles.includes('ADMIN'));
 
   const { data: team, isLoading, isError } = useQuery<TeamDetail, ApiError>({
     queryKey: ['team', teamId, auth.clubId],
@@ -88,14 +95,24 @@ export default function TeamDetailPage() {
         title={team.name}
         subtitle={`${team.sport}${team.ageGroup ? ` · ${team.ageGroup}` : ''} · Sezona ${team.season}`}
         actions={
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/teams">
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Zpet na tymy
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            {isAdminUser && (
+              <Button variant="outline" size="sm" onClick={() => setEditing(!editing)}>
+                <Pencil className="mr-1 h-3 w-3" />
+                {editing ? 'Zrušit' : 'Upravit'}
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/admin/teams">
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Zpět
+              </Link>
+            </Button>
+          </div>
         }
       />
+
+      {editing && team && <TeamEditForm team={team} teamId={teamId} onDone={() => setEditing(false)} />}
 
       {/* Info karta */}
       <div className="grid gap-3 sm:grid-cols-4">
@@ -105,7 +122,7 @@ export default function TeamDetailPage() {
         <InfoTile
           label="Celkem clenu"
           value={
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono text-sm font-bold text-primary">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono tabular-nums text-sm font-bold text-primary">
               {team.memberCount}
             </span>
           }
@@ -145,11 +162,11 @@ export default function TeamDetailPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">Hrac</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Role</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Dres</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Pozice</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Stav</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-widest">Hrac</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-widest">Role</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-widest">Dres</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-widest">Pozice</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-widest">Stav</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -209,8 +226,61 @@ function InfoTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Card className="">
       <CardContent className="p-4">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</div>
         <div className="mt-1 text-sm font-semibold">{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeamEditForm({ team, teamId, onDone }: { team: TeamDetail; teamId: string; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(team.name);
+  const [sport, setSport] = useState(team.sport);
+  const [ageGroup, setAgeGroup] = useState(team.ageGroup ?? '');
+  const [season, setSeason] = useState(team.season);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/teams/${teamId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, sport, ageGroup: ageGroup || null, season }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', teamId] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      onDone();
+    },
+  });
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Název</label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Sport</label>
+            <Input value={sport} onChange={e => setSport(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Kategorie</label>
+            <Input value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="h-8 text-sm" placeholder="U13" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Sezona</label>
+            <Input value={season} onChange={e => setSeason(e.target.value)} className="h-8 text-sm" />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onDone}>Zrušit</Button>
+          <Button size="sm" className="h-7 text-xs" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            {mutation.isPending ? 'Ukládám...' : 'Uložit'}
+          </Button>
+        </div>
+        {mutation.isError && <p className="text-xs text-destructive">Nepodařilo se uložit.</p>}
       </CardContent>
     </Card>
   );

@@ -50,6 +50,12 @@ export const CreateClubInput = z.object({
 });
 export type CreateClubInput = z.infer<typeof CreateClubInput>;
 
+export const UpdateClubSettingsInput = z.object({
+  name: z.string().min(2).max(120).optional(),
+  timezone: z.string().min(1).max(80).optional(),
+});
+export type UpdateClubSettingsInput = z.infer<typeof UpdateClubSettingsInput>;
+
 // ---------- Events / RSVP ----------
 export const EventType = z.enum(['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL']);
 export type EventType = z.infer<typeof EventType>;

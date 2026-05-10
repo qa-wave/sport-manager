@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { ClubConfig, ClubTheme, CreateClubInput, UpdateClubThemeInput } from '@sport-manager/contracts';
+import { ClubConfig, ClubTheme, CreateClubInput, UpdateClubThemeInput, UpdateClubSettingsInput } from '@sport-manager/contracts';
 import type { Prisma } from '@prisma/client';
 import { ClubRoleType } from '@prisma/client';
 import { prisma } from '../prisma';
@@ -186,6 +186,40 @@ clubs.patch(
 
     await invalidateFeatureCache(clubId);
     return c.json({ config: updated });
+  },
+);
+
+/**
+ * PATCH /v1/clubs/settings
+ *
+ * Update basic club settings: name, timezone.
+ * Requires OWNER or ADMIN club role.
+ */
+clubs.patch(
+  '/settings',
+  requireRole('OWNER', 'ADMIN'),
+  zValidator('json', UpdateClubSettingsInput),
+  async (c) => {
+    const clubId = c.get('clubId')!;
+    const input = c.req.valid('json');
+
+    if (!input.name && !input.timezone) {
+      return c.json({ error: 'Bad Request', message: 'At least one field required' }, 400);
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await tx.club.update({
+        where: { id: clubId },
+        data: {
+          ...(input.name ? { name: input.name } : {}),
+          ...(input.timezone ? { timezone: input.timezone } : {}),
+        },
+        select: { id: true, name: true, timezone: true },
+      });
+      return row;
+    });
+
+    return c.json({ club: updated });
   },
 );
 
