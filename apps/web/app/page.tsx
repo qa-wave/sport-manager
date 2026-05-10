@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { AuthRedirect } from '@/components/auth-redirect';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const FEATURES = [
   {
@@ -80,13 +81,14 @@ export default function LandingPage() {
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link href="/k/fc-hvezda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">
               Demo
             </Link>
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Přihlásit se
             </Link>
+            <ThemeToggle />
             <Link href="/signup" className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110">
               Vyzkoušet zdarma
             </Link>
