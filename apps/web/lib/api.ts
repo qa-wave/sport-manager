@@ -350,6 +350,27 @@ export type TrainingTemplateDetail = TrainingTemplateListItem & {
   };
 };
 
+// ---------- Attendance Stats ----------
+export type AttendanceStatsMember = {
+  memberId: string;
+  name: string;
+  events: Array<{
+    eventId: string;
+    date: string;
+    attended: boolean | null;
+  }>;
+  attendanceRate: number;
+};
+
+export type AttendanceStatsResponse = {
+  members: AttendanceStatsMember[];
+  events: Array<{
+    id: string;
+    title: string;
+    date: string;
+  }>;
+};
+
 // ---------- Members ----------
 export type MemberDetail = MemberSummary & {
   phone: string | null;

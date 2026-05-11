@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ROLE_VARIANT, STATUS_VARIANT } from '@/lib/role-colors';
+import { AttendanceHeatmap } from '@/components/admin/attendance-heatmap';
 
 const ROLE_LABEL: Record<string, string> = {
   PLAYER: 'Hráč',
@@ -218,6 +219,9 @@ export default function TeamDetailPage() {
           </Table>
         )}
       </Card>
+
+      {/* Heatmap docházky */}
+      <AttendanceHeatmap teamId={teamId} />
     </>
   );
 }

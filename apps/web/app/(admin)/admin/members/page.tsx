@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Search, UserCircle, UserPlus } from 'lucide-react';
+import { Download, Search, Upload, UserCircle, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type MemberSummary } from '@/lib/api';
@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROLE_VARIANT, STATUS_VARIANT } from '@/lib/role-colors';
+import { CsvImportDialog } from '@/components/members/csv-import-dialog';
 
 function exportMembersCSV(members: MemberSummary[]) {
   const BOM = '\uFEFF';
@@ -57,6 +58,7 @@ export default function MembersPage() {
   const auth = useAuth();
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
   const { data: memberCtx } = useMemberContext();
   const canManage = memberCtx ? isAdmin(memberCtx) : false;
 
@@ -81,6 +83,8 @@ export default function MembersPage() {
 
   return (
     <>
+      <CsvImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+
       <PageHeader
         title="Členové"
         subtitle={`${data?.length ?? '--'} členů v klubu`}
@@ -93,6 +97,10 @@ export default function MembersPage() {
                   Export CSV
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-1.5 h-4 w-4" />
+                Import CSV
+              </Button>
               <Button size="sm" asChild>
                 <Link href="/admin/members/new">
                   <UserPlus className="mr-1.5 h-4 w-4" />

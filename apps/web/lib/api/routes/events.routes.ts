@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { SignJWT } from 'jose';
 import {
   CreateEventInput,
   UpdateEventInput,
@@ -12,6 +13,7 @@ import {
   requireRole,
   canActOnBehalfOf,
 } from '../middleware/rbac.middleware';
+import { sendEmail, rsvpReminderEmail } from '../services/email.service';
 import type { HonoEnv } from '../../types/hono';
 import type { MemberContext } from '../../types/hono';
 
@@ -245,10 +247,26 @@ events.post(
           rsvpDeadline: input.rsvpDeadline ? new Date(input.rsvpDeadline) : null,
         },
       });
-      return { id: event.id };
+      return { id: event.id, teamId: event.teamId };
     });
 
-    return c.json(result, 201);
+    // Send RSVP reminder emails to guardians of team members (fire-and-forget)
+    if (result.teamId) {
+      void sendRsvpEmailsForEvent({
+        eventId: result.id,
+        teamId: result.teamId,
+        clubId: member.clubId,
+        eventTitle: input.title,
+        eventDate: new Date(input.startsAt).toLocaleDateString('cs-CZ', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }),
+      });
+    }
+
+    return c.json({ id: result.id }, 201);
   },
 );
 
@@ -489,5 +507,126 @@ events.post(
     return c.json(result);
   },
 );
+
+// ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/magic-rsvp-link
+// Coach/admin generates a magic link for a specific member.
+// ---------------------------------------------------------------------------
+events.post(
+  '/:eventId/magic-rsvp-link',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+    const body = await c.req.json<{ memberId: string; status?: string }>();
+
+    if (!body.memberId) {
+      return c.json({ error: 'Bad Request', message: 'memberId is required' }, 400);
+    }
+
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret) {
+      return c.json({ error: 'Internal Server Error' }, 500);
+    }
+
+    // Verify event exists within the club
+    const eventExists = await prisma.withClub(member.clubId, async (tx) => {
+      return tx.event.findUnique({ where: { id: eventId }, select: { id: true } });
+    });
+
+    if (!eventExists) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    const status = body.status ?? 'YES';
+    const token = await new SignJWT({
+      eventId,
+      memberId: body.memberId,
+      status,
+      purpose: 'rsvp',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(new TextEncoder().encode(secret));
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
+    const url = `${baseUrl}/rsvp/${token}`;
+
+    return c.json({ url });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Internal helper — send RSVP emails to guardians of team members.
+// Called fire-and-forget after event creation.
+// ---------------------------------------------------------------------------
+async function sendRsvpEmailsForEvent(opts: {
+  eventId: string;
+  teamId: string;
+  clubId: string;
+  eventTitle: string;
+  eventDate: string;
+}): Promise<void> {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) return;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
+
+  try {
+    const memberships = await prisma.teamMembership.findMany({
+      where: { teamId: opts.teamId, leftAt: null },
+      select: {
+        member: {
+          select: {
+            id: true,
+            user: { select: { firstName: true, lastName: true } },
+            childLinks: {
+              where: { verifiedAt: { not: null }, canRsvp: true },
+              select: {
+                guardian: {
+                  select: { user: { select: { email: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const { member } of memberships) {
+      const playerName = `${member.user.firstName} ${member.user.lastName}`;
+
+      // Generate magic link token for this member (YES by default)
+      const token = await new SignJWT({
+        eventId: opts.eventId,
+        memberId: member.id,
+        status: 'YES',
+        purpose: 'rsvp',
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('7d')
+        .sign(new TextEncoder().encode(secret));
+
+      const rsvpUrl = `${baseUrl}/rsvp/${token}`;
+      console.log(`[rsvp] Magic link for ${playerName}: ${rsvpUrl}`);
+
+      // Send to each verified guardian with canRsvp
+      for (const link of member.childLinks) {
+        const guardianEmail = link.guardian.user.email;
+        const emailPayload = rsvpReminderEmail({
+          playerName,
+          eventTitle: opts.eventTitle,
+          eventDate: opts.eventDate,
+          rsvpUrl,
+        });
+        await sendEmail({ ...emailPayload, to: guardianEmail });
+      }
+    }
+  } catch (err) {
+    console.error('[rsvp] Failed to send RSVP emails:', err);
+  }
+}
 
 export { events as eventsRoutes };

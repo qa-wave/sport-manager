@@ -12,6 +12,7 @@ import {
   Bell,
   Settings,
   Repeat,
+  Camera,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -52,6 +53,13 @@ export const ADMIN_NAV: NavItem[] = [
     icon: Repeat,
     access: 'admin_or_coach',
     feature: 'trainingTemplates',
+  },
+  {
+    href: '/admin/gallery',
+    label: 'Galerie',
+    description: 'Fotky z tréninků a zápasů',
+    icon: Camera,
+    feature: 'gallery',
   },
   {
     href: '/admin/messages',

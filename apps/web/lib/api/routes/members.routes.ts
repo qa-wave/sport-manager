@@ -422,4 +422,177 @@ members.patch(
   },
 );
 
+// ---------------------------------------------------------------------------
+// POST /v1/members/import — bulk CSV import.
+// Body: { csv: string } — raw semicolon-delimited CSV content.
+// CSV format (first row = header, skipped):
+//   jméno;příjmení;email;tým;role
+// Requires OWNER or ADMIN.
+// Returns: { imported: number, errors: string[] }
+// ---------------------------------------------------------------------------
+const ImportMembersInput = z.object({
+  csv: z.string().min(1),
+});
+
+const VALID_TEAM_ROLES = [
+  'PLAYER',
+  'HEAD_COACH',
+  'ASSISTANT_COACH',
+  'TEAM_MANAGER',
+  'MEDIC',
+] as const;
+type ValidTeamRole = (typeof VALID_TEAM_ROLES)[number];
+
+function normalizeRole(raw: string): ValidTeamRole | null {
+  const upper = raw.trim().toUpperCase().replace(/\s+/g, '_');
+  if ((VALID_TEAM_ROLES as readonly string[]).includes(upper)) {
+    return upper as ValidTeamRole;
+  }
+  // Czech aliases
+  const aliases: Record<string, ValidTeamRole> = {
+    HRÁČ: 'PLAYER',
+    HRAC: 'PLAYER',
+    HLAVNÍ_TRENÉR: 'HEAD_COACH',
+    HLAVNI_TRENER: 'HEAD_COACH',
+    ASISTENT: 'ASSISTANT_COACH',
+    ASISTENT_TRENÉRA: 'ASSISTANT_COACH',
+    ASISTENT_TRENERA: 'ASSISTANT_COACH',
+    MANAŽER: 'TEAM_MANAGER',
+    MANAZER: 'TEAM_MANAGER',
+    LÉKAŘ: 'MEDIC',
+    LEKAR: 'MEDIC',
+  };
+  return aliases[upper] ?? null;
+}
+
+members.post(
+  '/import',
+  requireRole('OWNER', 'ADMIN'),
+  zValidator('json', ImportMembersInput),
+  async (c) => {
+    const clubId = c.get('clubId');
+    if (!clubId) {
+      return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+    }
+
+    const { csv } = c.req.valid('json');
+
+    // Parse CSV — semicolon separated, skip header row
+    const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length < 2) {
+      return c.json(
+        { error: 'Bad Request', message: 'CSV musí obsahovat alespoň jeden datový řádek' },
+        400,
+      );
+    }
+
+    const dataLines = lines.slice(1); // skip header
+    const imported: number[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < dataLines.length; i++) {
+      const rowNum = i + 2; // 1-based, +1 for header
+      const cols = dataLines[i]!.split(';').map((c) => c.trim());
+
+      const [firstName, lastName, email, teamName, roleRaw] = cols;
+
+      if (!firstName || !lastName || !email) {
+        errors.push(`Řádek ${rowNum}: chybí jméno, příjmení nebo email`);
+        continue;
+      }
+
+      const emailNorm = email.toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailNorm)) {
+        errors.push(`Řádek ${rowNum}: neplatný formát emailu "${email}"`);
+        continue;
+      }
+
+      try {
+        const result = await prisma.withClub(clubId, async (tx) => {
+          // Upsert user
+          let user = await tx.user.findUnique({ where: { email: emailNorm } });
+          if (!user) {
+            user = await tx.user.create({
+              data: {
+                email: emailNorm,
+                firstName,
+                lastName,
+                passwordHash: '',
+              },
+            });
+          }
+
+          // Skip if already a member
+          const existing = await tx.member.findUnique({
+            where: { userId_clubId: { userId: user.id, clubId } },
+          });
+          if (existing) {
+            return { skipped: true, reason: `email "${emailNorm}" je již členen klubu` };
+          }
+
+          const member = await tx.member.create({
+            data: {
+              userId: user.id,
+              clubId,
+              status: 'ACTIVE',
+            },
+          });
+
+          // Optionally assign to team with role
+          if (teamName && roleRaw) {
+            const role = normalizeRole(roleRaw);
+            if (!role) {
+              return {
+                skipped: false,
+                memberId: member.id,
+                warning: `neznámá role "${roleRaw}", člen vytvořen bez týmového přiřazení`,
+              };
+            }
+
+            const team = await tx.team.findFirst({
+              where: {
+                clubId,
+                name: { equals: teamName, mode: 'insensitive' },
+              },
+            });
+
+            if (!team) {
+              return {
+                skipped: false,
+                memberId: member.id,
+                warning: `tým "${teamName}" nenalezen, člen vytvořen bez týmového přiřazení`,
+              };
+            }
+
+            await tx.teamMembership.create({
+              data: {
+                memberId: member.id,
+                teamId: team.id,
+                role,
+              },
+            });
+          }
+
+          return { skipped: false, memberId: member.id };
+        });
+
+        if (result.skipped) {
+          errors.push(`Řádek ${rowNum}: ${result.reason}`);
+        } else {
+          imported.push(rowNum);
+          if ('warning' in result && result.warning) {
+            errors.push(`Řádek ${rowNum} (varování): ${result.warning}`);
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'neznámá chyba';
+        errors.push(`Řádek ${rowNum}: ${msg}`);
+      }
+    }
+
+    return c.json({ imported: imported.length, errors }, 200);
+  },
+);
+
 export { members as membersRoutes };

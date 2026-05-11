@@ -173,6 +173,123 @@ teams.post('/', async (c) => {
 });
 
 /**
+ * GET /v1/teams/:teamId/attendance-stats
+ * Returns attendance heatmap data for all team members over the last 3 months.
+ */
+teams.get('/:teamId/attendance-stats', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+
+  const { teamId } = c.req.param();
+
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    // Verify team belongs to this club
+    const team = await tx.team.findFirst({ where: { id: teamId }, select: { id: true } });
+    if (!team) return null;
+
+    // Active members of the team (players only)
+    const memberships = await tx.teamMembership.findMany({
+      where: { teamId, leftAt: null },
+      select: {
+        member: {
+          select: {
+            id: true,
+            user: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    // Events for this team in the last 3 months, sorted by date
+    const events = await tx.event.findMany({
+      where: {
+        teamId,
+        startsAt: { gte: threeMonthsAgo },
+      },
+      orderBy: { startsAt: 'asc' },
+      select: { id: true, title: true, startsAt: true },
+    });
+
+    if (events.length === 0) {
+      return {
+        members: memberships.map((m) => ({
+          memberId: m.member.id,
+          name: `${m.member.user.firstName} ${m.member.user.lastName}`,
+          events: [],
+          attendanceRate: 0,
+        })),
+        events: [],
+      };
+    }
+
+    const eventIds = events.map((e) => e.id);
+    const memberIds = memberships.map((m) => m.member.id);
+
+    // All attendance records for these events and members
+    const attendances = await tx.eventAttendance.findMany({
+      where: {
+        eventId: { in: eventIds },
+        memberId: { in: memberIds },
+      },
+      select: { eventId: true, memberId: true, attended: true },
+    });
+
+    // Build a lookup: memberId -> eventId -> attended
+    const lookup = new Map<string, Map<string, boolean | null>>();
+    for (const a of attendances) {
+      if (!lookup.has(a.memberId)) lookup.set(a.memberId, new Map());
+      lookup.get(a.memberId)!.set(a.eventId, a.attended);
+    }
+
+    // Take last 15 events for display
+    const displayEvents = events.slice(-15);
+
+    const members = memberships.map((m) => {
+      const memberMap = lookup.get(m.member.id) ?? new Map<string, boolean | null>();
+      const memberEvents = displayEvents.map((e) => ({
+        eventId: e.id,
+        date: e.startsAt.toISOString(),
+        attended: memberMap.has(e.id) ? memberMap.get(e.id)! : null,
+      }));
+
+      const attended = memberEvents.filter((e) => e.attended === true).length;
+      const total = memberEvents.filter((e) => e.attended !== null).length;
+      const attendanceRate = total > 0 ? Math.round((attended / total) * 100) : 0;
+
+      return {
+        memberId: m.member.id,
+        name: `${m.member.user.firstName} ${m.member.user.lastName}`,
+        events: memberEvents,
+        attendanceRate,
+      };
+    });
+
+    // Sort by attendance rate descending
+    members.sort((a, b) => b.attendanceRate - a.attendanceRate);
+
+    return {
+      members,
+      events: displayEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.startsAt.toISOString(),
+      })),
+    };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Team not found', code: 'TEAM_NOT_FOUND' }, 404);
+  }
+
+  return c.json(result);
+});
+
+/**
  * PATCH /v1/teams/:teamId
  * Update team name, sport, ageGroup, season.
  */

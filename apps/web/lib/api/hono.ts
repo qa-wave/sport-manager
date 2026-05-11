@@ -6,6 +6,7 @@ import { ZodError } from 'zod';
 import type { HonoEnv } from '../types/hono';
 import { authMiddleware } from './middleware/auth.middleware';
 import { clubContextMiddleware } from './middleware/club-context.middleware';
+import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 import { healthRoutes } from './routes/health.routes';
 import { authRoutes } from './routes/auth.routes';
 import { meRoutes } from './routes/me.routes';
@@ -19,6 +20,7 @@ import { trainingTemplatesRoutes } from './routes/training-templates.routes';
 import { platformAdminRoutes } from './routes/platform-admin.routes';
 import { clubsRoutes } from './routes/clubs.routes';
 import { paymentsRoutes } from './routes/payments.routes';
+import { rsvpRoutes } from './routes/rsvp.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -67,6 +69,7 @@ app.use(
 
 app.use('*', secureHeaders());
 app.use('*', logger());
+app.use('*', rateLimitMiddleware);
 app.use('*', authMiddleware);
 app.use('*', clubContextMiddleware);
 
@@ -86,6 +89,7 @@ app.route('/v1/training-templates', trainingTemplatesRoutes);
 app.route('/v1/platform-admin/clubs', platformAdminRoutes);
 app.route('/v1/clubs', clubsRoutes);
 app.route('/v1/payments', paymentsRoutes);
+app.route('/v1/rsvp', rsvpRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler
