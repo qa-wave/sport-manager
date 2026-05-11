@@ -46,9 +46,9 @@ export const ADMIN_NAV: NavItem[] = [
     feature: 'calendar',
   },
   {
-    href: '/admin/training-templates',
-    label: 'Šablony',
-    description: 'Opakující se tréninky',
+    href: '/admin/treninky',
+    label: 'Tréninky',
+    description: 'Knihovna cvičení a tréninků',
     icon: Repeat,
     access: 'admin_or_coach',
     feature: 'trainingTemplates',
