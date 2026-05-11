@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, LogOut, Menu, RefreshCw, Settings, User } from 'lucide-react';
 import { ApiStatus } from './api-status';
 import { NotificationBell } from './notification-bell';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { API_URL, apiFetch, type MeResponse, ApiError } from '@/lib/api';
 import { authStore, useAuth } from '@/lib/auth-store';
 import { useMemberContext, getPrimaryRoleLabel } from '@/lib/member-context';
@@ -95,6 +96,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
 
       <div className="flex items-center gap-3">
         {process.env.NODE_ENV === 'development' && <DevRoleSwitcher />}
+        <LanguageSwitcher compact />
         <ApiStatus />
         <NotificationBell />
         {auth.isAuthenticated && me.data ? (
