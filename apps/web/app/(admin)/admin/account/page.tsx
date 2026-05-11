@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
 import {
   Check,
   ChevronRight,
+  CreditCard,
   LogOut,
   Moon,
   Palette,
@@ -40,6 +41,7 @@ import {
 export default function AccountPage() {
   const auth = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
   const { data: memberCtx } = useMemberContext();
 
@@ -51,7 +53,10 @@ export default function AccountPage() {
   });
 
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : null;
-  const clubName = me.data?.members.find((m) => m.clubId === auth.clubId)?.club.name;
+  const currentClubMember = me.data?.members.find((m) => m.clubId === auth.clubId);
+  const clubName = currentClubMember?.club.name;
+  const stripeConnected = !!(currentClubMember?.club.config as Record<string, unknown> | undefined)?.stripeAccountId;
+  const stripeJustConnected = searchParams.get('stripe') === 'connected';
   const initials = me.data
     ? (me.data.firstName[0] ?? '') + (me.data.lastName[0] ?? '')
     : '';
@@ -183,6 +188,15 @@ export default function AccountPage() {
               }
             />
           )}
+
+        {/* Stripe Connect — only for OWNER */}
+        {memberCtx && memberCtx.clubRoles.includes('OWNER') && auth.clubId && (
+          <StripeConnectCard
+            clubId={auth.clubId}
+            connected={stripeConnected}
+            justConnected={stripeJustConnected}
+          />
+        )}
 
         {/* Club theming — only for OWNER / ADMIN */}
         {memberCtx &&
@@ -466,6 +480,81 @@ function ClubSettingsCard({
         {mutation.isError && (
           <div className="text-xs text-destructive">Nepodařilo se uložit.</div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stripe Connect card
+// ---------------------------------------------------------------------------
+
+function StripeConnectCard({
+  clubId,
+  connected,
+  justConnected,
+}: {
+  clubId: string;
+  connected: boolean;
+  justConnected: boolean;
+}) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ url: string }>('/stripe/connect', { method: 'POST' }),
+    onSuccess: (data) => {
+      // Redirect to Stripe onboarding
+      window.location.href = data.url;
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+          <CreditCard className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Platby — Stripe</span>
+        </div>
+        <div className="px-4 py-4 space-y-3">
+          {connected || justConnected ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">
+                <Check className="h-3 w-3" />
+                Stripe propojeno
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Klub může přijímat platby kartou.
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Propojte Stripe účet, aby mohli rodiče platit příspěvky kartou přímo v aplikaci.
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant={connected || justConnected ? 'outline' : 'default'}
+            className="text-xs"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+          >
+            <CreditCard className="mr-1.5 h-3 w-3" />
+            {mutation.isPending
+              ? 'Připojuji...'
+              : connected || justConnected
+                ? 'Spravovat Stripe'
+                : 'Propojit Stripe'}
+          </Button>
+          {mutation.isError && (
+            <p className="text-xs text-destructive">
+              Nepodařilo se připojit Stripe. Zkus to znovu.
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -48,8 +48,7 @@ export function LanguageSwitcher({ compact }: { compact?: boolean }) {
     setLocale(code);
     setStoredLocale(code);
     setOpen(false);
-    // In the future: trigger i18n reload
-    // For now just store preference
+    window.dispatchEvent(new CustomEvent('locale-change', { detail: code }));
   }
 
   return (

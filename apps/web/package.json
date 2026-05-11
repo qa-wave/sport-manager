@@ -11,11 +11,8 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
-    "@sport-manager/contracts": "workspace:*",
-    "@sport-manager/db": "workspace:*",
-    "@prisma/client": "^5.20.0",
-    "zod": "^3.23.0",
     "@hono/zod-validator": "^0.7.6",
+    "@prisma/client": "^5.20.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
@@ -23,6 +20,8 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@sport-manager/contracts": "workspace:*",
+    "@sport-manager/db": "workspace:*",
     "@tanstack/react-query": "^5.59.0",
     "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.1",
@@ -35,7 +34,9 @@
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.5.0"
+    "stripe": "^22.1.1",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@sport-manager/config": "workspace:*",
