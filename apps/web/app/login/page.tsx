@@ -16,8 +16,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get('reset') === '1';
 
-  const [email, setEmail] = useState('admin@hvezda.cz');
-  const [password, setPassword] = useState('heslo123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,6 +91,7 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="vas@email.cz"
                   className="h-10"
                 />
               </div>
@@ -103,6 +104,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="min. 8 znaků"
                   className="h-10"
                 />
               </div>

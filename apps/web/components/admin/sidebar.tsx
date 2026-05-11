@@ -154,11 +154,6 @@ export function Sidebar({
 
         {/* Footer */}
         <div className="relative flex items-center justify-between px-3 py-2.5">
-          {!collapsed && (
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
-              v0.0.1
-            </span>
-          )}
           <Button
             variant="ghost"
             size="icon"
@@ -227,11 +222,7 @@ export function Sidebar({
           <Separator className="opacity-50" />
 
           {/* Footer */}
-          <div className="px-3 py-2.5">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
-              v0.0.1
-            </span>
-          </div>
+          <div className="px-3 py-2.5" />
         </aside>
       </div>
     </TooltipProvider>

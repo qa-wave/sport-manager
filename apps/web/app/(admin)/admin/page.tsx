@@ -22,16 +22,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function dayNum(d: string) { return new Date(d).getDate().toString(); }
-function weekdayShort(d: string) { return new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase(); }
-function formatTime(d: string) { return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+function weekdayShort(d: string) { return new Date(d).toLocaleDateString('cs-CZ', { weekday: 'short' }).toUpperCase(); }
+function formatTime(d: string) { return new Date(d).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }); }
 
 function relativeTime(d: string): string {
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'právě teď';
+  if (mins < 60) return `před ${mins} min`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `před ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `před ${days} d`;
 }
 
 const EVENT_BORDER: Record<string, string> = {
@@ -43,24 +45,24 @@ const EVENT_BORDER: Record<string, string> = {
 };
 
 const EVENT_LABEL: Record<string, string> = {
-  PRACTICE: 'Practice',
-  MATCH: 'Match',
-  TOURNAMENT: 'Tournament',
-  MEETING: 'Meeting',
-  SOCIAL: 'Social',
+  PRACTICE: 'Trénink',
+  MATCH: 'Zápas',
+  TOURNAMENT: 'Turnaj',
+  MEETING: 'Schůzka',
+  SOCIAL: 'Akce',
 };
 
 function getRoleGreeting(roleLabel: string): string {
   switch (roleLabel) {
     case 'Parent':
-      return "Here's what's coming up for your kids.";
+      return 'Co čeká vaše děti.';
     case 'Head Coach':
     case 'Asst. Coach':
-      return 'Your teams at a glance.';
+      return 'Vaše týmy v přehledu.';
     case 'Team Manager':
-      return 'Your teams at a glance.';
+      return 'Vaše týmy v přehledu.';
     default:
-      return 'Club overview at a glance.';
+      return 'Přehled klubu.';
   }
 }
 
@@ -121,11 +123,11 @@ export default function DashboardPage() {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <CalendarDays className="h-4 w-4 text-primary" />
-                This Week
+                Tento týden
               </h2>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/admin/events">
-                  All events <ChevronRight className="ml-1 h-3 w-3" />
+                  Všechny události <ChevronRight className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
             </div>
@@ -133,10 +135,10 @@ export default function DashboardPage() {
             {feed.thisWeek.length === 0 ? (
               <Card className="">
                 <CardContent className="py-8 text-center">
-                  <p className="text-sm text-muted-foreground">No events this week</p>
+                  <p className="text-sm text-muted-foreground">Tento týden žádné události</p>
                   <Button asChild size="sm" className="mt-3">
                     <Link href="/admin/events/new">
-                      <Plus className="mr-1 h-4 w-4" />Schedule one
+                      <Plus className="mr-1 h-4 w-4" />Naplánovat
                     </Link>
                   </Button>
                 </CardContent>
@@ -180,11 +182,11 @@ export default function DashboardPage() {
                           </div>
                           <div className="shrink-0">
                             {total === 0 ? (
-                              <span className="text-xs text-muted-foreground/50">No RSVPs</span>
+                              <span className="text-xs text-muted-foreground/70">Žádné RSVP</span>
                             ) : rsvp.pending > 0 && rsvp.pending >= rsvp.yes ? (
                               <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-500">RSVP?</span>
                             ) : (
-                              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-500">{rsvp.yes} going</span>
+                              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-500">{rsvp.yes} jde</span>
                             )}
                           </div>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary" />
@@ -202,7 +204,7 @@ export default function DashboardPage() {
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <AlertTriangle className="h-4 w-4 text-warning" />
-                Needs Attention
+                Vyžaduje pozornost
               </h2>
               <div className="space-y-2">
                 {feed.needsAttention.map((item, i) => (
@@ -236,15 +238,15 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Quick Actions
+              Rychlé akce
             </h2>
             <div className={`grid gap-3 ${admin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               {(admin || coach) && (
                 <QuickAction
                   href="/admin/events/new"
                   icon={Plus}
-                  title="Schedule Event"
-                  desc="Create a practice, match, or meeting"
+                  title="Naplánovat událost"
+                  desc="Vytvořit trénink, zápas nebo schůzku"
                   primary
                 />
               )}
@@ -252,8 +254,8 @@ export default function DashboardPage() {
                 <QuickAction
                   href="/admin/events"
                   icon={Heart}
-                  title="Upcoming Events"
-                  desc="See & RSVP for your children"
+                  title="Nadcházející události"
+                  desc="Zobrazit a potvrdit účast za děti"
                   primary
                 />
               )}
@@ -261,24 +263,24 @@ export default function DashboardPage() {
                 <QuickAction
                   href="/admin/members"
                   icon={UserCircle}
-                  title="Members"
-                  desc="View and manage club members"
+                  title="Členové"
+                  desc="Zobrazit a spravovat členy"
                 />
               )}
               {(admin || coach) && (
                 <QuickAction
                   href="/admin/teams"
                   icon={Users}
-                  title="Teams"
-                  desc="Rosters and coaching staff"
+                  title="Týmy"
+                  desc="Soupisky a realizační tým"
                 />
               )}
               {!admin && !coach && (
                 <QuickAction
                   href="/admin/events"
                   icon={CalendarDays}
-                  title="All Events"
-                  desc="View schedule and RSVPs"
+                  title="Všechny události"
+                  desc="Zobrazit rozvrh a účasti"
                 />
               )}
             </div>
@@ -288,7 +290,7 @@ export default function DashboardPage() {
           {feed.recentActivity.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Recent Activity
+                Nedávná aktivita
               </h2>
               <Card className="">
                 <CardContent className="divide-y divide-border/30 p-0">
@@ -300,7 +302,7 @@ export default function DashboardPage() {
                     >
                       <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/50" />
                       <p className="flex-1 text-xs text-muted-foreground">{item.message}</p>
-                      <span className="shrink-0 text-[11px] text-muted-foreground/50">
+                      <span className="shrink-0 text-[11px] text-muted-foreground/70">
                         {relativeTime(item.timestamp)}
                       </span>
                     </div>

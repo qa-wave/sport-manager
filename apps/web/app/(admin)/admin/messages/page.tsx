@@ -46,12 +46,12 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  TEAM: 'Team',
-  COACHES: 'Coaches',
-  PARENTS: 'Parents',
+  TEAM: 'Tým',
+  COACHES: 'Trenéři',
+  PARENTS: 'Rodiče',
   DM: 'DM',
-  GROUP: 'Group',
-  ANNOUNCEMENT: 'Announcement',
+  GROUP: 'Skupina',
+  ANNOUNCEMENT: 'Oznámení',
 };
 
 function timeAgo(dateStr: string): string {
@@ -59,13 +59,13 @@ function timeAgo(dateStr: string): string {
   const then = new Date(dateStr).getTime();
   const diff = now - then;
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 1) return 'teď';
+  if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return `${hours} h`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (days < 7) return `${days} d`;
+  return new Date(dateStr).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' });
 }
 
 function getConversationTitle(
@@ -75,9 +75,9 @@ function getConversationTitle(
   if (conv.title) return conv.title;
   if (conv.type === 'DM') {
     const other = conv.participants.find((p) => p.memberId !== myMemberId);
-    return other ? `${other.firstName} ${other.lastName}` : 'Direct Message';
+    return other ? `${other.firstName} ${other.lastName}` : 'Přímá zpráva';
   }
-  return conv.teamName ?? 'Conversation';
+  return conv.teamName ?? 'Konverzace';
 }
 
 function AvatarGroup({ conv }: { conv: ConversationSummary }) {
@@ -244,8 +244,8 @@ export default function MessagesPage() {
       {!auth.isAuthenticated ? (
         <EmptyState
           icon={MessageCircle}
-          title="Sign in to see messages"
-          description="Requires authenticated session."
+          title="Přihlaste se pro zobrazení zpráv"
+          description="Vyžaduje přihlášenou session."
         />
       ) : isLoading ? (
         <div className="space-y-3">
@@ -262,14 +262,14 @@ export default function MessagesPage() {
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-4 text-sm text-destructive">
-            Failed to load conversations
+            Nepodařilo se načíst konverzace.
           </CardContent>
         </Card>
       ) : !data || data.length === 0 ? (
         <EmptyState
           icon={MessageCircle}
-          title="No conversations yet"
-          description="Conversations will appear here once team chats are created."
+          title="Zatím žádné konverzace"
+          description="Konverzace se zobrazí, jakmile budou vytvořeny týmové chaty."
         />
       ) : (
         <div className="space-y-6">
@@ -278,7 +278,7 @@ export default function MessagesPage() {
             <section>
               <div className="mb-3 flex items-center gap-3">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Channels
+                  Kanály
                 </h3>
                 <div className="h-px flex-1 bg-border/50" />
                 <span className="text-xs text-muted-foreground/60">{channels.length}</span>
@@ -300,7 +300,7 @@ export default function MessagesPage() {
             <section>
               <div className="mb-3 flex items-center gap-3">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Direct Messages
+                  Přímé zprávy
                 </h3>
                 <div className="h-px flex-1 bg-border/50" />
                 <span className="text-xs text-muted-foreground/60">{dms.length}</span>
@@ -370,8 +370,8 @@ function ConversationRow({
             {conv.lastMessage.body}
           </p>
         ) : (
-          <p className="mt-0.5 text-xs text-muted-foreground/50 italic">
-            No messages yet
+          <p className="mt-0.5 text-xs text-muted-foreground/70 italic">
+            Zatím žádné zprávy
           </p>
         )}
       </div>

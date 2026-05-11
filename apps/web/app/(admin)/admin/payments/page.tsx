@@ -39,6 +39,14 @@ const STATUS_VARIANT: Record<string, string> = {
   REFUNDED: 'outline',
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  PAID: 'Zaplaceno',
+  PENDING: 'Čeká',
+  PROCESSING: 'Zpracovává se',
+  FAILED: 'Selhalo',
+  REFUNDED: 'Vráceno',
+};
+
 function formatAmount(cents: number, currency: string): string {
   return new Intl.NumberFormat('cs-CZ', {
     style: 'currency',
@@ -144,7 +152,7 @@ export default function PaymentsPage() {
                       variant={(STATUS_VARIANT[p.status] ?? 'default') as any}
                       className="text-[10px]"
                     >
-                      {p.status}
+                      {STATUS_LABEL[p.status] ?? p.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">

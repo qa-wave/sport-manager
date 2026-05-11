@@ -38,7 +38,7 @@ export default function NewTeamPage() {
       router.push('/admin/teams');
     },
     onError: (err) => {
-      setFormError(err?.message ?? 'Nepodarilo se vytvorit tym.');
+      setFormError(err?.message ?? 'Nepodařilo se vytvořit tým.');
     },
   });
 
@@ -49,15 +49,15 @@ export default function NewTeamPage() {
     const resolvedSport = sport === 'Jiný' ? customSport.trim() : sport;
 
     if (!name.trim()) {
-      setFormError('Nazev tymu je povinny.');
+      setFormError('Název týmu je povinný.');
       return;
     }
     if (!resolvedSport) {
-      setFormError('Sport je povinny.');
+      setFormError('Sport je povinný.');
       return;
     }
     if (!season.trim()) {
-      setFormError('Sezona je povinna.');
+      setFormError('Sezona je povinná.');
       return;
     }
 
@@ -74,12 +74,12 @@ export default function NewTeamPage() {
   return (
     <>
       <PageHeader
-        title="Novy tym"
+        title="Nový tým"
         actions={
           <Button variant="ghost" size="sm" asChild>
             <Link href="/admin/teams">
               <ChevronLeft className="mr-1 h-4 w-4" />
-              Zpet na tymy
+              Zpět na týmy
             </Link>
           </Button>
         }
@@ -92,10 +92,10 @@ export default function NewTeamPage() {
 
             {/* Nazev */}
             <div className="space-y-1.5">
-              <Label htmlFor="name">Nazev tymu *</Label>
+              <Label htmlFor="name">Název týmu *</Label>
               <Input
                 id="name"
-                placeholder="napr. FC Hvezda U13"
+                placeholder="např. FC Hvězda U13"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -123,7 +123,7 @@ export default function NewTeamPage() {
               </div>
               {sport === 'Jiný' && (
                 <Input
-                  placeholder="Zadejte nazev sportu"
+                  placeholder="Zadejte název sportu"
                   value={customSport}
                   onChange={(e) => setCustomSport(e.target.value)}
                   className="mt-2"
@@ -133,7 +133,7 @@ export default function NewTeamPage() {
 
             {/* Veková kategorie */}
             <div className="space-y-1.5">
-              <Label htmlFor="ageGroup">Veková kategorie (volitelne)</Label>
+              <Label htmlFor="ageGroup">Věková kategorie (volitelné)</Label>
               <select
                 id="ageGroup"
                 value={ageGroup}
@@ -174,10 +174,10 @@ export default function NewTeamPage() {
                 className="flex-1 shadow-[0_0_16px_-4px_hsl(var(--primary)/0.4)]"
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? 'Vytvarim...' : 'Vytvorit tym'}
+                {createMutation.isPending ? 'Vytvářím...' : 'Vytvořit tým'}
               </Button>
               <Button variant="outline" type="button" asChild>
-                <Link href="/admin/teams">Zrusit</Link>
+                <Link href="/admin/teams">Zrušit</Link>
               </Button>
             </div>
           </form>

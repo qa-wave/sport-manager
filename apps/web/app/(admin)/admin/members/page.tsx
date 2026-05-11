@@ -50,7 +50,7 @@ function exportMembersCSV(members: MemberSummary[]) {
 function age(dob: string | null): string {
   if (!dob) return '--';
   const y = new Date().getFullYear() - new Date(dob).getFullYear();
-  return `${y}y`;
+  return `${y} let`;
 }
 
 export default function MembersPage() {
@@ -82,8 +82,8 @@ export default function MembersPage() {
   return (
     <>
       <PageHeader
-        title="Members"
-        subtitle={`${data?.length ?? '--'} members in club`}
+        title="Členové"
+        subtitle={`${data?.length ?? '--'} členů v klubu`}
         actions={
           canManage ? (
             <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function MembersPage() {
         <div className="relative max-w-sm">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Hledat podle jména nebo e-mailu..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -120,11 +120,11 @@ export default function MembersPage() {
       {!auth.isAuthenticated ? (
         <EmptyState
           icon={UserCircle}
-          title="Sign in to see members"
-          description="Requires authenticated session."
+          title="Přihlaste se pro zobrazení členů"
+          description="Vyžaduje přihlášenou relaci."
           cta={
             <Button asChild size="sm">
-              <Link href="/login">Sign in</Link>
+              <Link href="/login">Přihlásit se</Link>
             </Button>
           }
         />
@@ -145,13 +145,13 @@ export default function MembersPage() {
         </Card>
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
-          <div className="p-4 text-sm text-destructive">Failed to load members</div>
+          <div className="p-4 text-sm text-destructive">Nepodařilo se načíst členy</div>
         </Card>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserCircle}
-          title={search ? 'No matches' : 'No members'}
-          description={search ? `No members matching "${search}".` : 'No members found in this club.'}
+          title={search ? 'Žádné výsledky' : 'Žádní členové'}
+          description={search ? `Žádní členové odpovídající "${search}".` : 'V tomto klubu nebyli nalezeni žádní členové.'}
         />
       ) : (
         <Card className="overflow-hidden ">
@@ -159,11 +159,11 @@ export default function MembersPage() {
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
                 <TableHead className="w-10 text-[11px] uppercase tracking-wider">#</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Name</TableHead>
-                <TableHead className="w-14 text-[11px] uppercase tracking-wider">Age</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Jméno</TableHead>
+                <TableHead className="w-14 text-[11px] uppercase tracking-wider">Věk</TableHead>
                 <TableHead className="w-14 text-[11px] uppercase tracking-wider">Pos</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Teams & Roles</TableHead>
-                <TableHead className="w-20 text-[11px] uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Týmy a role</TableHead>
+                <TableHead className="w-20 text-[11px] uppercase tracking-wider">Stav</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

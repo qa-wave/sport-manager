@@ -72,14 +72,14 @@ export default function TeamDetailPage() {
             <Button variant="ghost" size="sm" asChild>
               <Link href="/admin/teams">
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Zpet na tymy
+                Zpět na týmy
               </Link>
             </Button>
           }
         />
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-4 text-sm text-destructive">
-            Nepodarilo se nacist detail tymu.
+            Nepodařilo se načíst detail týmu.
           </CardContent>
         </Card>
       </>
@@ -120,7 +120,7 @@ export default function TeamDetailPage() {
         <InfoTile label="Kategorie" value={team.ageGroup ?? '--'} />
         <InfoTile label="Sezona" value={team.season} />
         <InfoTile
-          label="Celkem clenu"
+          label="Celkem členů"
           value={
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 font-mono tabular-nums text-sm font-bold text-primary">
               {team.memberCount}
@@ -133,7 +133,7 @@ export default function TeamDetailPage() {
       {coaches.length > 0 && (
         <Card className="">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Realizacni tym</CardTitle>
+            <CardTitle className="text-sm">Realizační tým</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
@@ -156,7 +156,7 @@ export default function TeamDetailPage() {
         {players.length === 0 ? (
           <CardContent className="py-8 text-center text-xs text-muted-foreground">
             <Users className="mx-auto mb-2 h-8 w-8 opacity-30" />
-            Zadni hraci v tymu
+            Žádní hráči v týmu
           </CardContent>
         ) : (
           <Table>

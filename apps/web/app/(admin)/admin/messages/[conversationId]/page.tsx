@@ -58,8 +58,8 @@ function formatMessageTime(dateStr: string): string {
   });
 
   if (isToday) return time;
-  if (isYesterday) return `Yesterday ${time}`;
-  return `${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${time}`;
+  if (isYesterday) return `Včera ${time}`;
+  return `${date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })} ${time}`;
 }
 
 function shouldShowDateSeparator(
@@ -79,7 +79,7 @@ function dateSeparatorLabel(dateStr: string): string {
     date.getDate() === now.getDate() &&
     date.getMonth() === now.getMonth() &&
     date.getFullYear() === now.getFullYear();
-  if (isToday) return 'Today';
+  if (isToday) return 'Dnes';
 
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -87,9 +87,9 @@ function dateSeparatorLabel(dateStr: string): string {
     date.getDate() === yesterday.getDate() &&
     date.getMonth() === yesterday.getMonth() &&
     date.getFullYear() === yesterday.getFullYear();
-  if (isYesterday) return 'Yesterday';
+  if (isYesterday) return 'Včera';
 
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleDateString('cs-CZ', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -208,9 +208,9 @@ export default function ConversationPage() {
         ? data.participants
             .filter((p) => p.memberId !== memberCtx?.memberId)
             .map((p) => `${p.firstName} ${p.lastName}`)
-            .join(', ') || 'Direct Message'
-        : data.teamName ?? 'Conversation')
-    : 'Loading...';
+            .join(', ') || 'Přímá zpráva'
+        : data.teamName ?? 'Konverzace')
+    : 'Načítání...';
 
   const Icon = data ? TYPE_ICON[data.type] ?? MessageCircle : MessageCircle;
   const isAnnouncement = data?.type === 'ANNOUNCEMENT';
@@ -242,7 +242,7 @@ export default function ConversationPage() {
           <div className="min-w-0">
             <h1 className="truncate text-sm font-bold">{title}</h1>
             <p className="text-xs text-muted-foreground">
-              {data?.participants.length ?? 0} members
+              {data?.participants.length ?? 0} účastníků
             </p>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function ConversationPage() {
         ) : isError ? (
           <Card className="border-destructive/30 bg-destructive/5 mx-2">
             <CardContent className="p-4 text-sm text-destructive">
-              Failed to load conversation
+              Nepodařilo se načíst konverzaci.
             </CardContent>
           </Card>
         ) : !data || data.messages.length === 0 ? (
@@ -274,10 +274,10 @@ export default function ConversationPage() {
               <MessageCircle className="h-8 w-8 text-muted-foreground/40" />
             </div>
             <p className="mt-3 text-sm font-medium text-muted-foreground">
-              No messages yet
+              Zatím žádné zprávy
             </p>
-            <p className="mt-1 text-xs text-muted-foreground/60">
-              Be the first to say something!
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              Buďte první, kdo napíše.
             </p>
           </div>
         ) : (
@@ -297,7 +297,7 @@ export default function ConversationPage() {
                   {showDate && (
                     <div className="flex items-center gap-3 py-3">
                       <div className="h-px flex-1 bg-border/50" />
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                         {dateSeparatorLabel(msg.createdAt)}
                       </span>
                       <div className="h-px flex-1 bg-border/50" />
@@ -372,11 +372,11 @@ export default function ConversationPage() {
               onKeyDown={handleKeyDown}
               placeholder={
                 isAnnouncement
-                  ? 'Post an announcement...'
-                  : 'Type a message...'
+                  ? 'Napsat oznámení...'
+                  : 'Napsat zprávu...'
               }
               rows={1}
-              className="flex-1 resize-none rounded-xl border border-border/50 bg-secondary/50 px-4 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 max-h-32"
+              className="flex-1 resize-none rounded-xl border border-border/50 bg-secondary/50 px-4 py-2.5 text-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20 max-h-32"
               style={{
                 height: 'auto',
                 minHeight: '2.5rem',
@@ -401,8 +401,8 @@ export default function ConversationPage() {
             </Button>
           </div>
           {isAnnouncement && (
-            <p className="mt-1.5 text-[11px] text-muted-foreground/50 text-center">
-              Only admins and coaches can post here
+            <p className="mt-1.5 text-[11px] text-muted-foreground/70 text-center">
+              Oznámení mohou psát pouze administrátoři a trenéři.
             </p>
           )}
         </div>
@@ -410,8 +410,8 @@ export default function ConversationPage() {
 
       {!canSend && data && (
         <div className="shrink-0 border-t border-border/50 py-3 text-center">
-          <p className="text-xs text-muted-foreground/60">
-            Only admins and coaches can post in this channel
+          <p className="text-xs text-muted-foreground/70">
+            Do tohoto kanálu mohou psát pouze administrátoři a trenéři.
           </p>
         </div>
       )}

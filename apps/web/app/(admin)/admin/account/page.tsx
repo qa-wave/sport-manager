@@ -57,14 +57,14 @@ export default function AccountPage() {
     : '';
 
   const themes = [
-    { value: 'light', label: 'Light', icon: Sun },
-    { value: 'dark', label: 'Dark', icon: Moon },
-    { value: 'system', label: 'System', icon: Monitor },
+    { value: 'light', label: 'Světlý', icon: Sun },
+    { value: 'dark', label: 'Tmavý', icon: Moon },
+    { value: 'system', label: 'Systém', icon: Monitor },
   ] as const;
 
   return (
     <>
-      <PageHeader title="Account" subtitle="Profile & preferences" />
+      <PageHeader title="Účet" subtitle="Profil a nastavení" />
 
       {/* Profile card */}
       {me.isLoading ? (
@@ -113,7 +113,7 @@ export default function AccountPage() {
                     {memberCtx.teamRoles.length}
                   </div>
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Teams
+                    Týmy
                   </div>
                 </div>
                 <div className="px-5 py-2 text-center">
@@ -121,7 +121,7 @@ export default function AccountPage() {
                     {memberCtx.clubRoles.length}
                   </div>
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Roles
+                    Role
                   </div>
                 </div>
                 {memberCtx.guardianOf.length > 0 && (
@@ -130,7 +130,7 @@ export default function AccountPage() {
                       {memberCtx.guardianOf.length}
                     </div>
                     <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Children
+                      Děti
                     </div>
                   </div>
                 )}
@@ -147,7 +147,7 @@ export default function AccountPage() {
           <CardContent className="p-0">
             <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
               <Palette className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">Appearance</span>
+              <span className="text-sm font-semibold">Vzhled</span>
             </div>
             <div className="grid grid-cols-3 gap-2 p-4">
               {themes.map(({ value, label, icon: Icon }) => (
@@ -205,8 +205,8 @@ export default function AccountPage() {
           <CardContent className="divide-y divide-border/30 p-0">
             <MenuItem
               icon={Shield}
-              label="Roles & Permissions"
-              desc={roleLabel ? `Current role: ${roleLabel}` : 'View your access level'}
+              label="Role a oprávnění"
+              desc={roleLabel ? `Aktuální role: ${roleLabel}` : 'Zobrazit úroveň přístupu'}
               disabled
             />
           </CardContent>
@@ -223,7 +223,7 @@ export default function AccountPage() {
               }}
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              Odhlásit se
             </button>
           </CardContent>
         </Card>

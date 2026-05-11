@@ -29,14 +29,14 @@ function toLocalDatetimeValue(iso: string): string {
 }
 
 function formatDateTime(d: string): string {
-  return new Date(d).toLocaleDateString('en-GB', {
+  return new Date(d).toLocaleDateString('cs-CZ', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }
 
 function formatTime(d: string): string {
-  return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(d).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
 }
 
 function isPast(d: string): boolean {
@@ -157,7 +157,7 @@ export default function EventDetailPage() {
   if (isLoading) {
     return (
       <>
-        <PageHeader title="Event" />
+        <PageHeader title="Událost" />
         <Card><CardContent className="p-6 space-y-3">
           <Skeleton className="h-6 w-60" />
           <Skeleton className="h-4 w-40" />
@@ -171,15 +171,15 @@ export default function EventDetailPage() {
     return (
       <>
         <PageHeader
-          title="Event"
+          title="Událost"
           actions={
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Back</Link>
+              <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Zpět na události</Link>
             </Button>
           }
         />
         <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-4 text-sm text-destructive">Failed to load event</CardContent>
+          <CardContent className="p-4 text-sm text-destructive">Nepodařilo se načíst událost</CardContent>
         </Card>
       </>
     );
@@ -193,7 +193,7 @@ export default function EventDetailPage() {
     <>
       <PageHeader
         title={event.title}
-        subtitle={`Created by ${event.createdBy}`}
+        subtitle={`Vytvořil/a ${event.createdBy}`}
         actions={
           <div className="flex items-center gap-2">
             {isCoachOrAdmin && !isEditing && (
@@ -215,7 +215,7 @@ export default function EventDetailPage() {
                       disabled={deleteMutation.isPending}
                       onClick={() => deleteMutation.mutate()}
                     >
-                      Ano
+                      Smazat
                     </Button>
                     <Button
                       variant="ghost"
@@ -401,7 +401,7 @@ export default function EventDetailPage() {
                 {event.homeAway && (
                   <Badge variant="outline" className="text-[11px]">{event.homeAway}</Badge>
                 )}
-                {past && <Badge variant="outline" className="text-[11px] text-muted-foreground">PAST</Badge>}
+                {past && <Badge variant="outline" className="text-[11px] text-muted-foreground">MINULÉ</Badge>}
               </div>
 
               <div className="space-y-1.5 text-sm text-muted-foreground">
@@ -444,24 +444,24 @@ export default function EventDetailPage() {
 
             {/* RSVP summary */}
             <div className="w-full rounded-lg bg-secondary/30 p-4 sm:w-56">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">RSVP Summary</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Přehled RSVP</div>
               <RsvpBar summary={event.rsvpSummary} className="mb-3" />
               <div className="grid grid-cols-4 gap-1 text-center text-xs">
                 <div>
                   <div className="text-lg font-bold text-green-500">{event.rsvpSummary.yes}</div>
-                  <div className="text-muted-foreground">Yes</div>
+                  <div className="text-muted-foreground">Ano</div>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-yellow-500">{event.rsvpSummary.maybe}</div>
-                  <div className="text-muted-foreground">Maybe</div>
+                  <div className="text-muted-foreground">Možná</div>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-red-500">{event.rsvpSummary.no}</div>
-                  <div className="text-muted-foreground">No</div>
+                  <div className="text-muted-foreground">Ne</div>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-muted-foreground">{event.rsvpSummary.pending}</div>
-                  <div className="text-muted-foreground">Pending</div>
+                  <div className="text-muted-foreground">Čeká</div>
                 </div>
               </div>
             </div>
@@ -473,7 +473,7 @@ export default function EventDetailPage() {
       <Card className="overflow-hidden ">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm">
-            Attendance Roster ({event.attendees.length} members)
+            Docházka ({event.attendees.length} členů)
           </CardTitle>
           <div className="flex gap-2">
             {/* Bulk RSVP — for coaches, future events */}
@@ -544,10 +544,10 @@ export default function EventDetailPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-[11px] uppercase tracking-wider">Member</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wider">Note</TableHead>
-              {past && <TableHead className="text-[11px] uppercase tracking-wider">Attended</TableHead>}
+              <TableHead className="text-[11px] uppercase tracking-wider">Člen</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wider">Stav</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wider">Poznámka</TableHead>
+              {past && <TableHead className="text-[11px] uppercase tracking-wider">Účast</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -59,7 +59,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-1.5 rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:brightness-110">
-                <span className="max-w-[120px] truncate">{clubName ?? 'No club'}</span>
+                <span className="max-w-[120px] truncate">{clubName ?? 'Bez klubu'}</span>
                 <ChevronDown className="h-3 w-3 opacity-70" />
               </button>
             </DropdownMenuTrigger>
@@ -86,7 +86,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
           </DropdownMenu>
         ) : (
           <span className="rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-            {clubName ?? 'No club'}
+            {clubName ?? 'Bez klubu'}
           </span>
         )}
         <span className="hidden sm:inline text-border">/</span>
@@ -118,11 +118,11 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Profil</span>
               </DropdownMenuItem>
               <DropdownMenuItem disabled>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+                <span>Nastavení</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -132,13 +132,13 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
+                <span>Odhlásit se</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <Button asChild size="sm" className="shadow-sm">
-            <Link href="/login">Sign in</Link>
+            <Link href="/login">Přihlásit se</Link>
           </Button>
         )}
       </div>

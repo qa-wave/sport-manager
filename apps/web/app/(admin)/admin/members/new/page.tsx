@@ -14,11 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const TEAM_ROLES = [
-  { value: 'PLAYER', label: 'Hrac' },
-  { value: 'HEAD_COACH', label: 'Hlavni trener' },
-  { value: 'ASSISTANT_COACH', label: 'Asistent trenera' },
+  { value: 'PLAYER', label: 'Hráč' },
+  { value: 'HEAD_COACH', label: 'Hlavní trenér' },
+  { value: 'ASSISTANT_COACH', label: 'Asistent trenéra' },
   { value: 'TEAM_MANAGER', label: 'Team manager' },
-  { value: 'MEDIC', label: 'Zdravotnik' },
+  { value: 'MEDIC', label: 'Zdravotník' },
 ] as const;
 
 type TeamRole = (typeof TEAM_ROLES)[number]['value'];
@@ -52,8 +52,8 @@ export default function NewMemberPage() {
     onError: (err) => {
       setFormError(
         err?.message?.includes('409')
-          ? 'Uzivatel uz je clenem tohoto klubu.'
-          : (err?.message ?? 'Nepodarilo se pridat clena.'),
+          ? 'Uživatel už je členem tohoto klubu.'
+          : (err?.message ?? 'Nepodařilo se přidat člena.'),
       );
     },
   });
@@ -63,7 +63,7 @@ export default function NewMemberPage() {
     setFormError(null);
 
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setFormError('Jmeno, prijmeni a e-mail jsou povinne.');
+      setFormError('Jméno, příjmení a e-mail jsou povinné.');
       return;
     }
 
@@ -84,12 +84,12 @@ export default function NewMemberPage() {
   return (
     <>
       <PageHeader
-        title="Pridat clena"
+        title="Přidat člena"
         actions={
           <Button variant="ghost" size="sm" asChild>
             <Link href="/admin/members">
               <ChevronLeft className="mr-1 h-4 w-4" />
-              Zpet na cleny
+              Zpět na členy
             </Link>
           </Button>
         }
@@ -103,7 +103,7 @@ export default function NewMemberPage() {
             {/* Jmeno + Prijmeni */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">Jmeno *</Label>
+                <Label htmlFor="firstName">Jméno *</Label>
                 <Input
                   id="firstName"
                   placeholder="napr. Jan"
@@ -113,7 +113,7 @@ export default function NewMemberPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Prijmeni *</Label>
+                <Label htmlFor="lastName">Příjmení *</Label>
                 <Input
                   id="lastName"
                   placeholder="napr. Novak"
@@ -139,14 +139,14 @@ export default function NewMemberPage() {
 
             {/* Tym (volitelne) */}
             <div className="space-y-1.5">
-              <Label htmlFor="team">Tym (volitelne)</Label>
+              <Label htmlFor="team">Tým (volitelné)</Label>
               <select
                 id="team"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">Bez tymu</option>
+                <option value="">Bez týmu</option>
                 {teams.data?.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -158,7 +158,7 @@ export default function NewMemberPage() {
             {/* Role v tymu (jen kdyz je vybran tym) */}
             {teamId && (
               <div className="space-y-1.5">
-                <Label>Role v tymu</Label>
+                <Label>Role v týmu</Label>
                 <div className="flex flex-wrap gap-2">
                   {TEAM_ROLES.map((r) => (
                     <button
@@ -190,10 +190,10 @@ export default function NewMemberPage() {
                 className="flex-1 shadow-[0_0_16px_-4px_hsl(var(--primary)/0.4)]"
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? 'Pridavam...' : 'Pridat clena'}
+                {createMutation.isPending ? 'Přidávám...' : 'Přidat člena'}
               </Button>
               <Button variant="outline" type="button" asChild>
-                <Link href="/admin/members">Zrusit</Link>
+                <Link href="/admin/members">Zrušit</Link>
               </Button>
             </div>
           </form>

@@ -140,7 +140,7 @@ function NotificationRow({
         {item.body && (
           <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
         )}
-        <p className="mt-1.5 text-xs text-muted-foreground/50">{timeAgo(item.createdAt)}</p>
+        <p className="mt-1.5 text-xs text-muted-foreground/70">{timeAgo(item.createdAt)}</p>
       </div>
     </button>
   );

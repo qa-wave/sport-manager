@@ -20,10 +20,10 @@ import { ROLE_VARIANT, PAYMENT_VARIANT, STATUS_VARIANT, RSVP_VARIANT } from '@/l
 type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED';
 
 const STATUS_OPTIONS: Array<{ value: MemberStatus; label: string }> = [
-  { value: 'ACTIVE', label: 'Aktivni' },
-  { value: 'INACTIVE', label: 'Neaktivni' },
-  { value: 'SUSPENDED', label: 'Pozastaveny' },
-  { value: 'ARCHIVED', label: 'Archivovany' },
+  { value: 'ACTIVE', label: 'Aktivní' },
+  { value: 'INACTIVE', label: 'Neaktivní' },
+  { value: 'SUSPENDED', label: 'Pozastavený' },
+  { value: 'ARCHIVED', label: 'Archivovaný' },
 ];
 
 function formatDate(d: string | null): string {
@@ -96,13 +96,13 @@ export default function MemberProfilePage() {
           title="Member"
           actions={
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Back</Link>
+              <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Zpět</Link>
             </Button>
           }
         />
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-4 text-sm text-destructive">
-            Failed to load member profile
+            Nepodařilo se načíst profil člena
           </CardContent>
         </Card>
       </>
@@ -115,10 +115,10 @@ export default function MemberProfilePage() {
     <>
       <PageHeader
         title={`${m.firstName} ${m.lastName}`}
-        subtitle={m.isMinor ? 'Minor' : 'Adult member'}
+        subtitle={m.isMinor ? 'Nezletilý' : 'Dospělý člen'}
         actions={
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Back to members</Link>
+            <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Zpět na členy</Link>
           </Button>
         }
       />
@@ -160,7 +160,7 @@ export default function MemberProfilePage() {
                       ))}
                     </select>
                     {statusMutation.isPending && (
-                      <span className="text-[11px] text-muted-foreground">Ukladam...</span>
+                      <span className="text-[11px] text-muted-foreground">Ukládám...</span>
                     )}
                     {statusMutation.isError && (
                       <span className="text-[11px] text-destructive">Chyba</span>
@@ -173,8 +173,8 @@ export default function MemberProfilePage() {
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span>{m.email}</span>
                 {m.phone && <span>{m.phone}</span>}
-                {ageStr && <span className="font-medium text-foreground/70">{ageStr} years old</span>}
-                {m.dateOfBirth && <span>Born {formatDate(m.dateOfBirth)}</span>}
+                {ageStr && <span className="font-medium text-foreground/70">{ageStr} let</span>}
+                {m.dateOfBirth && <span>Narozen {formatDate(m.dateOfBirth)}</span>}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {m.position && (
@@ -189,7 +189,7 @@ export default function MemberProfilePage() {
             </div>
             <div className="hidden text-right text-xs text-muted-foreground sm:block">
               <div className="rounded-md bg-secondary/50 px-2.5 py-1.5">
-                <div className="font-medium text-foreground/80">Joined {formatDate(m.joinedAt)}</div>
+                <div className="font-medium text-foreground/80">Přidal se {formatDate(m.joinedAt)}</div>
                 <div className="mt-0.5 text-[11px] uppercase tracking-wide">{m.locale}</div>
               </div>
             </div>
@@ -200,10 +200,10 @@ export default function MemberProfilePage() {
       {/* Tabbed content */}
       <Tabs defaultValue="overview">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="waivers">Waivers</TabsTrigger>
+          <TabsTrigger value="overview">Přehled</TabsTrigger>
+          <TabsTrigger value="attendance">Docházka</TabsTrigger>
+          <TabsTrigger value="payments">Platby</TabsTrigger>
+          <TabsTrigger value="waivers">Souhlasy</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -212,11 +212,11 @@ export default function MemberProfilePage() {
             {/* Teams */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Teams & Roles</CardTitle>
+                <CardTitle>Týmy a role</CardTitle>
               </CardHeader>
               <CardContent>
                 {m.teamRoles.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No team assignments</p>
+                  <p className="text-xs text-muted-foreground">Žádná přiřazení k týmu</p>
                 ) : (
                   <div className="space-y-2">
                     {m.teamRoles.map((tr) => (
@@ -241,7 +241,7 @@ export default function MemberProfilePage() {
             {m.guardians.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle>Guardians</CardTitle>
+                  <CardTitle>Zákonní zástupci</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {(m.guardians as any[]).map((g: any) => (
@@ -251,16 +251,16 @@ export default function MemberProfilePage() {
                           {g.name}
                         </Link>
                         <div className="flex gap-1">
-                          {g.isPrimary && <Badge variant="success">PRIMARY</Badge>}
+                          {g.isPrimary && <Badge variant="success">PRIMÁRNÍ</Badge>}
                           <Badge variant="outline">{g.relationship}</Badge>
                         </div>
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{g.email}{g.phone ? ` · ${g.phone}` : ''}</div>
                       <div className="mt-1 flex gap-2 text-xs">
-                        <PermBadge label="Payments" on={g.canViewPayments} />
-                        <PermBadge label="Pay" on={g.canMakePayments} />
-                        <PermBadge label="Medical" on={g.canViewMedical} />
-                        <PermBadge label="Waivers" on={g.canSignWaivers} />
+                        <PermBadge label="Platby (zobrazit)" on={g.canViewPayments} />
+                        <PermBadge label="Platby (provést)" on={g.canMakePayments} />
+                        <PermBadge label="Zdravotní" on={g.canViewMedical} />
+                        <PermBadge label="Souhlasy" on={g.canSignWaivers} />
                       </div>
                     </div>
                   ))}
@@ -272,7 +272,7 @@ export default function MemberProfilePage() {
             {m.guardianOf.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle>Guardian of ({m.guardianOf.length})</CardTitle>
+                  <CardTitle>Zákonný zástupce ({m.guardianOf.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {(m.guardianOf as any[]).map((c: any) => (
@@ -289,9 +289,9 @@ export default function MemberProfilePage() {
                         <div className="mt-0.5 text-xs text-muted-foreground">{c.teams.join(' · ')}</div>
                       )}
                       <div className="mt-1 flex gap-2 text-xs">
-                        <PermBadge label="Payments" on={c.canViewPayments} />
-                        <PermBadge label="Medical" on={c.canViewMedical} />
-                        <PermBadge label="Waivers" on={c.canSignWaivers} />
+                        <PermBadge label="Platby" on={c.canViewPayments} />
+                        <PermBadge label="Zdravotní" on={c.canViewMedical} />
+                        <PermBadge label="Souhlasy" on={c.canSignWaivers} />
                       </div>
                     </div>
                   ))}
@@ -303,7 +303,7 @@ export default function MemberProfilePage() {
             {m.medicalNotes && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle>Medical Notes</CardTitle>
+                  <CardTitle>Zdravotní poznámky</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{m.medicalNotes}</p>
@@ -321,17 +321,17 @@ export default function MemberProfilePage() {
           <Card>
             {m.recentAttendance.length === 0 ? (
               <CardContent className="py-8 text-center text-xs text-muted-foreground">
-                No attendance records
+                Žádné záznamy o docházce
               </CardContent>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Událost</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Datum</TableHead>
                     <TableHead>RSVP</TableHead>
-                    <TableHead>Attended</TableHead>
+                    <TableHead>Přítomen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,7 +348,7 @@ export default function MemberProfilePage() {
                       <TableCell>
                         {a.attended != null ? (
                           <Badge variant={a.attended ? 'success' : 'danger'}>
-                            {a.attended ? 'Yes' : 'No'}
+                            {a.attended ? 'Ano' : 'Ne'}
                           </Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">--</span>
@@ -368,22 +368,22 @@ export default function MemberProfilePage() {
             {m.paymentsMade.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle>Payments Made</CardTitle>
+                  <CardTitle>Provedené platby</CardTitle>
                 </CardHeader>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fee</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Poplatek</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead className="text-right">Částka</TableHead>
+                      <TableHead>Stav</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {m.paymentsMade.map((p, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-medium">{p.feeName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Unpaid'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}</TableCell>
                         <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
                         <TableCell>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
@@ -398,16 +398,16 @@ export default function MemberProfilePage() {
             {m.paymentsFor.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle>Payments For This Member</CardTitle>
+                  <CardTitle>Platby za tohoto člena</CardTitle>
                 </CardHeader>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fee</TableHead>
-                      <TableHead>Paid By</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Poplatek</TableHead>
+                      <TableHead>Zaplatil</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead className="text-right">Částka</TableHead>
+                      <TableHead>Stav</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -415,7 +415,7 @@ export default function MemberProfilePage() {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{p.feeName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.paidBy}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Unpaid'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}</TableCell>
                         <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
                         <TableCell>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
@@ -430,7 +430,7 @@ export default function MemberProfilePage() {
             {m.paymentsMade.length === 0 && m.paymentsFor.length === 0 && (
               <Card>
                 <CardContent className="py-8 text-center text-xs text-muted-foreground">
-                  No payment records
+                  Žádné záznamy o platbách
                 </CardContent>
               </Card>
             )}
@@ -442,16 +442,16 @@ export default function MemberProfilePage() {
           <Card>
             {m.waivers.length === 0 ? (
               <CardContent className="py-8 text-center text-xs text-muted-foreground">
-                No waivers signed
+                Žádné podepsané souhlasy
               </CardContent>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Waiver</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Signed By</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Souhlas</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Podepsal</TableHead>
+                    <TableHead>Datum</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

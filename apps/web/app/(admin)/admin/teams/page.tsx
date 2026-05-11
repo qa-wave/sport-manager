@@ -27,11 +27,11 @@ export default function TeamsPage() {
   return (
     <>
       <PageHeader
-        title="Teams"
-        subtitle="Rosters, coaching staff, and team-scoped conversations."
+        title="Týmy"
+        subtitle="Soupiska, realizační tým a týmové konverzace."
         actions={
           <Button size="sm" asChild>
-            <Link href="/admin/teams/new">+ Novy tym</Link>
+            <Link href="/admin/teams/new">+ Nový tým</Link>
           </Button>
         }
       />
@@ -39,11 +39,11 @@ export default function TeamsPage() {
       {!auth.isAuthenticated ? (
         <EmptyState
           icon={Users}
-          title="Sign in to load teams"
-          description="GET /teams requires an authenticated session with an active club context."
+          title="Přihlaste se pro zobrazení týmů"
+          description="Pro načtení týmů je potřeba přihlášená relace s aktivním kontextem klubu."
           cta={
             <Button asChild size="sm">
-              <Link href="/login">Sign in</Link>
+              <Link href="/login">Přihlásit se</Link>
             </Button>
           }
         />
@@ -64,25 +64,25 @@ export default function TeamsPage() {
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
           <div className="p-4 text-sm text-destructive">
-            Failed to load teams: {error?.message ?? 'unknown error'}
+            Nepodařilo se načíst týmy: {error?.message ?? 'neznámá chyba'}
           </div>
         </Card>
       ) : !data || data.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No teams in this club"
-          description="Create your first team to start building rosters."
+          title="V tomto klubu nejsou žádné týmy"
+          description="Vytvořte první tým a začněte sestavovat soupistku."
         />
       ) : (
         <Card className="overflow-hidden ">
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">Team</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Age</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Season</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Coaches</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">Players</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Tým</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Kategorie</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Sezona</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Trenéři</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">Hráči</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

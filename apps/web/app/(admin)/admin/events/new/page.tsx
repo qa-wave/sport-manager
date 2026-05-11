@@ -47,7 +47,7 @@ export default function NewEventPage() {
       router.push(`/admin/events/${data.id}`);
     },
     onError: (err: any) => {
-      setError(err?.message ?? 'Failed to create event');
+      setError(err?.message ?? 'Nepodařilo se vytvořit událost');
     },
   });
 
@@ -56,7 +56,7 @@ export default function NewEventPage() {
     setError(null);
 
     if (!title.trim() || !startsAt || !endsAt) {
-      setError('Title, start, and end time are required.');
+      setError('Název, začátek a konec jsou povinné.');
       return;
     }
 
@@ -82,10 +82,10 @@ export default function NewEventPage() {
   return (
     <>
       <PageHeader
-        title="Schedule Event"
+        title="Nová událost"
         actions={
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Back to events</Link>
+            <Link href="/admin/events"><ChevronLeft className="mr-1 h-4 w-4" />Zpět na události</Link>
           </Button>
         }
       />
@@ -96,7 +96,7 @@ export default function NewEventPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Type */}
             <div className="space-y-1.5">
-              <Label>Event Type</Label>
+              <Label>Typ události</Label>
               <div className="flex flex-wrap gap-2">
                 {EVENT_TYPES.map((t) => (
                   <button
@@ -117,10 +117,10 @@ export default function NewEventPage() {
 
             {/* Title */}
             <div className="space-y-1.5">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Název</Label>
               <Input
                 id="title"
-                placeholder="e.g. U10 Training"
+                placeholder="např. Trénink U10"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -129,14 +129,14 @@ export default function NewEventPage() {
 
             {/* Team */}
             <div className="space-y-1.5">
-              <Label htmlFor="team">Team</Label>
+              <Label htmlFor="team">Tým</Label>
               <select
                 id="team"
                 value={teamId}
                 onChange={(e) => setTeamId(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">Club-wide (no specific team)</option>
+                <option value="">Celý klub (bez týmu)</option>
                 {teams.data?.map((t) => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -146,7 +146,7 @@ export default function NewEventPage() {
             {/* Date/time */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="startsAt">Start</Label>
+                <Label htmlFor="startsAt">Začátek</Label>
                 <Input
                   id="startsAt"
                   type="datetime-local"
@@ -163,7 +163,7 @@ export default function NewEventPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="endsAt">End</Label>
+                <Label htmlFor="endsAt">Konec</Label>
                 <Input
                   id="endsAt"
                   type="datetime-local"
@@ -176,10 +176,10 @@ export default function NewEventPage() {
 
             {/* Location */}
             <div className="space-y-1.5">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">Místo</Label>
               <Input
                 id="location"
-                placeholder="e.g. Rivertown Sports Park"
+                placeholder="např. Sportovní hala Strašnice"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -189,26 +189,26 @@ export default function NewEventPage() {
             {showOpponentFields && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="opponent">Opponent</Label>
+                  <Label htmlFor="opponent">Soupeř</Label>
                   <Input
                     id="opponent"
-                    placeholder="e.g. Hilltop Tigers"
+                    placeholder="např. SK Slavia Praha"
                     value={opponent}
                     onChange={(e) => setOpponent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="homeAway">Home / Away</Label>
+                  <Label htmlFor="homeAway">Domácí / Hosté</Label>
                   <select
                     id="homeAway"
                     value={homeAway}
                     onChange={(e) => setHomeAway(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
-                    <option value="">Not set</option>
-                    <option value="HOME">Home</option>
-                    <option value="AWAY">Away</option>
-                    <option value="NEUTRAL">Neutral</option>
+                    <option value="">Nenastaveno</option>
+                    <option value="HOME">Domácí</option>
+                    <option value="AWAY">Hosté</option>
+                    <option value="NEUTRAL">Neutrální</option>
                   </select>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function NewEventPage() {
 
             {/* RSVP Deadline */}
             <div className="space-y-1.5">
-              <Label htmlFor="rsvpDeadline">RSVP Deadline (optional)</Label>
+              <Label htmlFor="rsvpDeadline">Uzávěrka RSVP (volitelné)</Label>
               <Input
                 id="rsvpDeadline"
                 type="datetime-local"
@@ -227,11 +227,11 @@ export default function NewEventPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor="description">Popis (volitelné)</Label>
               <textarea
                 id="description"
                 rows={3}
-                placeholder="Any additional details..."
+                placeholder="Další informace k události..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -249,7 +249,7 @@ export default function NewEventPage() {
               className="w-full shadow-md"
               disabled={createMutation.isPending}
             >
-              {createMutation.isPending ? 'Creating...' : 'Create Event'}
+              {createMutation.isPending ? 'Ukládám...' : 'Vytvořit událost'}
             </Button>
           </form>
         </CardContent>
