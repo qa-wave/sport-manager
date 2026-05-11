@@ -92,7 +92,7 @@ export default function LandingPage() {
             <LanguageSwitcher />
             <ThemeToggle />
             <Link href="/signup" className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110">
-              Vyzkoušet zdarma
+              Registrace
             </Link>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function LandingPage() {
               className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
             >
               <span className="relative z-10 flex items-center gap-2">
-                Založit klub zdarma
+                Začít
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
             </Link>
@@ -299,12 +299,12 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 mesh-gradient opacity-50" />
         <div className="relative mx-auto max-w-lg text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Připraveni začít?</h2>
-          <p className="mt-3 text-muted-foreground">Free tier — bez kreditky, bez závazků, bez limitů na funkce.</p>
+          <p className="mt-3 text-muted-foreground">Bez závazků, bez limitů.</p>
           <Link
             href="/signup"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-10 py-4 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
-            Založit klub
+            Registrace
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

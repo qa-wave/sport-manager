@@ -214,7 +214,7 @@ function PublicClubContent() {
               Přihlásit se
             </Link>
             <Link href="/signup" className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md transition-all" style={{ backgroundColor: primary }}>
-              Vyzkoušet zdarma
+              Registrace
             </Link>
           </div>
         </div>
@@ -244,7 +244,7 @@ function PublicClubContent() {
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
             <Button size="lg" className="shadow-md" style={{ backgroundColor: primary }} asChild>
               <Link href="/signup">
-                Zaregistrovat se <ArrowRight className="ml-2 h-4 w-4" />
+                Registrace <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
@@ -260,26 +260,29 @@ function PublicClubContent() {
           <SectionLabel>Týmy</SectionLabel>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.teams.map((team) => (
-              <Card key={team.id} className="hover-lift">
-                <CardContent className="flex items-center gap-4 p-5">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: primary }}>
-                    {team.ageGroup ?? team.sport.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">{team.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {team.sport}{team.ageGroup && ` · ${team.ageGroup}`} · {team.season}
+              <a key={team.id} href="#roles" className="block">
+                <Card className="hover-lift cursor-pointer">
+                  <CardContent className="flex items-center gap-4 p-5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: primary }}>
+                      {team.ageGroup ?? team.sport.slice(0, 2).toUpperCase()}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold truncate">{team.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {team.sport}{team.ageGroup && ` · ${team.ageGroup}`} · {team.season}
+                      </div>
+                    </div>
+                    <div className="text-xs text-primary font-medium shrink-0">Zobrazit →</div>
+                  </CardContent>
+                </Card>
+              </a>
             ))}
           </div>
         </div>
       </section>
 
       {/* Role showcase */}
-      <section className="border-t border-border/50 px-6 py-14">
+      <section id="roles" className="border-t border-border/50 px-6 py-14 scroll-mt-16">
         <div className="mx-auto max-w-4xl">
           <SectionLabel>Co vidí každá role</SectionLabel>
           <h2 className="text-2xl font-semibold tracking-tight mb-2">Přístup šitý na míru</h2>
