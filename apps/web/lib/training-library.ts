@@ -40,6 +40,8 @@ export type Drill = {
   icon: string;
   /** Tags for search */
   tags: string[];
+  /** SVG diagram key — maps to getDrillDiagram() */
+  diagram?: string;
 };
 
 export const CATEGORY_LABELS: Record<DrillCategory, string> = {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ChevronLeft, Clock, Users, Dumbbell, MapPin, Package, CheckCircle2, AlertCircle } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
+import { DrillDiagram } from '@/components/admin/drill-diagram';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,26 +56,24 @@ export default function DrillDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content — 2/3 */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Hero card */}
+          {/* Hero card with diagram */}
           <Card className="overflow-hidden">
-            <div className="relative p-6" style={{ background: `linear-gradient(135deg, hsl(var(--primary) / 0.05), hsl(var(--accent) / 0.05))` }}>
-              <div className="flex items-start gap-4">
-                <div className="text-5xl">{CATEGORY_ICONS[drill.category]}</div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <Badge className={`${CATEGORY_COLORS[drill.category]}`}>
-                      {CATEGORY_LABELS[drill.category]}
-                    </Badge>
-                    <Badge className={`${DIFFICULTY_COLORS[drill.difficulty]}`}>
-                      {DIFFICULTY_LABELS[drill.difficulty]}
-                    </Badge>
-                    {drill.sport !== 'universal' && (
-                      <Badge variant="outline">{drill.sport === 'fotbal' ? '⚽ Fotbal' : '🏑 Florbal'}</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{drill.description}</p>
-                </div>
+            {/* Tactical diagram */}
+            <DrillDiagram drillId={drill.id} category={drill.category} className="border-b border-border/30" />
+
+            <div className="p-6">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <Badge className={`${CATEGORY_COLORS[drill.category]}`}>
+                  {CATEGORY_LABELS[drill.category]}
+                </Badge>
+                <Badge className={`${DIFFICULTY_COLORS[drill.difficulty]}`}>
+                  {DIFFICULTY_LABELS[drill.difficulty]}
+                </Badge>
+                {drill.sport !== 'universal' && (
+                  <Badge variant="outline">{drill.sport === 'fotbal' ? '⚽ Fotbal' : '🏑 Florbal'}</Badge>
+                )}
               </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{drill.description}</p>
             </div>
 
             {/* Quick stats */}

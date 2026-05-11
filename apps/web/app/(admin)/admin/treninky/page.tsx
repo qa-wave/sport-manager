@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Filter, Clock, Users, Dumbbell } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
+import { DrillDiagram } from '@/components/admin/drill-diagram';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -154,10 +155,12 @@ function DrillCard({ drill, index }: { drill: Drill; index: number }) {
         className="group h-full overflow-hidden hover-lift cursor-pointer"
         style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
       >
-        <CardContent className="p-5">
+        <CardContent className="p-0">
+          {/* Diagram thumbnail */}
+          <DrillDiagram drillId={drill.id} category={drill.category} compact className="border-b border-border/30" />
+          <div className="p-4">
           {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="text-2xl">{CATEGORY_ICONS[drill.category]}</div>
+          <div className="flex items-start justify-between mb-2">
             <Badge className={`text-[11px] ${DIFFICULTY_COLORS[drill.difficulty]}`}>
               {DIFFICULTY_LABELS[drill.difficulty]}
             </Badge>
@@ -199,6 +202,7 @@ function DrillCard({ drill, index }: { drill: Drill; index: number }) {
               <Dumbbell className="h-3 w-3" />
               {drill.ageGroups.slice(0, 3).join(', ')}{drill.ageGroups.length > 3 ? '+' : ''}
             </span>
+          </div>
           </div>
         </CardContent>
       </Card>
