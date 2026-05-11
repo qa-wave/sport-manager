@@ -445,6 +445,21 @@ async function main() {
     data: { userId: tomasUser.id, clubId: hvezda.id, status: MemberStatus.ACTIVE },
   });
 
+  // Tomáš = parent of Anna Pekařová in Hvězda (multi-club parent edge case)
+  // Anna is childMembersHvezda[3] (index 3, the isAnna child)
+  if (childMembersHvezda[3]) {
+    await prisma.guardianLink.create({
+      data: {
+        guardianId: tomasInHvezda.id, childId: childMembersHvezda[3].id,
+        relationship: GuardianRelationship.OTHER, isPrimary: false,
+        canViewSchedule: true, canRsvp: true,
+        canViewPayments: false, canMakePayments: false,
+        canViewMedical: false, canSignWaivers: false,
+        verifiedAt: new Date(),
+      },
+    });
+  }
+
   // ── Sokol roster: 8 kids + 1 parent each ──
   const sokolChildren: Array<{ id: string; firstName: string; surname: string }> = [];
   for (let i = 0; i < 8; i++) {
@@ -469,6 +484,19 @@ async function main() {
       data: {
         guardianId: parent.memberId, childId: child.memberId,
         relationship: GuardianRelationship.PARENT, isPrimary: true,
+        canViewSchedule: true, canRsvp: true, canViewPayments: true,
+        canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+        verifiedAt: new Date(),
+      },
+    });
+  }
+
+  // Tomáš = also guardian of first Sokol kid (multi-club parent: 2 kids in 2 clubs)
+  if (sokolChildren[0]) {
+    await prisma.guardianLink.create({
+      data: {
+        guardianId: tomasInSokol.id, childId: sokolChildren[0].id,
+        relationship: GuardianRelationship.PARENT, isPrimary: false,
         canViewSchedule: true, canRsvp: true, canViewPayments: true,
         canMakePayments: true, canViewMedical: true, canSignWaivers: true,
         verifiedAt: new Date(),
