@@ -216,7 +216,7 @@ function LoginForm() {
                     {acc.hint}
                   </span>
                   {isBusy ? (
-                    <span className="text-[10px] text-primary">⏳</span>
+                    <span className="text-[10px] text-primary animate-pulse">Přihlašuji...</span>
                   ) : (
                     <span className="text-[10px] text-muted-foreground/50 group-hover:text-primary">→</span>
                   )}

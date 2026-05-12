@@ -27,6 +27,11 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
       </header>
 
       <main className="pt-14">
+        <div className="mx-auto max-w-5xl px-6 pt-4">
+          <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            ← Sport Manager
+          </Link>
+        </div>
         {children}
       </main>
 
@@ -92,6 +97,15 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
               </Link>
               <Link href="/sporty/basketbal" className="block hover:text-foreground">
                 Basketbal
+              </Link>
+              <Link href="/sporty/volejbal" className="block hover:text-foreground">
+                Volejbal
+              </Link>
+              <Link href="/sporty/tenis" className="block hover:text-foreground">
+                Tenis
+              </Link>
+              <Link href="/sporty/atletika" className="block hover:text-foreground">
+                Atletika
               </Link>
             </div>
           </div>

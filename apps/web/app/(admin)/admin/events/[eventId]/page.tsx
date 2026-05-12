@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, type FormEvent } from 'react';
+import { useState, useMemo, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -191,9 +191,7 @@ function LiveScoreSection({
 
         {isCoachOrAdmin && (
           <div className="mt-4 space-y-3">
-            {/* Score controls */}
             <div className="flex items-center justify-center gap-6">
-              {/* Home team controls */}
               <div className="flex flex-col items-center gap-1.5">
                 <span className="text-[11px] text-muted-foreground">{homeAway === 'AWAY' ? oppName : clubName}</span>
                 <div className="flex items-center gap-2">
@@ -215,7 +213,6 @@ function LiveScoreSection({
                 </div>
               </div>
               <span className="text-muted-foreground/40 text-xl">:</span>
-              {/* Away team controls */}
               <div className="flex flex-col items-center gap-1.5">
                 <span className="text-[11px] text-muted-foreground">{homeAway === 'AWAY' ? clubName : oppName}</span>
                 <div className="flex items-center gap-2">
@@ -238,7 +235,6 @@ function LiveScoreSection({
               </div>
             </div>
 
-            {/* Status selector */}
             <div className="flex flex-wrap justify-center gap-1.5">
               {(['not_started', 'first_half', 'half_time', 'second_half', 'full_time'] as ScoreStatus[]).map((s) => (
                 <button
@@ -256,7 +252,6 @@ function LiveScoreSection({
               ))}
             </div>
 
-            {/* Initialize button when no score yet */}
             {!score && (
               <div className="flex justify-center">
                 <Button
@@ -602,7 +597,6 @@ function DrillPickerModal({
         className="flex w-full max-w-2xl flex-col rounded-xl border border-border bg-background shadow-2xl animate-scale-in max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-primary" />
@@ -613,9 +607,7 @@ function DrillPickerModal({
           </Button>
         </div>
 
-        {/* Filters */}
         <div className="border-b border-border/30 px-5 py-3 space-y-2.5">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -626,7 +618,6 @@ function DrillPickerModal({
               className="pl-8 h-8 text-xs"
             />
           </div>
-          {/* Category pills */}
           <div className="flex flex-wrap gap-1">
             <button
               onClick={() => setCategory(undefined)}
@@ -650,7 +641,6 @@ function DrillPickerModal({
               </button>
             ))}
           </div>
-          {/* Difficulty */}
           <div className="flex gap-1.5">
             {(['', 'easy', 'medium', 'hard'] as const).map((d) => (
               <button
@@ -668,7 +658,6 @@ function DrillPickerModal({
           </div>
         </div>
 
-        {/* Drill list */}
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-1.5">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">Žádné cvičení</div>
@@ -714,7 +703,6 @@ function DrillPickerModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="border-t border-border/30 px-5 py-3 flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'cvičení' : 'cvičení'}
@@ -742,7 +730,6 @@ function LineupBuilderCard({
   const auth = useAuth();
   const queryClient = useQueryClient();
 
-  // Build player list from YES RSVPs + all attendees
   const players = useMemo(
     () =>
       event.attendees
@@ -818,6 +805,7 @@ export default function EventDetailPage() {
   const [qrCopied, setQrCopied] = useState(false);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Edit form state
   const [editType, setEditType] = useState('');
@@ -848,6 +836,11 @@ export default function EventDetailPage() {
     queryFn: () => apiFetch<TeamSummary[]>('/teams'),
     enabled: auth.isAuthenticated && !!auth.clubId && isEditing,
   });
+
+  // Auto-scroll to top when edit mode opens
+  useEffect(() => {
+    if (isEditing) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [isEditing]);
 
   const updateMutation = useMutation({
     mutationFn: (body: any) =>
@@ -956,7 +949,7 @@ export default function EventDetailPage() {
       const data = await apiFetch<{ url: string }>(`/events/${eventId}/qr-token`, { method: 'POST' });
       setQrUrl(data.url);
     } catch {
-      // silently ignore — user will see no modal
+      // silently ignore
     } finally {
       setQrLoading(false);
     }
@@ -1002,8 +995,40 @@ export default function EventDetailPage() {
   }
 
   const past = isPast(event.endsAt);
-
   const showOpponentFields = editType === 'MATCH' || editType === 'TOURNAMENT';
+  const isMatchOrTournament = event.type === 'MATCH' || event.type === 'TOURNAMENT';
+
+  // Current user RSVP
+  const myMemberId = memberCtx?.memberId;
+  const myAttendee = myMemberId ? event.attendees.find(a => a.memberId === myMemberId) : undefined;
+  const myRsvp = myAttendee?.status ?? null;
+
+  function handleRsvp(status: 'YES' | 'MAYBE' | 'NO') {
+    if (!myMemberId) return;
+    rsvpMutation.mutate({ memberId: myMemberId, status });
+  }
+
+  const TABS = isMatchOrTournament
+    ? [
+        { id: 'overview', label: 'Přehled' },
+        { id: 'attendance', label: 'Docházka' },
+        { id: 'lineup', label: 'Sestava' },
+        { id: 'result', label: 'Výsledek' },
+        { id: 'discussion', label: 'Diskuze' },
+      ]
+    : [
+        { id: 'overview', label: 'Přehled' },
+        { id: 'attendance', label: 'Docházka' },
+        { id: 'plan', label: 'Plán' },
+        { id: 'discussion', label: 'Diskuze' },
+      ];
+
+  function handleDescriptionUpdate(newDesc: string) {
+    queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
+      old ? { ...old, description: newDesc } : old
+    );
+    queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+  }
 
   return (
     <>
@@ -1055,13 +1080,12 @@ export default function EventDetailPage() {
         }
       />
 
-      {/* Edit form */}
+      {/* Edit form — stays above tabs */}
       {isEditing && (
         <Card>
           <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           <CardContent className="p-6">
             <form onSubmit={handleEditSubmit} className="space-y-5">
-              {/* Type */}
               <div className="space-y-1.5">
                 <Label>Typ události</Label>
                 <div className="flex flex-wrap gap-2">
@@ -1082,7 +1106,6 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
-              {/* Title */}
               <div className="space-y-1.5">
                 <Label htmlFor="edit-title">Název</Label>
                 <Input
@@ -1093,7 +1116,6 @@ export default function EventDetailPage() {
                 />
               </div>
 
-              {/* Team */}
               <div className="space-y-1.5">
                 <Label htmlFor="edit-team">Tým</Label>
                 <select
@@ -1109,7 +1131,6 @@ export default function EventDetailPage() {
                 </select>
               </div>
 
-              {/* Date/time */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-startsAt">Začátek</Label>
@@ -1133,7 +1154,6 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
-              {/* Location */}
               <div className="space-y-1.5">
                 <Label htmlFor="edit-location">Místo</Label>
                 <Input
@@ -1143,7 +1163,6 @@ export default function EventDetailPage() {
                 />
               </div>
 
-              {/* Opponent (conditional) */}
               {showOpponentFields && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
@@ -1171,7 +1190,6 @@ export default function EventDetailPage() {
                 </div>
               )}
 
-              {/* Description */}
               <div className="space-y-1.5">
                 <Label htmlFor="edit-description">Popis (volitelné)</Label>
                 <textarea
@@ -1207,42 +1225,8 @@ export default function EventDetailPage() {
         </Card>
       )}
 
-      {/* QR Docházka panel */}
-      {qrUrl && (
-        <Card className="border-primary/20 bg-primary/[0.02]">
-          <CardContent className="p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">QR kód pro docházku</span>
-              </div>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setQrUrl(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Hráči naskenují tento odkaz při příchodu. Kód je platný po dobu trvání události.
-            </p>
-            <div className="rounded-lg border border-border/50 bg-background p-3 font-mono text-xs break-all text-muted-foreground">
-              {qrUrl}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 h-8 text-xs"
-              onClick={copyQrUrl}
-            >
-              {qrCopied
-                ? <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Zkopírováno</>
-                : <><Copy className="mr-1.5 h-3.5 w-3.5" />Kopírovat odkaz</>
-              }
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Hero */}
-      <Card className="relative overflow-hidden ">
+      {/* Hero card — always visible */}
+      <Card className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-500/[0.02]" />
         <CardContent className="relative p-6">
           <div className="flex flex-wrap items-start gap-4">
@@ -1289,39 +1273,6 @@ export default function EventDetailPage() {
                   </div>
                 )}
               </div>
-
-              {event.description && (
-                <p className="text-sm text-muted-foreground/80">{event.description}</p>
-              )}
-
-              {/* Add to calendar buttons */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                <a
-                  href={googleCalendarUrl(event)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <Calendar className="h-3 w-3" />
-                  Google Calendar
-                </a>
-                <a
-                  href={outlookCalendarUrl(event)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <Calendar className="h-3 w-3" />
-                  Outlook
-                </a>
-                <button
-                  onClick={() => downloadICal([event], `${event.title}.ics`)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <Calendar className="h-3 w-3" />
-                  Stáhnout .ics
-                </button>
-              </div>
             </div>
 
             {/* RSVP summary */}
@@ -1351,283 +1302,438 @@ export default function EventDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Live Score — only for MATCH / TOURNAMENT events */}
-      {(event.type === 'MATCH' || event.type === 'TOURNAMENT') && (
-        <LiveScoreSection
-          eventId={eventId}
-          description={event.description}
-          opponent={event.opponent}
-          homeAway={event.homeAway}
-          isCoachOrAdmin={!!isCoachOrAdmin}
-          onDescriptionUpdate={(newDesc) => {
-            queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
-              old ? { ...old, description: newDesc } : old
-            );
-            queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-          }}
-        />
-      )}
+      {/* Tab bar */}
+      <div className="flex gap-1 rounded-lg bg-muted p-1 overflow-x-auto">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Per-event fee */}
-      <EventFeeSection
-        eventId={eventId}
-        description={event.description}
-        isCoachOrAdmin={!!isCoachOrAdmin}
-        onDescriptionUpdate={(newDesc) => {
-          queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
-            old ? { ...old, description: newDesc } : old
-          );
-          queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-        }}
-      />
-
-      {/* Training plan — only for PRACTICE events */}
-      {event.type === 'PRACTICE' && (
-        <TrainingPlanSection
-          eventId={eventId}
-          description={event.description ?? ''}
-          isCoachOrAdmin={!!isCoachOrAdmin}
-          drillPickerOpen={drillPickerOpen}
-          setDrillPickerOpen={setDrillPickerOpen}
-          onDescriptionUpdate={(newDesc) => {
-            queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
-              old ? { ...old, description: newDesc } : old
-            );
-            queryClient.invalidateQueries({ queryKey: ['event', eventId] });
-          }}
-        />
-      )}
-
-      {/* Lineup builder — only for MATCH and TOURNAMENT events */}
-      {(event.type === 'MATCH' || event.type === 'TOURNAMENT') && (
-        <LineupBuilderCard
-          eventId={eventId}
-          event={event}
-          isCoachOrAdmin={!!isCoachOrAdmin}
-        />
-      )}
-
-      {/* Roster table */}
-      <Card className="overflow-hidden ">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm">
-            Docházka ({event.attendees.length} členů)
-          </CardTitle>
-          <div className="flex gap-2">
-            {/* Bulk RSVP — for coaches, future events */}
-            {isCoachOrAdmin && !past && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={rsvpMutation.isPending}
-                  onClick={() => {
-                    const pending = event.attendees.filter(a => a.status === 'PENDING');
-                    if (pending.length === 0) return;
-                    Promise.all(pending.map(a =>
-                      apiFetch(`/events/${eventId}/rsvp`, {
-                        method: 'POST',
-                        body: JSON.stringify({ memberId: a.memberId, eventId, status: 'YES' }),
-                      })
-                    )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
-                  }}
-                >
-                  <CheckCheck className="mr-1 h-3 w-3" />
-                  Vše ANO
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={rsvpMutation.isPending}
-                  onClick={() => {
-                    const pending = event.attendees.filter(a => a.status === 'PENDING');
-                    if (pending.length === 0) return;
-                    Promise.all(pending.map(a =>
-                      apiFetch(`/events/${eventId}/rsvp`, {
-                        method: 'POST',
-                        body: JSON.stringify({ memberId: a.memberId, eventId, status: 'NO' }),
-                      })
-                    )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
-                  }}
-                >
-                  <X className="mr-1 h-3 w-3" />
-                  Vše NE
-                </Button>
-              </>
-            )}
-            {/* Bulk attendance — for coaches, past events */}
-            {isCoachOrAdmin && past && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-7 text-xs"
-                disabled={attendanceMutation.isPending || Object.keys(bulkAttendance).length === 0}
-                onClick={() => {
-                  const entries = Object.entries(bulkAttendance).map(([memberId, attended]) => ({ memberId, attended }));
-                  if (entries.length > 0) {
-                    attendanceMutation.mutate(entries, {
-                      onSuccess: () => setBulkAttendance({}),
-                    });
-                  }
-                }}
-              >
-                <Check className="mr-1 h-3 w-3" />
-                Uložit docházku ({Object.keys(bulkAttendance).length})
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-[11px] uppercase tracking-wider">Člen</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wider">Stav</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wider">Poznámka</TableHead>
-              {past && <TableHead className="text-[11px] uppercase tracking-wider">Účast</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {event.attendees.map((a) => (
-              <TableRow key={a.memberId} className="border-border/30">
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
-                        {a.name.split(' ').map((n) => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{a.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={RSVP_VARIANT[a.status] ?? 'default'} className="text-[11px]">
-                    {a.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {a.note ?? '--'}
-                </TableCell>
-                {past && (
-                  <TableCell>
-                    {a.attended != null && !(a.memberId in bulkAttendance) ? (
-                      <Badge variant={a.attended ? 'success' : 'danger'} className="text-[11px]">
-                        {a.attended ? 'Ano' : 'Ne'}
-                      </Badge>
-                    ) : (
-                      <div className="flex gap-1">
-                        <button
-                          className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                            bulkAttendance[a.memberId] === true
-                              ? 'bg-emerald-500/20 text-emerald-500'
-                              : 'text-muted-foreground hover:text-emerald-500'
-                          }`}
-                          onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: true }))}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                            bulkAttendance[a.memberId] === false
-                              ? 'bg-red-500/20 text-red-500'
-                              : 'text-muted-foreground hover:text-red-500'
-                          }`}
-                          onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: false }))}
-                        >
-                          ✗
-                        </button>
-                      </div>
-                    )}
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {/* Carpool section */}
-      <CarpoolSection
-        event={event}
-        memberCtx={memberCtx}
-        onCarpool={(args) => carpoolMutation.mutate(args)}
-        isSaving={carpoolMutation.isPending}
-      />
-
-      {/* Game stats — only for MATCH events after they end */}
-      {event.type === 'MATCH' && (
-        <StatsSection
-          event={event}
-          isCoachOrAdmin={!!isCoachOrAdmin}
-          onSaveStats={(stats) => statsMutation.mutate(stats)}
-          isSaving={statsMutation.isPending}
-        />
-      )}
-
-      {/* Comments / Discussion */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm">Diskuze</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          {/* Comment list */}
-          {parseComments(event.description ?? '').length === 0 ? (
-            <p className="text-xs text-muted-foreground">Zatím žádné komentáře.</p>
-          ) : (
-            <div className="space-y-3">
-              {parseComments(event.description ?? '').map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                    {c.author.split(' ').map((n: string) => n[0]).join('')}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold">{c.author}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {new Date(c.at).toLocaleString('cs-CZ', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground/80 break-words">{c.text}</p>
-                  </div>
+      {/* ── Tab: Přehled ── */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
+          {/* My RSVP widget */}
+          {myMemberId && !past && (
+            <Card className="border-primary/20">
+              <CardContent className="p-5 text-center">
+                <h3 className="text-sm font-semibold mb-3">Vaše účast</h3>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  <Button
+                    variant={myRsvp === 'YES' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleRsvp('YES')}
+                    disabled={rsvpMutation.isPending}
+                    className={myRsvp === 'YES' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Zúčastním se
+                  </Button>
+                  <Button
+                    variant={myRsvp === 'MAYBE' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleRsvp('MAYBE')}
+                    disabled={rsvpMutation.isPending}
+                    className={myRsvp === 'MAYBE' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+                  >
+                    ? Možná
+                  </Button>
+                  <Button
+                    variant={myRsvp === 'NO' ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={() => handleRsvp('NO')}
+                    disabled={rsvpMutation.isPending}
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Nemohu
+                  </Button>
                 </div>
-              ))}
-            </div>
+                {myRsvp && myRsvp !== 'PENDING' && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Aktuální odpověď:{' '}
+                    <span className={
+                      myRsvp === 'YES' ? 'text-green-600 font-semibold' :
+                      myRsvp === 'NO' ? 'text-red-600 font-semibold' :
+                      'text-yellow-600 font-semibold'
+                    }>
+                      {myRsvp === 'YES' ? 'Zúčastním se' : myRsvp === 'NO' ? 'Nemohu' : 'Možná'}
+                    </span>
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
-          {/* Add comment */}
-          <div className="flex gap-2">
-            <Input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Napište komentář..."
-              className="h-8 text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
-                  e.preventDefault();
-                  commentMutation.mutate(commentText.trim());
-                }
-              }}
+          {/* Description */}
+          {event.description && (
+            <Card>
+              <CardContent className="p-5">
+                <p className="text-sm text-muted-foreground/80 whitespace-pre-wrap">{event.description}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Calendar export */}
+          <Card>
+            <CardContent className="p-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Přidat do kalendáře</p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={googleCalendarUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Google Calendar
+                </a>
+                <a
+                  href={outlookCalendarUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Outlook
+                </a>
+                <button
+                  onClick={() => downloadICal([event], `${event.title}.ics`)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Stáhnout .ics
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Per-event fee */}
+          <EventFeeSection
+            eventId={eventId}
+            description={event.description}
+            isCoachOrAdmin={!!isCoachOrAdmin}
+            onDescriptionUpdate={handleDescriptionUpdate}
+          />
+
+          {/* QR panel — stays in overview tab */}
+          {qrUrl && (
+            <Card className="border-primary/20 bg-primary/[0.02]">
+              <CardContent className="p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">QR kód pro docházku</span>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setQrUrl(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Hráči naskenují tento odkaz při příchodu. Kód je platný po dobu trvání události.
+                </p>
+                <div className="rounded-lg border border-border/50 bg-background p-3 font-mono text-xs break-all text-muted-foreground">
+                  {qrUrl}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 h-8 text-xs"
+                  onClick={copyQrUrl}
+                >
+                  {qrCopied
+                    ? <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Zkopírováno</>
+                    : <><Copy className="mr-1.5 h-3.5 w-3.5" />Kopírovat odkaz</>
+                  }
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Docházka ── */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm">
+                Docházka ({event.attendees.length} členů)
+              </CardTitle>
+              <div className="flex gap-2">
+                {/* Bulk RSVP — for coaches, future events */}
+                {isCoachOrAdmin && !past && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={rsvpMutation.isPending}
+                      onClick={() => {
+                        const pending = event.attendees.filter(a => a.status === 'PENDING');
+                        if (pending.length === 0) return;
+                        if (!window.confirm(`Nastavit RSVP "ANO" pro ${pending.length} čekajících členů?`)) return;
+                        Promise.all(pending.map(a =>
+                          apiFetch(`/events/${eventId}/rsvp`, {
+                            method: 'POST',
+                            body: JSON.stringify({ memberId: a.memberId, eventId, status: 'YES' }),
+                          })
+                        )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
+                      }}
+                    >
+                      <CheckCheck className="mr-1 h-3 w-3" />
+                      Vše ANO
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={rsvpMutation.isPending}
+                      onClick={() => {
+                        const pending = event.attendees.filter(a => a.status === 'PENDING');
+                        if (pending.length === 0) return;
+                        if (!window.confirm(`Nastavit RSVP "NE" pro ${pending.length} čekajících členů?`)) return;
+                        Promise.all(pending.map(a =>
+                          apiFetch(`/events/${eventId}/rsvp`, {
+                            method: 'POST',
+                            body: JSON.stringify({ memberId: a.memberId, eventId, status: 'NO' }),
+                          })
+                        )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
+                      }}
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      Vše NE
+                    </Button>
+                  </>
+                )}
+                {/* Bulk attendance — for coaches, past events */}
+                {isCoachOrAdmin && past && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={attendanceMutation.isPending || Object.keys(bulkAttendance).length === 0}
+                    onClick={() => {
+                      const entries = Object.entries(bulkAttendance).map(([memberId, attended]) => ({ memberId, attended }));
+                      if (entries.length > 0) {
+                        attendanceMutation.mutate(entries, {
+                          onSuccess: () => setBulkAttendance({}),
+                        });
+                      }
+                    }}
+                  >
+                    <Check className="mr-1 h-3 w-3" />
+                    Uložit docházku ({Object.keys(bulkAttendance).length})
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wider">Člen</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider">Stav</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider">Poznámka</TableHead>
+                  {past && <TableHead className="text-[11px] uppercase tracking-wider">Účast</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {event.attendees.map((a) => (
+                  <TableRow key={a.memberId} className="border-border/30">
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                            {a.name.split(' ').map((n) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{a.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={RSVP_VARIANT[a.status] ?? 'default'} className="text-[11px]">
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {a.note ?? '--'}
+                    </TableCell>
+                    {past && (
+                      <TableCell>
+                        {a.attended != null && !(a.memberId in bulkAttendance) ? (
+                          <Badge variant={a.attended ? 'success' : 'danger'} className="text-[11px]">
+                            {a.attended ? 'Ano' : 'Ne'}
+                          </Badge>
+                        ) : (
+                          <div className="flex gap-1">
+                            <button
+                              className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                                bulkAttendance[a.memberId] === true
+                                  ? 'bg-emerald-500/20 text-emerald-500'
+                                  : 'text-muted-foreground hover:text-emerald-500'
+                              }`}
+                              onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: true }))}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                                bulkAttendance[a.memberId] === false
+                                  ? 'bg-red-500/20 text-red-500'
+                                  : 'text-muted-foreground hover:text-red-500'
+                              }`}
+                              onClick={() => setBulkAttendance(prev => ({ ...prev, [a.memberId]: false }))}
+                            >
+                              ✗
+                            </button>
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Tab: Plán (PRACTICE only) ── */}
+      {activeTab === 'plan' && event.type === 'PRACTICE' && (
+        <div className="space-y-4">
+          <TrainingPlanSection
+            eventId={eventId}
+            description={event.description ?? ''}
+            isCoachOrAdmin={!!isCoachOrAdmin}
+            drillPickerOpen={drillPickerOpen}
+            setDrillPickerOpen={setDrillPickerOpen}
+            onDescriptionUpdate={handleDescriptionUpdate}
+          />
+          <CarpoolSection
+            event={event}
+            memberCtx={memberCtx}
+            onCarpool={(args) => carpoolMutation.mutate(args)}
+            isSaving={carpoolMutation.isPending}
+          />
+        </div>
+      )}
+
+      {/* ── Tab: Sestava (MATCH/TOURNAMENT only) ── */}
+      {activeTab === 'lineup' && isMatchOrTournament && (
+        <div className="space-y-4">
+          <LineupBuilderCard
+            eventId={eventId}
+            event={event}
+            isCoachOrAdmin={!!isCoachOrAdmin}
+          />
+        </div>
+      )}
+
+      {/* ── Tab: Výsledek (MATCH/TOURNAMENT only) ── */}
+      {activeTab === 'result' && isMatchOrTournament && (
+        <div className="space-y-4">
+          <LiveScoreSection
+            eventId={eventId}
+            description={event.description}
+            opponent={event.opponent}
+            homeAway={event.homeAway}
+            isCoachOrAdmin={!!isCoachOrAdmin}
+            onDescriptionUpdate={handleDescriptionUpdate}
+          />
+          {event.type === 'MATCH' && (
+            <StatsSection
+              event={event}
+              isCoachOrAdmin={!!isCoachOrAdmin}
+              onSaveStats={(stats) => statsMutation.mutate(stats)}
+              isSaving={statsMutation.isPending}
             />
-            <Button
-              size="sm"
-              className="h-8 shrink-0"
-              disabled={!commentText.trim() || commentMutation.isPending}
-              onClick={() => commentMutation.mutate(commentText.trim())}
-            >
-              {commentMutation.isPending ? '...' : 'Přidat'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Diskuze ── */}
+      {activeTab === 'discussion' && (
+        <div className="space-y-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm">Diskuze</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              {parseComments(event.description ?? '').length === 0 ? (
+                <p className="text-xs text-muted-foreground">Zatím žádné komentáře.</p>
+              ) : (
+                <div className="space-y-3">
+                  {parseComments(event.description ?? '').map((c) => (
+                    <div key={c.id} className="flex gap-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                        {c.author.split(' ').map((n: string) => n[0]).join('')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xs font-semibold">{c.author}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {new Date(c.at).toLocaleString('cs-CZ', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-sm text-muted-foreground/80 break-words">{c.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Input
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Napište komentář..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
+                      e.preventDefault();
+                      commentMutation.mutate(commentText.trim());
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="h-8 shrink-0"
+                  disabled={!commentText.trim() || commentMutation.isPending}
+                  onClick={() => commentMutation.mutate(commentText.trim())}
+                >
+                  {commentMutation.isPending ? '...' : 'Přidat'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Carpooling in discussion tab for MATCH/TOURNAMENT */}
+          {isMatchOrTournament && (
+            <CarpoolSection
+              event={event}
+              memberCtx={memberCtx}
+              onCarpool={(args) => carpoolMutation.mutate(args)}
+              isSaving={carpoolMutation.isPending}
+            />
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -1699,7 +1805,6 @@ function CarpoolSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
-        {/* Current offers */}
         {offers.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium text-muted-foreground">Nabídky míst</p>
@@ -1715,7 +1820,6 @@ function CarpoolSection({
           </div>
         )}
 
-        {/* Current requests */}
         {requests.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium text-muted-foreground">Potřebují svézt</p>
@@ -1735,7 +1839,6 @@ function CarpoolSection({
           <p className="text-xs text-muted-foreground">Zatím žádné nabídky dopravy.</p>
         )}
 
-        {/* My carpool preference */}
         {memberCtx && (
           <div className="border-t border-border/30 pt-4">
             <p className="mb-2 text-xs font-medium">Moje doprava</p>
@@ -1902,7 +2005,6 @@ function StatsSection({
                   ))}
                 </TableRow>
               ))}
-              {/* Totals row */}
               {rows.length > 0 && (
                 <TableRow className="border-border/50 bg-muted/30 font-bold">
                   <TableCell className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Celkem</TableCell>

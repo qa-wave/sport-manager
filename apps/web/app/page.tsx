@@ -109,9 +109,9 @@ const FEATURE_KEYS = [
 ];
 
 const STATS = [
-  { value: '2', labelKey: 'landing.stats.clubs', suffix: '' },
-  { value: '66', labelKey: 'landing.stats.members', suffix: '+' },
-  { value: '69', labelKey: 'landing.stats.events', suffix: '' },
+  { value: '30', labelKey: 'landing.stats.exercises', suffix: '+' },
+  { value: '9', labelKey: 'landing.stats.trainingCategories', suffix: '' },
+  { value: '13', labelKey: 'landing.stats.federations', suffix: '' },
   { value: '5', labelKey: 'landing.stats.roles', suffix: '' },
 ];
 
@@ -166,7 +166,7 @@ export default function LandingPage() {
             {t('landing.badge')}
           </div>
 
-          {/* Club counter */}
+          {/* Sport icons */}
           <div className="mb-6 flex justify-center">
             <div className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-card/70 backdrop-blur-sm px-5 py-2 text-sm">
               <div className="flex -space-x-2">
@@ -177,7 +177,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <span className="text-muted-foreground">
-                Používá <span className="font-semibold text-foreground">120+ klubů</span>
+                Důvěřují nám kluby po celé ČR
               </span>
             </div>
           </div>
@@ -310,6 +310,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
+                <Link href="/produkt/komunikace" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-4">
+                  Zjistit více o privacy →
+                </Link>
               </div>
               <div className="relative bg-muted/30 p-8 sm:p-12 flex items-center justify-center">
                 <div className="w-full max-w-xs space-y-4">

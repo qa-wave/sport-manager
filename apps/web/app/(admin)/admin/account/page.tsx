@@ -159,6 +159,12 @@ export default function AccountPage() {
 
       {/* Settings sections */}
       <div className="space-y-3">
+        {/* ── Váš profil ── */}
+        <h2 className="text-lg font-semibold mt-8 mb-4">Váš profil</h2>
+
+        {/* Edit profile */}
+        {me.data && <EditProfileCard user={me.data} />}
+
         {/* Theme */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
@@ -199,81 +205,10 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Club settings — only for OWNER / ADMIN */}
-        {memberCtx &&
-          (memberCtx.clubRoles.includes('OWNER') ||
-            memberCtx.clubRoles.includes('ADMIN')) &&
-          me.data && (
-            <ClubSettingsCard
-              clubId={auth.clubId!}
-              currentName={
-                me.data.members.find((m) => m.clubId === auth.clubId)?.club.name ?? ''
-              }
-              currentTimezone={
-                me.data.members.find((m) => m.clubId === auth.clubId)?.club.timezone ?? 'Europe/Prague'
-              }
-            />
-          )}
-
-        {/* Stripe Connect — only for OWNER */}
-        {memberCtx && memberCtx.clubRoles.includes('OWNER') && auth.clubId && (
-          <StripeConnectCard
-            clubId={auth.clubId}
-            connected={stripeConnected}
-            justConnected={stripeJustConnected}
-          />
-        )}
-
-        {/* Season management — only for OWNER */}
-        {memberCtx && memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
-          <SeasonCard
-            currentSeason={
-              (me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
-                ?.currentSeason as string | undefined
-            }
-          />
-        )}
-
-        {/* Club theming — only for OWNER / ADMIN */}
-        {memberCtx &&
-          (memberCtx.clubRoles.includes('OWNER') ||
-            memberCtx.clubRoles.includes('ADMIN')) &&
-          me.data && (
-            <ThemeSettingsCard
-              clubTheme={
-                me.data.members.find((m) => m.clubId === auth.clubId)?.club
-                  .config.theme
-              }
-            />
-          )}
-
-        {/* Registration config — only for OWNER */}
-        {memberCtx && memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
-          <RegistrationCard
-            clubSlug={
-              me.data.members.find((m) => m.clubId === auth.clubId)?.club.slug ?? ''
-            }
-            currentOpen={
-              !!((me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
-                ?.registration as Record<string, unknown> | undefined)?.open
-            }
-          />
-        )}
-
         {/* Notification preferences */}
         <NotificationPreferencesCard />
 
-        {/* Referral system — only for OWNER / ADMIN */}
-        {memberCtx &&
-          (memberCtx.clubRoles.includes('OWNER') ||
-            memberCtx.clubRoles.includes('ADMIN')) && (
-            <ReferralCard />
-          )}
-
-        {/* Edit profile */}
-        {me.data && <EditProfileCard user={me.data} />}
-
-        {/* Menu items */}
+        {/* Roles & permissions (personal view) */}
         <Card className="overflow-hidden">
           <CardContent className="divide-y divide-border/30 p-0">
             <MenuItem
@@ -282,18 +217,6 @@ export default function AccountPage() {
               desc={roleLabel ? `${t('account.currentRole')}: ${roleLabel}` : t('account.viewAccessLevel')}
               disabled
             />
-            {memberCtx &&
-              (memberCtx.clubRoles.includes('OWNER') ||
-                memberCtx.clubRoles.includes('ADMIN')) && (
-                <Link href="/admin/audit-log" className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03] active:bg-primary/[0.05]">
-                  <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">Audit log</div>
-                    <div className="text-xs text-muted-foreground">Historie změn konfigurace klubu</div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
-                </Link>
-              )}
           </CardContent>
         </Card>
 
@@ -312,6 +235,87 @@ export default function AccountPage() {
             </button>
           </CardContent>
         </Card>
+
+        {/* ── Nastavení klubu (admin only) ── */}
+        {memberCtx &&
+          (memberCtx.clubRoles.includes('OWNER') ||
+            memberCtx.clubRoles.includes('ADMIN')) && (
+          <>
+            <h2 className="text-lg font-semibold mt-10 mb-4">Nastavení klubu</h2>
+
+            {/* Club settings — name + timezone */}
+            {me.data && (
+              <ClubSettingsCard
+                clubId={auth.clubId!}
+                currentName={
+                  me.data.members.find((m) => m.clubId === auth.clubId)?.club.name ?? ''
+                }
+                currentTimezone={
+                  me.data.members.find((m) => m.clubId === auth.clubId)?.club.timezone ?? 'Europe/Prague'
+                }
+              />
+            )}
+
+            {/* Stripe Connect — only for OWNER */}
+            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && (
+              <StripeConnectCard
+                clubId={auth.clubId}
+                connected={stripeConnected}
+                justConnected={stripeJustConnected}
+              />
+            )}
+
+            {/* Season management — only for OWNER */}
+            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
+              <SeasonCard
+                currentSeason={
+                  (me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
+                    ?.currentSeason as string | undefined
+                }
+              />
+            )}
+
+            {/* Club theming */}
+            {me.data && (
+              <ThemeSettingsCard
+                clubTheme={
+                  me.data.members.find((m) => m.clubId === auth.clubId)?.club
+                    .config.theme
+                }
+              />
+            )}
+
+            {/* Registration config — only for OWNER */}
+            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
+              <RegistrationCard
+                clubSlug={
+                  me.data.members.find((m) => m.clubId === auth.clubId)?.club.slug ?? ''
+                }
+                currentOpen={
+                  !!((me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
+                    ?.registration as Record<string, unknown> | undefined)?.open
+                }
+              />
+            )}
+
+            {/* Referral */}
+            <ReferralCard />
+
+            {/* Audit log + Roles links */}
+            <Card className="overflow-hidden">
+              <CardContent className="divide-y divide-border/30 p-0">
+                <Link href="/admin/audit-log" className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03] active:bg-primary/[0.05]">
+                  <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Audit log</div>
+                    <div className="text-xs text-muted-foreground">Historie změn konfigurace klubu</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
+                </Link>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </>
   );
@@ -948,6 +952,9 @@ function NotificationPreferencesCard() {
             onChange={(v) => update('pushEnabled', v)}
           />
         </div>
+        <p className="text-[11px] text-muted-foreground/70 px-4 pb-3 mt-3">
+          Nastavení platí pouze pro tento prohlížeč.
+        </p>
       </CardContent>
     </Card>
   );

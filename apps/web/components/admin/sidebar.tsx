@@ -56,39 +56,63 @@ export function Sidebar({
     return translated !== key ? translated : item.label;
   }
 
-  const navItems = (onItemClick?: () => void) =>
-    nav.map((item) => {
-      const active =
-        item.href === '/admin'
-          ? pathname === '/admin'
-          : pathname.startsWith(item.href);
-      const Icon = item.icon;
+  const NAV_GROUPS = [
+    { key: 'main' as const, label: 'Hlavní' },
+    { key: 'manage' as const, label: 'Správa' },
+    { key: 'tools' as const, label: 'Nástroje' },
+  ];
 
-      return (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={onItemClick}
+  function renderNavLink(item: typeof nav[number], onItemClick?: () => void) {
+    const active =
+      item.href === '/admin'
+        ? pathname === '/admin'
+        : pathname.startsWith(item.href);
+    const Icon = item.icon;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onItemClick}
+        className={cn(
+          'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
+          active
+            ? 'bg-primary/10 font-medium text-foreground shadow-sm'
+            : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+        )}
+      >
+        {active && (
+          <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-brand" />
+        )}
+        <Icon
           className={cn(
-            'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
+            'h-4 w-4 shrink-0 transition-colors duration-200',
             active
-              ? 'bg-primary/10 font-medium text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+              ? 'text-primary'
+              : 'text-muted-foreground group-hover:text-foreground'
           )}
-        >
-          {active && (
-            <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-brand" />
+        />
+        <span>{navLabel(item)}</span>
+      </Link>
+    );
+  }
+
+  const navItems = (onItemClick?: () => void) =>
+    NAV_GROUPS.map((group) => {
+      const items = nav.filter((i) => (i.group ?? 'main') === group.key);
+      if (items.length === 0) return null;
+      return (
+        <div key={group.key}>
+          {group.key !== 'main' && (
+            <>
+              <Separator className="my-2 opacity-30" />
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                {group.label}
+              </div>
+            </>
           )}
-          <Icon
-            className={cn(
-              'h-4 w-4 shrink-0 transition-colors duration-200',
-              active
-                ? 'text-primary'
-                : 'text-muted-foreground group-hover:text-foreground'
-            )}
-          />
-          <span>{navLabel(item)}</span>
-        </Link>
+          {items.map((item) => renderNavLink(item, onItemClick))}
+        </div>
       );
     });
 
@@ -121,52 +145,70 @@ export function Sidebar({
 
         {/* Nav */}
         <nav className="relative flex-1 space-y-1 overflow-y-auto px-2 py-3">
-          {nav.map((item) => {
-            const active =
-              item.href === '/admin'
-                ? pathname === '/admin'
-                : pathname.startsWith(item.href);
-            const Icon = item.icon;
+          {NAV_GROUPS.map((group) => {
+            const items = nav.filter((i) => (i.group ?? 'main') === group.key);
+            if (items.length === 0) return null;
+            return (
+              <div key={group.key}>
+                {group.key !== 'main' && (
+                  <>
+                    <Separator className="my-2 opacity-30" />
+                    {!collapsed && (
+                      <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                        {group.label}
+                      </div>
+                    )}
+                  </>
+                )}
+                {items.map((item) => {
+                  const active =
+                    item.href === '/admin'
+                      ? pathname === '/admin'
+                      : pathname.startsWith(item.href);
+                  const Icon = item.icon;
 
-            const link = (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
-                  active
-                    ? 'bg-primary/10 font-medium text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground',
-                  collapsed && 'justify-center px-0'
-                )}
-              >
-                {active && (
-                  <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-brand" />
-                )}
-                <Icon
-                  className={cn(
-                    'h-4 w-4 shrink-0 transition-colors duration-200',
-                    active
-                      ? 'text-primary'
-                      : 'text-muted-foreground group-hover:text-foreground'
-                  )}
-                />
-                {!collapsed && <span>{navLabel(item)}</span>}
-              </Link>
+                  const link = (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
+                        active
+                          ? 'bg-primary/10 font-medium text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground',
+                        collapsed && 'justify-center px-0'
+                      )}
+                    >
+                      {active && (
+                        <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-brand" />
+                      )}
+                      <Icon
+                        className={cn(
+                          'h-4 w-4 shrink-0 transition-colors duration-200',
+                          active
+                            ? 'text-primary'
+                            : 'text-muted-foreground group-hover:text-foreground'
+                        )}
+                      />
+                      {!collapsed && <span>{navLabel(item)}</span>}
+                    </Link>
+                  );
+
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>{link}</TooltipTrigger>
+                        <TooltipContent side="right" className="font-medium">
+                          {navLabel(item)}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return link;
+                })}
+              </div>
             );
-
-            if (collapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    {navLabel(item)}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
-
-            return link;
           })}
         </nav>
 

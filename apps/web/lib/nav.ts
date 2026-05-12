@@ -33,23 +33,19 @@ export type NavItem = {
   access?: NavAccess;
   /** When set, the item is hidden if the club has this feature disabled. */
   feature?: FeatureKey;
+  /** Visual grouping in the sidebar. Defaults to 'main'. */
+  group?: 'main' | 'manage' | 'tools';
 };
 
 export const ADMIN_NAV: NavItem[] = [
+  // ── main ──────────────────────────────────────────────────────────────
   {
     href: '/admin',
     label: 'Přehled',
     labelKey: 'dashboard',
     description: 'Přehled a stav klubu',
     icon: LayoutDashboard,
-  },
-  {
-    href: '/admin/teams',
-    label: 'Týmy',
-    labelKey: 'teams',
-    description: 'Soupiska a realizační tým',
-    icon: Users,
-    access: 'admin_or_coach',
+    group: 'main',
   },
   {
     href: '/admin/events',
@@ -58,23 +54,16 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Tréninky, zápasy, RSVP',
     icon: CalendarDays,
     feature: 'calendar',
+    group: 'main',
   },
   {
-    href: '/admin/treninky',
-    label: 'Tréninky',
-    labelKey: 'training',
-    description: 'Knihovna cvičení a tréninků',
-    icon: Repeat,
+    href: '/admin/teams',
+    label: 'Týmy',
+    labelKey: 'teams',
+    description: 'Soupiska a realizační tým',
+    icon: Users,
     access: 'admin_or_coach',
-    feature: 'trainingTemplates',
-  },
-  {
-    href: '/admin/gallery',
-    label: 'Galerie',
-    labelKey: 'gallery',
-    description: 'Fotky z tréninků a zápasů',
-    icon: Camera,
-    feature: 'gallery',
+    group: 'main',
   },
   {
     href: '/admin/messages',
@@ -83,6 +72,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Týmový chat a přímé zprávy',
     icon: MessageCircle,
     feature: 'messages',
+    group: 'main',
   },
   {
     href: '/admin/notifications',
@@ -91,15 +81,9 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Vaše oznámení',
     icon: Bell,
     feature: 'notifications',
+    group: 'main',
   },
-  {
-    href: '/admin/activity',
-    label: 'Aktivita',
-    labelKey: 'activity',
-    description: 'Timeline dění v klubu',
-    icon: Activity,
-    access: 'admin_or_coach',
-  },
+  // ── manage ────────────────────────────────────────────────────────────
   {
     href: '/admin/members',
     label: 'Členové',
@@ -107,6 +91,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Hráči, rodiče, zákonní zástupci',
     icon: UserCircle,
     access: 'admin',
+    group: 'manage',
   },
   {
     href: '/admin/payments',
@@ -116,6 +101,7 @@ export const ADMIN_NAV: NavItem[] = [
     icon: CreditCard,
     access: 'admin_or_finance',
     feature: 'payments',
+    group: 'manage',
   },
   {
     href: '/admin/waivers',
@@ -125,6 +111,7 @@ export const ADMIN_NAV: NavItem[] = [
     icon: FileSignature,
     access: 'admin',
     feature: 'waivers',
+    group: 'manage',
   },
   {
     href: '/admin/polls',
@@ -133,6 +120,27 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Ankety a časová hlasování',
     icon: Vote,
     access: 'any' as NavAccess,
+    group: 'manage',
+  },
+  // ── tools ─────────────────────────────────────────────────────────────
+  {
+    href: '/admin/treninky',
+    label: 'Tréninky',
+    labelKey: 'training',
+    description: 'Knihovna cvičení a tréninků',
+    icon: Repeat,
+    access: 'admin_or_coach',
+    feature: 'trainingTemplates',
+    group: 'tools',
+  },
+  {
+    href: '/admin/gallery',
+    label: 'Galerie',
+    labelKey: 'gallery',
+    description: 'Fotky z tréninků a zápasů',
+    icon: Camera,
+    feature: 'gallery',
+    group: 'tools',
   },
   {
     href: '/admin/documents',
@@ -141,14 +149,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Pravidla, formuláře a dokumenty klubu',
     icon: FolderOpen,
     access: 'any' as NavAccess,
-  },
-  {
-    href: '/admin/season-report',
-    label: 'Zpráva o sezoně',
-    labelKey: 'seasonReport',
-    description: 'Přehled sezony a statistiky',
-    icon: FileBarChart2,
-    access: 'admin',
+    group: 'tools',
   },
   {
     href: '/admin/federation-sync',
@@ -157,6 +158,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Synchronizace rozpisu ze svazu',
     icon: Globe,
     access: 'admin',
+    group: 'tools',
   },
   {
     href: '/admin/import',
@@ -165,6 +167,16 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Importovat data z jiné platformy',
     icon: Upload,
     access: 'admin',
+    group: 'tools',
+  },
+  {
+    href: '/admin/activity',
+    label: 'Aktivita',
+    labelKey: 'activity',
+    description: 'Timeline dění v klubu',
+    icon: Activity,
+    access: 'admin_or_coach',
+    group: 'tools',
   },
   {
     href: '/admin/account',
@@ -172,6 +184,7 @@ export const ADMIN_NAV: NavItem[] = [
     labelKey: 'account',
     description: 'Profil a nastavení',
     icon: Settings,
+    group: 'tools',
   },
   {
     href: '/admin/platform-analytics',
@@ -180,6 +193,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Souhrn dat platformy',
     icon: BarChart2,
     access: 'platform_admin',
+    group: 'tools',
   },
 ];
 

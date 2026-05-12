@@ -236,11 +236,18 @@ export default function DashboardPage() {
                               )}
                             </div>
                           </div>
-                          <div className="shrink-0">
+                          <div className="shrink-0 flex flex-col items-end gap-1">
                             {total === 0 ? (
                               <span className="text-xs text-muted-foreground/70">{t('dashboard.noRsvp')}</span>
                             ) : rsvp.pending > 0 && rsvp.pending >= rsvp.yes ? (
-                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-500">RSVP?</span>
+                              <>
+                                <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-500">RSVP?</span>
+                                {guardian && !admin && !coach && (
+                                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                                    Potvrďte účast →
+                                  </span>
+                                )}
+                              </>
                             ) : (
                               <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-500">{rsvp.yes} {t('dashboard.going')}</span>
                             )}

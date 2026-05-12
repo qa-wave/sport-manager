@@ -100,8 +100,14 @@ export default function SignupPage() {
 
         {/* Step indicator */}
         <div className="mb-6 flex gap-2">
-          <div className={`h-1 flex-1 rounded-full ${step === 'account' ? 'bg-primary' : 'bg-primary/30'}`} />
-          <div className={`h-1 flex-1 rounded-full ${step === 'club' ? 'bg-primary' : 'bg-border'}`} />
+          <div className="flex-1">
+            <div className={`h-1 rounded-full ${step === 'account' ? 'bg-primary' : 'bg-primary/30'}`} />
+            <div className="mt-1 text-[10px] text-muted-foreground text-center">1. Účet</div>
+          </div>
+          <div className="flex-1">
+            <div className={`h-1 rounded-full ${step === 'club' ? 'bg-primary' : 'bg-border'}`} />
+            <div className="mt-1 text-[10px] text-muted-foreground text-center">2. Klub</div>
+          </div>
         </div>
 
         <Card className="overflow-hidden border-border/50 shadow-xl">
@@ -214,6 +220,12 @@ export default function SignupPage() {
                 <Button type="submit" className="w-full bg-gradient-brand hover:brightness-110 shadow-md" disabled={busy}>
                   {busy ? t('auth.creatingClub') : t('auth.createClub')}
                 </Button>
+
+                <div className="text-center text-xs text-muted-foreground mt-2">
+                  <Link href="/login" className="text-primary hover:underline">
+                    ← Přihlásit se s existujícím účtem
+                  </Link>
+                </div>
               </form>
             )}
           </CardContent>
