@@ -1,32 +1,50 @@
 # Sport manager — Claude Code Context
 
+> Stav k 2026-05-12. Kompletní SaaS portál — 30+ stránek, 25+ API endpointů, 5 jazyků, Stripe, SSE real-time, 81 testů.
+
+---
+
 ## Pracovní styl
 
-Při plnění úkolů postupuj přímo k řešení. Pokud potřebuješ použít nástroj, analyzovat data nebo provést výpočet, udělej to rovnou. Neptej se mě na povolení, pokud to není kriticky nutné pro bezpečnost.
+Při plnění úkolů postupuj přímo k řešení. Neptej se na povolení, pokud to není kriticky nutné pro bezpečnost.
+
+Komunikace **česky**. Kód, enumy, route paths anglicky.
+
+Nikdy:
+- Neudělej `git commit` ani `git push` bez toho, abych si o to řekl
+- Neudělej `vercel --prod` bez explicitního „nasaď" / „deploy"
+- Nemerguj PR autonomně do `main`
+- Neaktualizuj `git config`, neforce-pushuj na main, neskipuj hooks
+
+---
 
 ## Co je Sport manager
 
-**Veřejný multi-tenant SaaS pro sportovní kluby** — kalendář, RSVP, attendance, komunikace, platby, tréninkové šablony. Hostuju já (`sport-manager.qawave.ai`), kdokoli si může self-service založit klub. Volitelně lze appku embednout do klubového webu (iframe / widget).
+**Veřejný multi-tenant SaaS pro sportovní kluby.** Náhrada za TeamSnap / Spond / Týmuj.cz. Hostuju já (`sport-manager.qawave.ai`), kdokoli si self-service založí klub.
 
-**Killer feature:** AI integrace s ligovými API — onboarding wizard najde tým ve FAČR / ČFbU / ČSLH a stáhne kompletní rozpis (minulé i budoucí zápasy).
-
-**Aktuální fáze:** přechod z původního konceptu (white-label self-hosted pro ABC Braník + Spartak Kbely, kódový název `branik`) na public SaaS. Renaming + reseed + theming probíhá.
+---
 
 ## Stack
 
 | Vrstva | Technologie |
 |---|---|
-| API | **Hono** uvnitř Next.js (catch-all `app/api/[[...route]]`) + Prisma + PostgreSQL (RLS) |
+| API | **Hono** uvnitř Next.js (catch-all `app/api/[[...route]]`) — single proces |
 | Frontend | Next.js 15 App Router + React 19 + TanStack Query + shadcn/ui + Tailwind |
-| Auth | JWT access (jose) + httpOnly refresh cookie (hono/cookie) + bcrypt |
-| DB | PostgreSQL 16 v Dockeru |
-| Cache | Redis 7 v Dockeru (in-memory fallback pokud není dostupný) |
+| Font | **Inter** via `next/font/google` |
+| Auth | JWT access (jose, 15 min) + httpOnly refresh cookie (30 dní) + bcrypt + auto-refresh na 401 |
+| DB (lokál) | PostgreSQL 16 v Dockeru — user/db `branik` |
+| DB (prod) | **Neon Postgres** us-east-1 (free tier) |
+| Cache | In-memory (Redis fallback, prod bez Redis) |
 | Contracts | `@sport-manager/contracts` — Zod schémata sdílená FE/BE |
 | Monorepo | pnpm workspaces + turbo |
-| Hosting | Vercel (`sport-manager.qawave.ai`), GitHub Actions CI |
-| AI | Plánováno: lokální agent pro ligový sync + theming z loga |
+| Hosting | **Vercel** (`sport-manager.qawave.ai`) |
+| Platby | **Stripe Connect** (Express accounts, Checkout sessions, webhooks) |
+| Email | **Resend** (console.log fallback bez API key) |
+| i18n | Custom hook `useTranslation()` — 5 jazyků (cs/en/es/pt/ar), 354 klíčů |
+| Monitoring | **Sentry** (client + server config, vyžaduje DSN) |
+| Testy | Shell-based regression (59 testů) + E2E flow testy (22 testů) |
 
-**Single-process:** Web FE + API běží v jednom Next.js procesu.
+---
 
 ## Struktura monorepa
 
@@ -34,123 +52,324 @@ Při plnění úkolů postupuj přímo k řešení. Pokud potřebuješ použít 
 sport-manager/
 ├── apps/
 │   ├── web/              # Next.js 15 (FE + Hono API) — port 3100 v dev
-│   ├── mobile/           # Expo (zatím stub)
-│   └── workers/          # BullMQ workers
+│   ├── mobile/           # Expo (stub)
+│   └── workers/          # BullMQ workers (stub)
 ├── packages/
-│   ├── contracts/        # Zod kontrakty
+│   ├── contracts/        # Zod kontrakty (build před prvním použitím)
 │   ├── db/               # Prisma schema + migrace + seed
-│   └── config/           # sdílené tsconfig/eslint presety
-├── projekty/             # Specifikace (historické + aktivní)
-├── .claude/agents/       # 16 subagentů
-├── docker-compose.yml    # Postgres + Redis
+│   └── config/           # sdílené tsconfig presety
+├── tests/
+│   ├── regression.sh     # 59 API regression testů
+│   └── e2e.sh            # 22 E2E flow testů
+├── projekty/             # Specifikace (historické)
+├── docker-compose.yml    # Postgres + Redis (lokál)
 └── CLAUDE.md             # Tento soubor
 ```
+
+---
 
 ## Hono API mapa
 
 ```
-apps/web/
-├── app/api/[[...route]]/route.ts   # Next.js catch-all → Hono handle()
-└── lib/api/
-    ├── hono.ts                     # Hono app + global middleware + onError
-    ├── prisma.ts                   # Prisma singleton + withClub() RLS
-    ├── redis.ts                    # Redis singleton s in-memory fallback
-    ├── middleware/                 # auth, club-context, rbac, feature-flag
-    ├── routes/                     # auth, me, members, teams, events,
-    │                               #   conversations, notifications, dashboard,
-    │                               #   training-templates, platform-admin, health
-    └── services/                   # auth, limits, timezone
+apps/web/lib/api/
+├── hono.ts                     # Hono app + global middleware + onError
+├── prisma.ts                   # Prisma singleton + withClub() RLS
+├── redis.ts                    # Redis singleton s in-memory fallback
+├── middleware/
+│   ├── auth.middleware.ts      # JWT verify + public paths
+│   ├── club-context.middleware.ts  # x-club-id extraction
+│   ├── rbac.middleware.ts      # requireAuth() + requireRole() + requirePlatformAdmin()
+│   ├── feature-flag.middleware.ts  # requireFeature()
+│   └── rate-limit.middleware.ts    # 100 req/min/IP
+├── routes/
+│   ├── auth.routes.ts          # login, register, refresh, logout, forgot-password, reset-password
+│   ├── me.routes.ts            # /me, /me/context, /me/search, PATCH /me
+│   ├── members.routes.ts       # CRUD, invite, status, stats, import CSV
+│   ├── teams.routes.ts         # CRUD, detail+roster, stats, attendance-stats, transfer-member
+│   ├── events.routes.ts        # CRUD, RSVP, attendance, delete, magic-rsvp-link, qr-token
+│   ├── conversations.routes.ts # CRUD, messages, SSE stream
+│   ├── notifications.routes.ts # list, unread-count, mark-read, mark-all-read
+│   ├── dashboard.routes.ts     # feed (stats, thisWeek, children), activity
+│   ├── training-templates.routes.ts # CRUD, regenerate
+│   ├── clubs.routes.ts         # create, theme, settings, invite-link, join, archive-season, audit, referral
+│   ├── payments.routes.ts      # list, summary
+│   ├── stripe.routes.ts        # connect, checkout, webhook
+│   ├── rsvp.routes.ts          # GET /rsvp/:token (public magic link)
+│   ├── attend.routes.ts        # POST /attend/:token (QR attendance)
+│   ├── upload.routes.ts        # POST /upload, PATCH /upload/members/:id/avatar
+│   ├── platform-admin.routes.ts # clubs CRUD, analytics
+│   └── health.routes.ts        # health check
+└── services/
+    ├── auth.service.ts         # register, login, refresh, logout, forgotPassword, resetPassword
+    ├── email.service.ts        # sendEmail (Resend), rsvpReminderEmail, newEventEmail
+    ├── stripe.service.ts       # createConnectedAccount, createCheckoutSession, webhook
+    ├── limits.service.ts       # assertMemberLimit, assertTeamLimit
+    └── timezone.service.ts     # timezone utilities
 ```
 
-## Rychlý start
+---
+
+## Frontend stránky
+
+```
+apps/web/app/
+├── page.tsx                    # Landing page (public)
+├── login/page.tsx              # Login s demo účty
+├── signup/page.tsx             # 2-step registrace (účet → klub)
+├── forgot-password/page.tsx    # Zapomenuté heslo
+├── reset-password/page.tsx     # Reset hesla s tokenem
+├── join/page.tsx               # Join klub přes invite link
+├── k/[slug]/page.tsx           # Veřejná stránka klubu (demo showcase)
+├── rsvp/[token]/page.tsx       # Magic link RSVP (bez loginu)
+├── attend/[token]/page.tsx     # QR docházka
+├── error.tsx                   # Global error boundary
+├── icon.svg                    # Favicon (gradient star)
+├── manifest.ts                 # PWA manifest
+└── (admin)/admin/
+    ├── page.tsx                # Dashboard (role-aware: admin/coach/parent)
+    ├── onboarding/page.tsx     # 4-step onboarding wizard
+    ├── events/                 # List (3 views: seznam/týden/měsíc) + detail + create
+    ├── treninky/               # Knihovna 30+ cvičení + drag-to-calendar plánovač
+    ├── training-templates/     # Šablony opakujících se tréninků
+    ├── members/                # List + detail (stats tab) + invite
+    ├── teams/                  # List + detail (roster, heatmap, coach stats) + create
+    ├── messages/               # Inbox + chat (SSE real-time)
+    ├── notifications/          # Full page s filtry
+    ├── payments/               # Přehled plateb (Stripe checkout)
+    ├── account/                # Profil, vzhled, theme, klub settings, sezona, Stripe, notif prefs, referral
+    ├── activity/               # Timeline dění v klubu
+    ├── gallery/                # Galerie stub (feature-flagged)
+    ├── audit-log/              # Audit log změn
+    └── platform-analytics/     # Platform admin dashboard
+```
+
+---
+
+## Komponenty
+
+```
+apps/web/components/
+├── admin/
+│   ├── sidebar.tsx             # Collapsible + mobile drawer
+│   ├── topbar.tsx              # Club switcher, search ⌘K, notifications, avatar
+│   ├── page-header.tsx         # Reusable page title
+│   ├── stat-card.tsx           # Metric card s trendy
+│   ├── empty-state.tsx         # Animated empty state
+│   ├── notification-bell.tsx   # Dropdown s real-time polling
+│   ├── event-calendar.tsx      # Month grid calendar
+│   ├── rsvp-bar.tsx            # RSVP progress bar
+│   ├── attendance-heatmap.tsx  # GitHub-style grid
+│   ├── drill-diagram.tsx       # SVG taktická schémata (30+)
+│   ├── drill-video-preview.tsx # Video preview stub
+│   └── api-status.tsx          # API health indicator
+├── ui/                         # shadcn/ui primitives (card, button, input, badge, ...)
+├── command-palette.tsx         # Cmd+K global search
+├── language-switcher.tsx       # 90+ jazyků s vlajkami
+├── theme-toggle.tsx            # Light/dark switch
+├── auth-guard.tsx              # Redirect to login if unauthenticated
+├── auth-redirect.tsx           # Redirect to /admin if authenticated
+└── query-provider.tsx          # TanStack Query provider
+```
+
+---
+
+## Design systém
+
+- **Brand**: Fialovo-modrý gradient (250° → 200°), teal accent (170°)
+- **Font**: Inter (next/font)
+- **Palette**: `--primary: 250 85% 60%`, `--accent: 170 70% 42%`
+- **Shadows**: 5 úrovní (xs/sm/md/lg/xl)
+- **Animace**: fade-up, fade-in, scale-in, shimmer, float, pulse-glow
+- **Utility classes**: `.mesh-gradient`, `.dot-grid`, `.glass`, `.hover-lift`, `.text-gradient-brand`, `.bg-gradient-brand`
+- **Per-klub theming**: 3 barvy (primary/secondary/tertiary) + 10 stylů (Classic, Nordic, Editorial, Glass, Dashboard, Rounded, Sharp, Soft, Bold, Airy)
+
+---
+
+## Rychlý start (lokál)
 
 ```bash
-# 1) Služby (DB + Redis)
 open -a "Docker Desktop"
-docker compose up -d
-
-# 2) Env
-cp .env.example apps/web/.env
-
-# 3) Migrace + seed
-pnpm --filter @sport-manager/db run prisma:generate
-DATABASE_URL="postgresql://sport_manager:sport_manager@localhost:5432/sport_manager?schema=public" \
-  pnpm --filter @sport-manager/db exec prisma db push
-DATABASE_URL="postgresql://sport_manager:sport_manager@localhost:5432/sport_manager?schema=public" \
-  pnpm --filter @sport-manager/db run seed
-
-# 4) Contracts build
 pnpm --filter @sport-manager/contracts build
-
-# 5) Dev server
-pnpm --filter @sport-manager/web run dev
+pnpm --filter @sport-manager/db run prisma:generate
+DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
+  pnpm --filter @sport-manager/db exec prisma db push
+DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
+  pnpm --filter @sport-manager/db run seed
+pnpm --filter @sport-manager/web dev
 ```
 
-URL:
-- Web (dev): http://localhost:3100
-- Web (prod): https://sport-manager.qawave.ai (po DNS propagaci)
-- API health: http://localhost:3100/api/v1/health
+---
+
+## Produkce
+
+| | |
+|---|---|
+| **URL** | https://sport-manager.qawave.ai |
+| **Vercel** | `sport-manager` v týmu `qa-waves-projects` |
+| **DB** | Neon Postgres (us-east-1, free tier) |
+| **GitHub** | `qa-wave/sport-manager` |
+| **CD** | GitHub Actions → Vercel (secrets nastaveny) |
+
+### Deploy
+
+```bash
+vercel --prod --yes
+```
+
+### Env vars (Vercel)
+
+| Var | Stav |
+|---|---|
+| `DATABASE_URL` | ✅ Nastaveno |
+| `JWT_ACCESS_SECRET` | ✅ |
+| `JWT_REFRESH_SECRET` | ✅ |
+| `STRIPE_SECRET_KEY` | ⚠️ Potřeba nastavit |
+| `STRIPE_WEBHOOK_SECRET` | ⚠️ Potřeba nastavit |
+| `RESEND_API_KEY` | ⚠️ Potřeba nastavit |
+| `NEXT_PUBLIC_SENTRY_DSN` | ⚠️ Potřeba nastavit |
+
+---
+
+## Login matrix (heslo `heslo123`)
+
+| Email | Role | Co uvidíš |
+|---|---|---|
+| `admin@hvezda.cz` | OWNER + ADMIN | Kompletní přístup, Stripe connect, audit log |
+| `coach@hvezda.cz` | HEAD_COACH | Plánování, attendance, bulk RSVP, coach stats |
+| `parent@hvezda.cz` | Rodič (Mom) | Dashboard s dětmi, statistiky dítěte, DM s trenérem |
+| `petr.pekar@hvezda.cz` | Rodič (Dad, rozvedený) | **NE**vidí DM, **NE**vidí platby |
+| `simon.assist@hvezda.cz` | Multi-role | U15 PLAYER + U13 ASSISTANT_COACH |
+| `admin@sokoli.cz` | OWNER (Sokol) | TJ Sokol — florbal |
+| `tomas@example.com` | Multi-tenant + multi-club rodič | Hvězda rodič (Anna) + Sokol HEAD_COACH + rodič |
+| `platform@example.com` | Platform admin | Platform analytics, cross-club |
+
+---
+
+## Test data (seed)
+
+- **2 kluby**: FC Hvězda Strašnice (fotbal) + TJ Sokol Měcholupy (florbal)
+- **66+ uživatelů** s realistickými avatary (pravatar.cc + DiceBear)
+- **Full enum coverage**: všechny MemberStatus, ClubRoleType, TeamRole, GuardianRelationship, EventType, etc.
+- **Edge cases**: multi-role, multi-tenant, multi-club rodič, rozvedení rodiče, step-parent, legal-guardian
+
+---
+
+## Testy
+
+```bash
+# Regression testy (59 testů — API CRUD, auth, RBAC, multi-tenant, error handling)
+./tests/regression.sh http://localhost:3100
+
+# E2E flow testy (22 testů — complete user flows)
+./tests/e2e.sh http://localhost:3100
+
+# Proti produkci
+./tests/regression.sh https://sport-manager.qawave.ai
+```
+
+---
 
 ## Co je hotové
 
-### Hono API (migrace z NestJS dokončena, PR #1 mergnutý)
-- Auth (JWT access + httpOnly refresh cookie)
-- RBAC (ClubRole + TeamRole + GuardianLink) přes `requireAuth()` / `requireRole()`
-- `prisma.withClub(clubId)` RLS wrapper
-- Routes: auth, me, members, teams, events (RSVP + attendance), conversations (privacy-by-participation), notifications, dashboard, training-templates, platform-admin, health
-- Feature flags s Redis cache + `requireFeature()` middleware
+✅ Landing page + signup + login + forgot password
+✅ Dashboard (role-aware: admin/coach/parent portál)
+✅ Events (3 calendar views, CRUD, bulk RSVP, bulk attendance, bulk delete)
+✅ Training library (30+ cvičení, SVG diagramy, drag-to-calendar plánovač)
+✅ Training templates (opakující se tréninky)
+✅ Members (CRUD, invite, CSV import/export, status, statistiky, avatar upload)
+✅ Teams (CRUD, roster, transfer, attendance heatmap, coach stats)
+✅ Messages (chat, DM, SSE real-time, new conversation)
+✅ Notifications (bell dropdown + full page)
+✅ Payments (Stripe Connect, checkout, webhook)
+✅ Per-club theming (3 barvy + 10 stylů)
+✅ Club settings (název, timezone, sezóna, archiv)
+✅ Auth guard + 401 auto-refresh + magic link RSVP + QR attendance
+✅ Self-service signup + onboarding wizard
+✅ Public club page `/k/{slug}` (role showcase)
+✅ Club switcher (multi-tenant)
+✅ Mobile sidebar (hamburger + drawer)
+✅ Global search (Cmd+K)
+✅ Activity feed (timeline)
+✅ Platform analytics (admin dashboard)
+✅ Audit log UI
+✅ Notification preferences
+✅ Referral system
+✅ i18n (5 jazyků, 354 klíčů, language switcher 90+ jazyků)
+✅ Rate limiting (100 req/min/IP)
+✅ PWA manifest
+✅ Sentry error tracking (config ready)
+✅ CD pipeline (GitHub Actions → Vercel)
+✅ Regression + E2E testy (81 testů)
+✅ Premium design (Inter, gradient brand, mesh bg, animations)
+✅ Kompletní čeština (všechny labely)
 
-### Frontend
-- Layout s left sidebar + role-aware nav, topbar (notification bell, role switcher, theme toggle)
-- Dashboard, Events (list + calendar), Event detail s RSVP roster, Create Event
-- Members (list + detail), Teams, Messages (inbox + chat)
-- Light + Dark theme
+---
 
-### Infra
-- Vercel projekt `sport-manager` (team `qa-waves-projects`)
-- GitHub repo `qa-wave/sport-manager`
-- CI: lint + typecheck + tests + build (vše zelené)
-- CD: deploy na Vercel přes `amondnet/vercel-action` (čeká na nastavení `VERCEL_TOKEN` secret v GH)
+## Co chybí / future
 
-## Co se právě dělá (aktivní projekty)
-
-| Projekt | Status | Cesta |
+| # | Feature | Status |
 |---|---|---|
-| Renaming `branik` → `Sport manager` | Probíhá | (není v `projekty/`) |
-| Test data wipe + reseed (2 fiktivní kluby) | Plánováno | (Phase B) |
-| Theming infra (3 barvy + 10 stylů per klub) | Plánováno | (Phase C) |
-| AI Liga Sync (FAČR adapter first) | Plánováno | TBD |
-| Self-service signup + onboarding wizard | Plánováno | TBD |
-| Public team page (SEO) | Plánováno | TBD |
+| 1 | **Pricing page + paywall** | Free/Pro/Enterprise tiery |
+| 2 | **AI Liga Sync** | FAČR adapter, auto-import rozpisu |
+| 3 | **Mobilní app (Expo)** | Stub existuje v `apps/mobile/` |
+| 4 | **Offline mode** | Service Worker cache |
+| 5 | **OpenAPI/Swagger docs** | Auto-generated API docs |
+| 6 | **Database backup cron** | pg_dump → S3 |
+| 7 | **Web push notifications** | Service Worker + push API |
+| 8 | **Vercel Blob pro upload** | Místo base64 storage |
 
-## Strategická rozhodnutí (potvrzená)
-
-1. **Veřejný SaaS, ne self-hosted white-label.** Self-host volitelně.
-2. **Free tier zatím** (žádný billing v MVP).
-3. **AI later** — připravit hooky, ale neimplementovat. Možná lokální agent.
-4. **Fotbal first** — FAČR adapter první, ostatní svazy potom.
-5. **Public API only** — žádný scraping, jen dokumentovaná API.
-6. **Brand = Sport manager** napříč git, Vercel, doménou, package names.
+---
 
 ## Klíčové principy
 
-1. **Type safety od A do Z** — Zod kontrakty v `@sport-manager/contracts`
+1. **Type safety** — Zod kontrakty sdílené FE/BE
 2. **Privacy-by-participation** — Dad nevidí konverzaci Mom+Coach
-3. **Multi-tenant RLS** — každá DB query přes `prisma.withClub(clubId)`
-4. **Per-tenant customizace přes feature flags / config** — žádné `if (clubSlug === '...')` v kódu
-5. **Soubory jako sdílená paměť** — všechno na disk do `projekty/`
-6. **Žádné komity automatické** — user explicitně řekne "commit"
+3. **Multi-tenant RLS** — `prisma.withClub(clubId, fn)`
+4. **Per-tenant customizace** — feature flags + config JSON
+5. **Žádné komity/deploy automaticky** — user explicitně řekne
+6. **Čeština UI, angličtina kód**
+
+---
 
 ## User context
 
-- **tomas.mertin@gmail.com** — uživatel/orchestrátor / produkt owner
+- **tomas.mertin@gmail.com** — produkt owner
 - Komunikace: čeština
-- Reálný klub k dispozici pro user research: ABC Braník (původní pilot, syn Alex, partnerka Lucie)
+- Pace: rychlý, preferuje zkratky a jasný status
+
+---
 
 ## Důležité poznámky
 
-- **Docker musí běžet** — API bez DB spadne při startu
-- **Next.js načítá `.env` z `apps/web/.env`**
-- **Před prvním dev startem vybuilduj `@sport-manager/contracts`** — package exportuje z `./dist/`
-- **sessionStorage klíče pro auth**: `club.access` (JWT) a `club.clubId` (aktivní klub)
-- **Lokální DB je nově `sport_manager` user/db** (po renamingu z `branik`)
+- **Docker musí běžet** pro lokál
+- **`.env` je v `apps/web/`**, ne v rootu
+- **Před dev startem**: `pnpm --filter @sport-manager/contracts build`
+- **Lokální DB**: `branik:branik@localhost:5432/branik`
+- **TypeScript build chyby v UI** (React 19 + @types/react duplicate) suprimované v next.config.ts
+- **Vercel deployment protection** — jen `sport-manager.qawave.ai` je public
+
+---
+
+## Užitečné příkazy
+
+```bash
+# Produkce
+curl -s https://sport-manager.qawave.ai/api/v1/health | jq
+vercel --prod --yes
+vercel logs sport-manager.qawave.ai --follow
+
+# Lokál
+pnpm --filter @sport-manager/web dev
+curl -s http://localhost:3100/api/v1/health | jq
+
+# Testy
+./tests/regression.sh
+./tests/e2e.sh
+
+# Reseed (lokál)
+DATABASE_URL="postgresql://branik:branik@localhost:5432/branik?schema=public" \
+  pnpm --filter @sport-manager/db run seed
+
+# Build contracts
+pnpm --filter @sport-manager/contracts build
+```
