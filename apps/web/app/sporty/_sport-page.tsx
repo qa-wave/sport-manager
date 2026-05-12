@@ -48,7 +48,7 @@ export function SportPage({ sport }: SportPageProps) {
       />
 
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm px-6 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm px-6 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-sm">
@@ -70,7 +70,7 @@ export function SportPage({ sport }: SportPageProps) {
         </div>
       </header>
 
-      <main>
+      <main className="pt-14">
         {/* Hero */}
         <section className="relative px-6 py-20 sm:py-28 border-b border-border/40 overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-violet-500/5" />

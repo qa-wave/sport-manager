@@ -4,7 +4,7 @@ import { Trophy } from 'lucide-react';
 export default function ProductLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg px-6 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg px-6 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 text-white">
@@ -26,7 +26,9 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
         </div>
       </header>
 
-      {children}
+      <main className="pt-14">
+        {children}
+      </main>
 
       <footer className="border-t border-border/40 px-6 py-8">
         <div className="mx-auto max-w-5xl flex flex-wrap gap-8 text-xs text-muted-foreground">
