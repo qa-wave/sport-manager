@@ -40,9 +40,11 @@ export const authMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
   }
 
   const authHeader = c.req.header('Authorization');
+  // Allow token via query param for SSE connections (EventSource cannot set headers)
+  const queryToken = new URL(c.req.url).searchParams.get('token');
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.slice(7)
-    : undefined;
+    : (queryToken ?? undefined);
 
   if (!token) {
     return c.json({ error: 'Unauthorized', message: 'Missing access token' }, 401);

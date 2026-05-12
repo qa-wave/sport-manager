@@ -282,4 +282,54 @@ platformAdmin.get('/:clubId/audit', async (c) => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// GET /v1/platform-admin/analytics
+// ---------------------------------------------------------------------------
+platformAdmin.get('/analytics', async (c) => {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalClubs,
+    totalUsers,
+    totalMembers,
+    totalEvents,
+    newUsersLast30Days,
+    activeClubIds,
+    allClubConfigs,
+  ] = await Promise.all([
+    prisma.club.count(),
+    prisma.user.count(),
+    prisma.member.count(),
+    prisma.event.count(),
+    prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.event
+      .findMany({
+        where: { startsAt: { gte: sevenDaysAgo } },
+        select: { clubId: true },
+        distinct: ['clubId'],
+      })
+      .then((rows) => new Set(rows.map((r) => r.clubId))),
+    prisma.club.findMany({ select: { config: true } }),
+  ]);
+
+  const clubsByTier: Record<string, number> = { free: 0, pro: 0, enterprise: 0 };
+  for (const club of allClubConfigs) {
+    const cfg = (club.config as Record<string, unknown>) ?? {};
+    const tier = (cfg.tier as string) ?? 'free';
+    clubsByTier[tier] = (clubsByTier[tier] ?? 0) + 1;
+  }
+
+  return c.json({
+    totalClubs,
+    totalUsers,
+    totalMembers,
+    totalEvents,
+    activeClubsLast7Days: activeClubIds.size,
+    newUsersLast30Days,
+    clubsByTier,
+  });
+});
+
 export { platformAdmin as platformAdminRoutes };

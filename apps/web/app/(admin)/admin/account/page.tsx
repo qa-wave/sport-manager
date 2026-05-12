@@ -4,10 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
+import Link from 'next/link';
 import {
+  Bell,
   Check,
   ChevronRight,
+  ClipboardList,
+  Copy,
   CreditCard,
+  Gift,
   LogOut,
   Moon,
   Palette,
@@ -223,6 +228,16 @@ export default function AccountPage() {
             />
           )}
 
+        {/* Notification preferences */}
+        <NotificationPreferencesCard />
+
+        {/* Referral system — only for OWNER / ADMIN */}
+        {memberCtx &&
+          (memberCtx.clubRoles.includes('OWNER') ||
+            memberCtx.clubRoles.includes('ADMIN')) && (
+            <ReferralCard />
+          )}
+
         {/* Edit profile */}
         {me.data && <EditProfileCard user={me.data} />}
 
@@ -235,6 +250,18 @@ export default function AccountPage() {
               desc={roleLabel ? `Aktuální role: ${roleLabel}` : 'Zobrazit úroveň přístupu'}
               disabled
             />
+            {memberCtx &&
+              (memberCtx.clubRoles.includes('OWNER') ||
+                memberCtx.clubRoles.includes('ADMIN')) && (
+                <Link href="/admin/audit-log" className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03] active:bg-primary/[0.05]">
+                  <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Audit log</div>
+                    <div className="text-xs text-muted-foreground">Historie změn konfigurace klubu</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
+                </Link>
+              )}
           </CardContent>
         </Card>
 
@@ -772,6 +799,215 @@ function ThemeSettingsCard({ clubTheme }: { clubTheme?: MeClubTheme }) {
             Uloženo.
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Notification preferences — stored in localStorage
+// ---------------------------------------------------------------------------
+
+const NOTIF_KEY = 'sport-manager:notif-prefs';
+
+type NotifPrefs = {
+  emailEvents: boolean;
+  emailRsvpReminder: boolean;
+  emailMessages: boolean;
+  pushEnabled: boolean;
+};
+
+const NOTIF_DEFAULTS: NotifPrefs = {
+  emailEvents: true,
+  emailRsvpReminder: true,
+  emailMessages: true,
+  pushEnabled: false,
+};
+
+function loadNotifPrefs(): NotifPrefs {
+  if (typeof window === 'undefined') return NOTIF_DEFAULTS;
+  try {
+    const stored = localStorage.getItem(NOTIF_KEY);
+    if (!stored) return NOTIF_DEFAULTS;
+    return { ...NOTIF_DEFAULTS, ...(JSON.parse(stored) as Partial<NotifPrefs>) };
+  } catch {
+    return NOTIF_DEFAULTS;
+  }
+}
+
+function ToggleRow({
+  label,
+  desc,
+  checked,
+  onChange,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium">{label}</div>
+        <div className="text-xs text-muted-foreground">{desc}</div>
+      </div>
+      <button
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+          checked ? 'bg-primary' : 'bg-input'
+        }`}
+      >
+        <span
+          className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+            checked ? 'translate-x-4' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function NotificationPreferencesCard() {
+  const [prefs, setPrefs] = useState<NotifPrefs>(NOTIF_DEFAULTS);
+
+  useEffect(() => {
+    setPrefs(loadNotifPrefs());
+  }, []);
+
+  const update = (key: keyof NotifPrefs, value: boolean) => {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+          <Bell className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Oznámení</span>
+        </div>
+        <div className="divide-y divide-border/20">
+          <ToggleRow
+            label="Nové události"
+            desc="Emailem při vytvoření nové události"
+            checked={prefs.emailEvents}
+            onChange={(v) => update('emailEvents', v)}
+          />
+          <ToggleRow
+            label="Připomenutí RSVP"
+            desc="Připomenutí před termínem potvrzení"
+            checked={prefs.emailRsvpReminder}
+            onChange={(v) => update('emailRsvpReminder', v)}
+          />
+          <ToggleRow
+            label="Nové zprávy"
+            desc="Emailem při nové zprávě v konverzaci"
+            checked={prefs.emailMessages}
+            onChange={(v) => update('emailMessages', v)}
+          />
+          <ToggleRow
+            label="Push notifikace"
+            desc="Oznámení v prohlížeči (vyžaduje povolení)"
+            checked={prefs.pushEnabled}
+            onChange={(v) => update('pushEnabled', v)}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Referral card — OWNER / ADMIN only
+// ---------------------------------------------------------------------------
+
+type ReferralResponse = {
+  code: string;
+  link: string;
+  referredCount: number;
+};
+
+function ReferralCard() {
+  const auth = useAuth();
+  const [copied, setCopied] = useState(false);
+
+  const { data, isLoading } = useQuery<ReferralResponse>({
+    queryKey: ['referral-code', auth.clubId],
+    queryFn: () => apiFetch<ReferralResponse>('/clubs/referral-code'),
+    enabled: auth.isAuthenticated && !!auth.clubId,
+    retry: false,
+  });
+
+  const handleCopy = async () => {
+    if (!data?.link) return;
+    try {
+      await navigator.clipboard.writeText(data.link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback — do nothing
+    }
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+          <Gift className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Doporučení</span>
+          {data && data.referredCount > 0 && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
+              {data.referredCount} doporučeno
+            </span>
+          )}
+        </div>
+        <div className="px-4 py-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Sdílejte odkaz a doporučte Sport Manager dalším klubům. Váš referral kód:
+          </p>
+          {isLoading ? (
+            <div className="h-8 w-32 animate-pulse rounded bg-secondary/50" />
+          ) : data ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-md border border-border/50 bg-secondary/20 px-3 py-1.5 font-mono text-sm font-bold tracking-widest text-primary">
+                  {data.code}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 text-xs h-8"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="mr-1.5 h-3 w-3 text-emerald-500" />
+                      Zkopírováno
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-1.5 h-3 w-3" />
+                      Zkopírovat odkaz
+                    </>
+                  )}
+                </Button>
+              </div>
+              {data.referredCount > 0 ? (
+                <p className="text-xs text-emerald-600">
+                  Celkem {data.referredCount} klub{data.referredCount === 1 ? '' : 'ů'} se registrovalo přes váš odkaz.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground/60">
+                  Zatím žádné doporučení. Sdílejte odkaz s dalšími trenéry a kluby.
+                </p>
+              )}
+            </>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );

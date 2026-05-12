@@ -13,6 +13,8 @@ import {
   User,
   MessageCircle,
   Loader2,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import {
   apiFetch,
@@ -20,7 +22,7 @@ import {
   type ConversationDetail,
   type MessageResponse,
 } from '@/lib/api';
-import { useAuth } from '@/lib/auth-store';
+import { authStore, useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -133,6 +135,7 @@ export default function ConversationPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState('');
+  const [sseConnected, setSseConnected] = useState(false);
 
   const { data, isLoading, isError } = useQuery<ConversationDetail, ApiError>({
     queryKey: ['conversation', params.conversationId],
@@ -142,8 +145,80 @@ export default function ConversationPage() {
       ),
     enabled: auth.isAuthenticated && !!auth.clubId,
     retry: false,
-    refetchInterval: 5000, // Poll every 5s for new messages
+    // Fallback poll every 15s (SSE covers real-time, this catches missed events)
+    refetchInterval: 15_000,
   });
+
+  // SSE: connect for real-time messages
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.clubId || !params.conversationId) return;
+
+    let es: EventSource | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 1000;
+    let mounted = true;
+
+    function connect() {
+      if (!mounted) return;
+
+      const token = authStore.getAccessToken();
+      const clubId = auth.clubId;
+
+      // EventSource does not support custom headers; we pass token as query param
+      // The server validates via the auth middleware (which reads the bearer from header).
+      // Since EventSource can't set headers, we fall back: the cookie (httpOnly refresh)
+      // is sent automatically. For access token, we append it as a query param.
+      const url = `/api/v1/conversations/${params.conversationId}/stream?token=${token}&x-club-id=${clubId}`;
+
+      es = new EventSource(url);
+
+      es.addEventListener('message', (e) => {
+        try {
+          const payload = JSON.parse(e.data) as { type: string; data?: MessageResponse };
+          if (payload.type === 'connected') {
+            setSseConnected(true);
+            retryDelay = 1000; // reset backoff on successful connect
+          } else if (payload.type === 'message' && payload.data) {
+            const newMsg = payload.data;
+            queryClient.setQueryData<ConversationDetail>(
+              ['conversation', params.conversationId],
+              (old) => {
+                if (!old) return old;
+                // Deduplicate: skip if message already exists
+                if (old.messages.some((m) => m.id === newMsg.id)) return old;
+                return { ...old, messages: [...old.messages, newMsg] };
+              },
+            );
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+          }
+        } catch {
+          // ignore malformed event
+        }
+      });
+
+      es.onerror = () => {
+        setSseConnected(false);
+        es?.close();
+        if (mounted) {
+          retryTimeout = setTimeout(() => {
+            retryDelay = Math.min(retryDelay * 2, 30_000); // exponential backoff up to 30s
+            connect();
+          }, retryDelay);
+        }
+      };
+    }
+
+    connect();
+
+    return () => {
+      mounted = false;
+      setSseConnected(false);
+      es?.close();
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.conversationId, auth.isAuthenticated, auth.clubId]);
 
   const sendMutation = useMutation<
     MessageResponse,
@@ -241,8 +316,18 @@ export default function ConversationPage() {
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-bold">{title}</h1>
-            <p className="text-xs text-muted-foreground">
-              {data?.participants.length ?? 0} účastníků
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>{data?.participants.length ?? 0} účastníků</span>
+              {sseConnected ? (
+                <span className="flex items-center gap-1 text-emerald-500">
+                  <Wifi className="h-3 w-3" />
+                  <span className="text-[11px]">živě</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-muted-foreground/50">
+                  <WifiOff className="h-3 w-3" />
+                </span>
+              )}
             </p>
           </div>
         </div>

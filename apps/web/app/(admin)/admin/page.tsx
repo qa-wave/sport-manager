@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
+  Activity,
   AlertTriangle,
   Baby,
   CalendarDays,
@@ -370,6 +371,12 @@ const RSVP_LABEL: Record<string, string> = {
   PENDING: 'Čeká na odpověď',
 };
 
+function childAttendanceColor(rate: number): string {
+  if (rate >= 80) return 'text-green-600 dark:text-green-400';
+  if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
+}
+
 function ChildCard({ child }: { child: ChildDashboardEntry }) {
   return (
     <Card className="overflow-hidden border-border/50">
@@ -378,11 +385,34 @@ function ChildCard({ child }: { child: ChildDashboardEntry }) {
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
             {child.name.split(' ').map((n) => n[0]).join('')}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold">{child.name}</div>
             {child.teamName && (
               <div className="truncate text-xs text-muted-foreground">{child.teamName}</div>
             )}
+          </div>
+          <Link
+            href={`/admin/members/${child.childMemberId}`}
+            className="shrink-0 text-[11px] text-primary/70 hover:text-primary hover:underline"
+          >
+            Statistiky →
+          </Link>
+        </div>
+
+        {/* Mini attendance stats */}
+        <div className="mb-3 flex items-center gap-3 rounded-md bg-secondary/40 px-3 py-2">
+          <div className="text-center">
+            <div className={`text-base font-bold tabular-nums leading-none ${childAttendanceColor(child.attendanceRate)}`}>
+              {child.attendanceRate}%
+            </div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">Účast</div>
+          </div>
+          <div className="h-6 w-px bg-border/50" />
+          <div className="text-center">
+            <div className={`text-base font-bold tabular-nums leading-none ${child.streak > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+              {child.streak}
+            </div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">v řadě</div>
           </div>
         </div>
 

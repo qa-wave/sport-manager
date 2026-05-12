@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Pencil, Users, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowRightLeft, Check, ChevronLeft, Pencil, Users, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
-import { apiFetch, ApiError, type TeamDetail, type TeamRosterEntry, type TeamStats } from '@/lib/api';
+import { apiFetch, ApiError, type TeamDetail, type TeamRosterEntry, type TeamStats, type TeamSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +90,15 @@ export default function TeamDetailPage() {
   const coaches = team.roster.filter((m) => COACHING_ROLES.has(m.role));
   const players = team.roster.filter((m) => !COACHING_ROLES.has(m.role));
 
+  // All teams in club (for transfer select)
+  const { data: allTeams } = useQuery<TeamSummary[], ApiError>({
+    queryKey: ['teams', auth.clubId],
+    queryFn: () => apiFetch<TeamSummary[]>('/teams'),
+    enabled: auth.isAuthenticated && !!auth.clubId && isAdminUser === true,
+    retry: false,
+  });
+  const otherTeams = (allTeams ?? []).filter((t) => t.id !== teamId);
+
   return (
     <>
       <PageHeader
@@ -168,6 +177,9 @@ export default function TeamDetailPage() {
                 <TableHead className="text-[11px] uppercase tracking-widest">Dres</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-widest">Pozice</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-widest">Stav</TableHead>
+                {isAdminUser && otherTeams.length > 0 && (
+                  <TableHead className="text-[11px] uppercase tracking-widest">Presun</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -213,6 +225,15 @@ export default function TeamDetailPage() {
                       {m.status}
                     </Badge>
                   </TableCell>
+                  {isAdminUser && otherTeams.length > 0 && (
+                    <TableCell>
+                      <TransferMemberSelect
+                        memberId={m.memberId}
+                        fromTeamId={teamId}
+                        otherTeams={otherTeams}
+                      />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -427,6 +448,79 @@ function CoachStatsSection({ teamId }: { teamId: string }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transfer member select
+// ---------------------------------------------------------------------------
+
+function TransferMemberSelect({
+  memberId,
+  fromTeamId,
+  otherTeams,
+}: {
+  memberId: string;
+  fromTeamId: string;
+  otherTeams: TeamSummary[];
+}) {
+  const queryClient = useQueryClient();
+  const auth = useAuth();
+  const [selected, setSelected] = useState('');
+  const [done, setDone] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: (toTeamId: string) =>
+      apiFetch(`/teams/${toTeamId}/transfer-member`, {
+        method: 'POST',
+        body: JSON.stringify({ memberId, fromTeamId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', fromTeamId] });
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      setSelected('');
+      setDone(true);
+    },
+  });
+
+  if (done) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+        <Check className="h-3 w-3" />
+        Přesunuto
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        className="h-7 rounded border border-input bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        disabled={mutation.isPending}
+      >
+        <option value="">Přesunout do...</option>
+        {otherTeams.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+      {selected && (
+        <button
+          onClick={() => mutation.mutate(selected)}
+          disabled={mutation.isPending}
+          className="inline-flex h-7 items-center gap-1 rounded bg-primary/10 px-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+        >
+          <ArrowRightLeft className="h-3 w-3" />
+          {mutation.isPending ? '...' : 'OK'}
+        </button>
+      )}
+      {mutation.isError && (
+        <span className="text-[10px] text-destructive">Chyba</span>
+      )}
+    </div>
   );
 }
 

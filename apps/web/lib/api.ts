@@ -252,6 +252,17 @@ export type EventDetail = EventSummary & {
   }>;
 };
 
+export type ChildDashboardEntry = {
+  childMemberId: string;
+  name: string;
+  teamName: string | null;
+  nextEvent: { id: string; title: string; startsAt: string; type: string } | null;
+  rsvpStatus: string | null;
+  pendingPaymentsCount: number;
+  attendanceRate: number;
+  streak: number;
+};
+
 export type DashboardFeed = {
   thisWeek: EventSummary[];
   needsAttention: Array<{
@@ -268,6 +279,7 @@ export type DashboardFeed = {
     link?: string;
   }>;
   stats: { members: number; teams: number; upcomingEvents: number };
+  children: ChildDashboardEntry[];
 };
 
 // ---------- Conversations / Messages ----------
@@ -350,6 +362,18 @@ export type TrainingTemplateDetail = TrainingTemplateListItem & {
   };
 };
 
+// ---------- Team Stats ----------
+export type TeamStats = {
+  totalEvents: number;
+  totalPractices: number;
+  totalMatches: number;
+  avgAttendance: number;
+  rsvpReliability: number;
+  topAttenders: Array<{ name: string; rate: number }>;
+  worstAttenders: Array<{ name: string; rate: number }>;
+  monthlyTrend: Array<{ month: string; attendance: number }>;
+};
+
 // ---------- Attendance Stats ----------
 export type AttendanceStatsMember = {
   memberId: string;
@@ -369,6 +393,38 @@ export type AttendanceStatsResponse = {
     title: string;
     date: string;
   }>;
+};
+
+// ---------- Member Stats ----------
+export type MemberStats = {
+  attendance: {
+    total: number;
+    attended: number;
+    rate: number;
+    trend: 'up' | 'down' | 'stable';
+    teamAverage: number;
+  };
+  rsvp: {
+    total: number;
+    onTime: number;
+    reliability: number;
+  };
+  recentForm: Array<{
+    eventTitle: string;
+    date: string;
+    rsvpStatus: string;
+    attended: boolean | null;
+  }>;
+  streak: number;
+};
+
+// ---------- Activity Feed ----------
+export type ActivityItem = {
+  id: string;
+  type: 'event_created' | 'rsvp' | 'member_joined' | 'message';
+  message: string;
+  timestamp: string;
+  link: string | null;
 };
 
 // ---------- Members ----------

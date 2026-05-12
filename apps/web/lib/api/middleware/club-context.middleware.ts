@@ -11,7 +11,11 @@ import type { HonoEnv } from '../../types/hono';
  * will assert clubId presence when needed.
  */
 export const clubContextMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
-  const clubId = c.req.header('x-club-id');
+  // Header takes precedence; query param is fallback for SSE (EventSource can't set headers)
+  const clubId =
+    c.req.header('x-club-id') ??
+    new URL(c.req.url).searchParams.get('x-club-id') ??
+    undefined;
   if (clubId) {
     c.set('clubId', clubId);
   }

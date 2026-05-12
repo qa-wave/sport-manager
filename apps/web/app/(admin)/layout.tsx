@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/admin/sidebar';
 import { Topbar } from '@/components/admin/topbar';
+import { CommandPalette } from '@/components/command-palette';
 import { QueryProvider } from '@/components/query-provider';
 import { AuthGuard } from '@/components/auth-guard';
 import { useClubThemeInjection } from '@/lib/use-club-theme';
@@ -29,6 +30,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <Topbar onMobileOpen={() => setMobileSidebarOpen(true)} />
+            <CommandPalette />
             <main className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
               <div className="mx-auto max-w-6xl space-y-6 animate-fade-in">{children}</div>
             </main>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, LogOut, Menu, RefreshCw, Settings, User } from 'lucide-react';
+import { Check, ChevronDown, LogOut, Menu, RefreshCw, Search, Settings, User } from 'lucide-react';
 import { ApiStatus } from './api-status';
 import { NotificationBell } from './notification-bell';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -96,6 +96,22 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
 
       <div className="flex items-center gap-3">
         {process.env.NODE_ENV === 'development' && <DevRoleSwitcher />}
+        <button
+          onClick={() => {
+            // Dispatch a synthetic Cmd+K to open the command palette
+            document.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+            );
+          }}
+          className="hidden sm:flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+          aria-label="Otevřít vyhledávání"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span>Hledat</span>
+          <kbd className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[10px]">
+            ⌘K
+          </kbd>
+        </button>
         <LanguageSwitcher compact />
         <ApiStatus />
         <NotificationBell />

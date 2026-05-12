@@ -66,9 +66,13 @@ function offset(daysFromNow: number, hour = 10, minute = 0): Date {
   return dt;
 }
 
-function avatarUrl(name: string, bg: string): string {
-  const cleaned = name.replace(/ /g, '+');
-  return `https://ui-avatars.com/api/?name=${cleaned}&background=${bg.replace('#', '')}&color=fff&size=128&bold=true`;
+function avatarUrl(email: string, isMinor = false): string {
+  if (isMinor) {
+    // Deterministic cartoon-style avatar for children
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(email)}`;
+  }
+  // Deterministic realistic photo for adults (same email → same photo every time)
+  return `https://i.pravatar.cc/128?u=${encodeURIComponent(email)}`;
 }
 
 function pick<T>(arr: T[], i: number): T {
@@ -137,7 +141,7 @@ async function main() {
       email: 'platform@example.com', passwordHash: devHash,
       firstName: 'Petr', lastName: 'Platforma', locale: 'cs',
       isPlatformAdmin: true,
-      avatarUrl: avatarUrl('Petr Platforma', '#475569'),
+      avatarUrl: avatarUrl('platform@example.com', false),
     },
   });
 
@@ -422,7 +426,7 @@ async function main() {
     data: {
       email: 'tomas@example.com', passwordHash: devHash,
       firstName: 'Tomáš', lastName: 'Mertin', locale: 'cs',
-      avatarUrl: avatarUrl('Tomáš Mertin', '#16a34a'),
+      avatarUrl: avatarUrl('tomas@example.com', false),
     },
   });
 
@@ -874,7 +878,7 @@ type CreateUserMemberArgs = {
   lastName: string;
   clubId: string;
   devHash: string;
-  brandColor: string;
+  brandColor?: string;
   status?: MemberStatus;
   isMinor?: boolean;
   jerseyNumber?: number;
@@ -889,7 +893,7 @@ async function createUserMember(args: CreateUserMemberArgs) {
     data: {
       email: args.email, passwordHash: args.devHash,
       firstName: args.firstName, lastName: args.lastName, locale: 'cs',
-      avatarUrl: avatarUrl(fullName, args.brandColor),
+      avatarUrl: avatarUrl(args.email, args.isMinor ?? false),
     },
   });
 

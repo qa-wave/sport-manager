@@ -481,4 +481,72 @@ teams.patch('/:teamId', async (c) => {
   return c.json(updated);
 });
 
+/**
+ * POST /v1/teams/:teamId/transfer-member
+ *
+ * Moves a player from one team to another within the same club.
+ * Requires OWNER or ADMIN role.
+ */
+const transferMemberSchema = z.object({
+  memberId: z.string().uuid(),
+  fromTeamId: z.string().uuid(),
+});
+
+teams.post('/:teamId/transfer-member', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  const member = c.get('member');
+  if (!member || !(member.clubRoles.includes('OWNER') || member.clubRoles.includes('ADMIN'))) {
+    return c.json({ error: 'Forbidden', message: 'Insufficient role' }, 403);
+  }
+
+  const toTeamId = c.req.param('teamId');
+  const body = transferMemberSchema.parse(await c.req.json());
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    // Verify both teams belong to this club
+    const [fromTeam, toTeam] = await Promise.all([
+      tx.team.findFirst({ where: { id: body.fromTeamId }, select: { id: true, name: true } }),
+      tx.team.findFirst({ where: { id: toTeamId }, select: { id: true, name: true } }),
+    ]);
+    if (!fromTeam) throw Object.assign(new Error('Source team not found'), { statusCode: 404 });
+    if (!toTeam) throw Object.assign(new Error('Target team not found'), { statusCode: 404 });
+
+    // Find existing membership in source team
+    const existing = await tx.teamMembership.findFirst({
+      where: { teamId: body.fromTeamId, memberId: body.memberId, leftAt: null },
+    });
+    if (!existing) {
+      throw Object.assign(new Error('Member not found in source team'), { statusCode: 404 });
+    }
+
+    // Check if already in target team
+    const alreadyIn = await tx.teamMembership.findFirst({
+      where: { teamId: toTeamId, memberId: body.memberId, leftAt: null },
+    });
+    if (alreadyIn) {
+      throw Object.assign(new Error('Member already in target team'), { statusCode: 409 });
+    }
+
+    // Close old membership + create new
+    await tx.teamMembership.update({
+      where: { id: existing.id },
+      data: { leftAt: new Date() },
+    });
+
+    await tx.teamMembership.create({
+      data: {
+        teamId: toTeamId,
+        memberId: body.memberId,
+        role: existing.role,
+        joinedAt: new Date(),
+      },
+    });
+
+    return { fromTeam: fromTeam.name, toTeam: toTeam.name };
+  });
+
+  return c.json({ message: 'Member transferred', ...result });
+});
+
 export { teams as teamsRoutes };

@@ -144,6 +144,116 @@ me.patch('/', zValidator('json', UpdateProfileInput), async (c) => {
 });
 
 /**
+ * GET /v1/me/search?q=query
+ * Global search across members, events, teams, conversations.
+ * Requires auth + club context. Max 5 results per category.
+ */
+me.get('/search', async (c) => {
+  const member = c.get('member');
+  if (!member) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const q = c.req.query('q')?.trim() ?? '';
+  if (q.length < 1) {
+    return c.json({ members: [], events: [], teams: [], conversations: [] });
+  }
+
+  const results = await prisma.withClub(member.clubId, async (tx) => {
+    const [memberResults, eventResults, teamResults, conversationResults] = await Promise.all([
+      // Members: search by name / email
+      tx.member.findMany({
+        where: {
+          OR: [
+            { user: { firstName: { contains: q, mode: 'insensitive' } } },
+            { user: { lastName: { contains: q, mode: 'insensitive' } } },
+            { user: { email: { contains: q, mode: 'insensitive' } } },
+          ],
+        },
+        select: {
+          id: true,
+          user: { select: { firstName: true, lastName: true, email: true, avatarUrl: true } },
+        },
+        take: 5,
+      }),
+
+      // Events: search by title
+      tx.event.findMany({
+        where: {
+          title: { contains: q, mode: 'insensitive' },
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          startsAt: true,
+        },
+        orderBy: { startsAt: 'desc' },
+        take: 5,
+      }),
+
+      // Teams: search by name
+      tx.team.findMany({
+        where: {
+          name: { contains: q, mode: 'insensitive' },
+        },
+        select: {
+          id: true,
+          name: true,
+          ageGroup: true,
+          sport: true,
+        },
+        take: 5,
+      }),
+
+      // Conversations: search by title, filtered to ones the member participates in
+      tx.conversation.findMany({
+        where: {
+          title: { contains: q, mode: 'insensitive' },
+          participants: { some: { memberId: member.memberId } },
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          team: { select: { name: true } },
+        },
+        take: 5,
+      }),
+    ]);
+
+    return {
+      members: memberResults.map((m) => ({
+        id: m.id,
+        firstName: m.user.firstName,
+        lastName: m.user.lastName,
+        email: m.user.email,
+        avatarUrl: m.user.avatarUrl,
+      })),
+      events: eventResults.map((e) => ({
+        id: e.id,
+        title: e.title,
+        type: e.type,
+        startsAt: e.startsAt,
+      })),
+      teams: teamResults.map((t) => ({
+        id: t.id,
+        name: t.name,
+        ageGroup: t.ageGroup,
+        sport: t.sport,
+      })),
+      conversations: conversationResults.map((conv) => ({
+        id: conv.id,
+        title: conv.title ?? conv.team?.name ?? conv.type,
+        type: conv.type,
+      })),
+    };
+  });
+
+  return c.json(results);
+});
+
+/**
  * GET /v1/me/coach-only
  * Proves role gating: HEAD_COACH / ASSISTANT_COACH / ADMIN / OWNER only.
  */

@@ -23,6 +23,7 @@ import { paymentsRoutes } from './routes/payments.routes';
 import { rsvpRoutes } from './routes/rsvp.routes';
 import { stripeRoutes } from './routes/stripe.routes';
 import { attendRoutes } from './routes/attend.routes';
+import { uploadRoutes } from './routes/upload.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -94,6 +95,7 @@ app.route('/v1/payments', paymentsRoutes);
 app.route('/v1/rsvp', rsvpRoutes);
 app.route('/v1/stripe', stripeRoutes);
 app.route('/v1/attend', attendRoutes);
+app.route('/v1/upload', uploadRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

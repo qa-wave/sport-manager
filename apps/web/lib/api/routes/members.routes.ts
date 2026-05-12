@@ -305,6 +305,166 @@ members.get('/:memberId', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /v1/members/:memberId/stats
+// Attendance and RSVP statistics for a specific member.
+// Accessible by: the member themselves, their guardian, club admin/owner.
+// ---------------------------------------------------------------------------
+members.get('/:memberId/stats', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+  const memberId = c.req.param('memberId');
+  const requestingMember = c.get('member');
+
+  // Authorization check: self, guardian, or admin/owner
+  if (requestingMember) {
+    const isSelf = requestingMember.memberId === memberId;
+    const isAdminOrOwner =
+      requestingMember.clubRoles.includes('ADMIN') ||
+      requestingMember.clubRoles.includes('OWNER');
+    const isGuardian = requestingMember.guardianOf.some((g) => g.childMemberId === memberId);
+    if (!isSelf && !isAdminOrOwner && !isGuardian) {
+      return c.json({ error: 'Forbidden', message: 'Access denied' }, 403);
+    }
+  }
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    // Verify member belongs to this club
+    const member = await tx.member.findUnique({
+      where: { id: memberId },
+      select: { id: true, teamMemberships: { where: { leftAt: null }, select: { teamId: true } } },
+    });
+    if (!member) return null;
+
+    const teamIds = member.teamMemberships.map((tm) => tm.teamId);
+
+    // Fetch all attendances for this member (past events only)
+    const now = new Date();
+    const allAttendances = await tx.eventAttendance.findMany({
+      where: {
+        memberId,
+        event: { startsAt: { lte: now } },
+      },
+      include: {
+        event: { select: { id: true, title: true, startsAt: true, teamId: true, rsvpDeadline: true } },
+      },
+      orderBy: { event: { startsAt: 'desc' } },
+    });
+
+    const total = allAttendances.length;
+    const attended = allAttendances.filter((a) => a.attended === true).length;
+    const attendanceRate = total > 0 ? Math.round((attended / total) * 100) : 0;
+
+    // Trend: compare current month vs previous month attendance rate
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisMonthAttendances = allAttendances.filter(
+      (a) => new Date(a.event.startsAt) >= thisMonthStart,
+    );
+    const prevMonthAttendances = allAttendances.filter(
+      (a) =>
+        new Date(a.event.startsAt) >= prevMonthStart &&
+        new Date(a.event.startsAt) < thisMonthStart,
+    );
+    const thisMonthRate =
+      thisMonthAttendances.length > 0
+        ? (thisMonthAttendances.filter((a) => a.attended === true).length /
+            thisMonthAttendances.length) *
+          100
+        : null;
+    const prevMonthRate =
+      prevMonthAttendances.length > 0
+        ? (prevMonthAttendances.filter((a) => a.attended === true).length /
+            prevMonthAttendances.length) *
+          100
+        : null;
+    let trend: 'up' | 'down' | 'stable' = 'stable';
+    if (thisMonthRate !== null && prevMonthRate !== null) {
+      if (thisMonthRate > prevMonthRate + 5) trend = 'up';
+      else if (thisMonthRate < prevMonthRate - 5) trend = 'down';
+    }
+
+    // Team average attendance rate (for the member's primary team)
+    let teamAverage = 0;
+    if (teamIds.length > 0) {
+      const primaryTeamId = teamIds[0]!;
+      const teamAttendances = await tx.eventAttendance.findMany({
+        where: {
+          event: { teamId: primaryTeamId, startsAt: { lte: now } },
+          attended: { not: null },
+        },
+        select: { attended: true },
+      });
+      if (teamAttendances.length > 0) {
+        const teamAttended = teamAttendances.filter((a) => a.attended === true).length;
+        teamAverage = Math.round((teamAttended / teamAttendances.length) * 100);
+      }
+    }
+
+    // RSVP stats
+    const rsvpTotal = allAttendances.length;
+    // On-time: responded before rsvpDeadline (or any response if no deadline)
+    const onTime = allAttendances.filter((a) => {
+      if (!a.respondedAt) return false;
+      if (!a.event.rsvpDeadline) return true;
+      return new Date(a.respondedAt) <= new Date(a.event.rsvpDeadline);
+    }).length;
+    // Reliability: said YES and actually attended
+    const saidYes = allAttendances.filter((a) => a.status === 'YES').length;
+    const saidYesAndAttended = allAttendances.filter(
+      (a) => a.status === 'YES' && a.attended === true,
+    ).length;
+    const reliability = saidYes > 0 ? Math.round((saidYesAndAttended / saidYes) * 100) : 0;
+
+    // Recent form: last 10 events
+    const recentForm = allAttendances.slice(0, 10).map((a) => ({
+      eventTitle: a.event.title,
+      date: a.event.startsAt.toISOString(),
+      rsvpStatus: a.status,
+      attended: a.attended,
+    }));
+
+    // Current streak: consecutive attended events (most recent first)
+    const sortedForStreak = [...allAttendances].sort(
+      (a, b) => new Date(b.event.startsAt).getTime() - new Date(a.event.startsAt).getTime(),
+    );
+    let streak = 0;
+    for (const a of sortedForStreak) {
+      if (a.attended === true) {
+        streak++;
+      } else if (a.attended === false) {
+        break;
+      }
+      // attended === null → no record, skip without breaking streak
+    }
+
+    return {
+      attendance: {
+        total,
+        attended,
+        rate: attendanceRate,
+        trend,
+        teamAverage,
+      },
+      rsvp: {
+        total: rsvpTotal,
+        onTime,
+        reliability,
+      },
+      recentForm,
+      streak,
+    };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Member not found' }, 404);
+  }
+
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
 // POST /v1/members — invite / create a new member in the active club.
 // Requires OWNER or ADMIN.
 // ---------------------------------------------------------------------------

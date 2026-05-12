@@ -1,9 +1,18 @@
+import { EventEmitter } from 'events';
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { CreateConversationInput, SendMessageInput } from '@sport-manager/contracts';
 import { prisma } from '../prisma';
 import { requireAuth } from '../middleware/rbac.middleware';
 import type { HonoEnv } from '../../types/hono';
+
+/**
+ * In-memory event emitter for real-time SSE chat.
+ * When a message is POSTed, we emit an event that all SSE listeners pick up.
+ * This is intentionally simple — no Redis pub/sub needed for MVP.
+ */
+const messageEmitter = new EventEmitter();
+messageEmitter.setMaxListeners(200);
 
 /**
  * /v1/conversations — inbox, chat, create, read.
@@ -369,7 +378,7 @@ conversations.post(
         data: { lastReadAt: new Date() },
       });
 
-      return {
+      const newMessage = {
         id: message.id,
         senderId: message.senderId,
         senderName: `${message.sender.user.firstName} ${message.sender.user.lastName}`,
@@ -378,6 +387,11 @@ conversations.post(
         createdAt: message.createdAt,
         editedAt: message.editedAt,
       };
+
+      // Broadcast to all SSE subscribers for this conversation
+      messageEmitter.emit(`conversation:${conversationId}`, newMessage);
+
+      return newMessage;
     });
 
     return c.json(result, 201);
@@ -409,6 +423,75 @@ conversations.patch('/:conversationId/read', async (c) => {
   });
 
   return c.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// GET /v1/conversations/:conversationId/stream
+// Server-Sent Events endpoint for real-time messages.
+// ---------------------------------------------------------------------------
+conversations.get('/:conversationId/stream', async (c) => {
+  const member = c.get('member');
+  if (!member) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const conversationId = c.req.param('conversationId');
+
+  // Verify participation before opening the stream
+  const participation = await prisma.withClub(member.clubId, async (tx) => {
+    return tx.conversationParticipant.findUnique({
+      where: {
+        conversationId_memberId: {
+          conversationId,
+          memberId: member.memberId,
+        },
+      },
+    });
+  });
+
+  if (!participation) {
+    return c.json({ error: 'Not Found', message: 'Conversation not found or access denied' }, 404);
+  }
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    start(controller) {
+      const send = (data: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          // Controller may be closed — ignore
+        }
+      };
+
+      // Heartbeat every 30s to keep the connection alive through proxies
+      const heartbeat = setInterval(() => send({ type: 'heartbeat' }), 30_000);
+
+      // Listen for new messages in this conversation
+      const handler = (msg: unknown) => send({ type: 'message', data: msg });
+      messageEmitter.on(`conversation:${conversationId}`, handler);
+
+      // Cleanup when client disconnects
+      c.req.raw.signal.addEventListener('abort', () => {
+        clearInterval(heartbeat);
+        messageEmitter.off(`conversation:${conversationId}`, handler);
+        try { controller.close(); } catch { /* already closed */ }
+      });
+
+      // Initial connected event
+      send({ type: 'connected', conversationId });
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Disable nginx buffering
+    },
+  });
 });
 
 export { conversations as conversationsRoutes };

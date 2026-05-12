@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { NavAccess } from './member-context';
 import type { FeatureKey, FeatureFlags } from './features';
 import {
+  Activity,
   LayoutDashboard,
   Users,
   CalendarDays,
@@ -13,6 +14,7 @@ import {
   Settings,
   Repeat,
   Camera,
+  BarChart2,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -76,6 +78,13 @@ export const ADMIN_NAV: NavItem[] = [
     feature: 'notifications',
   },
   {
+    href: '/admin/activity',
+    label: 'Aktivita',
+    description: 'Timeline dění v klubu',
+    icon: Activity,
+    access: 'admin_or_coach',
+  },
+  {
     href: '/admin/members',
     label: 'Členové',
     description: 'Hráči, rodiče, zákonní zástupci',
@@ -95,6 +104,13 @@ export const ADMIN_NAV: NavItem[] = [
     label: 'Účet',
     description: 'Profil a nastavení',
     icon: Settings,
+  },
+  {
+    href: '/admin/platform-analytics',
+    label: 'Platform Analytics',
+    description: 'Souhrn dat platformy',
+    icon: BarChart2,
+    access: 'platform_admin',
   },
 ];
 

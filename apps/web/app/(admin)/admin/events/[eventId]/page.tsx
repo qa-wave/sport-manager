@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, CheckCheck, ChevronLeft, Clock, MapPin, Pencil, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, Pencil, QrCode, Trash2, User, ExternalLink, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
 import { apiFetch, ApiError, type EventDetail, type TeamSummary } from '@/lib/api';
@@ -53,6 +53,9 @@ export default function EventDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCopied, setQrCopied] = useState(false);
 
   // Edit form state
   const [editType, setEditType] = useState('');
@@ -154,6 +157,27 @@ export default function EventDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
   });
 
+  async function generateQrToken() {
+    if (!eventId) return;
+    setQrLoading(true);
+    try {
+      const data = await apiFetch<{ url: string }>(`/events/${eventId}/qr-token`, { method: 'POST' });
+      setQrUrl(data.url);
+    } catch {
+      // silently ignore — user will see no modal
+    } finally {
+      setQrLoading(false);
+    }
+  }
+
+  function copyQrUrl() {
+    if (!qrUrl) return;
+    void navigator.clipboard.writeText(qrUrl).then(() => {
+      setQrCopied(true);
+      setTimeout(() => setQrCopied(false), 2000);
+    });
+  }
+
   if (isLoading) {
     return (
       <>
@@ -198,6 +222,9 @@ export default function EventDetailPage() {
           <div className="flex items-center gap-2">
             {isCoachOrAdmin && !isEditing && (
               <>
+                <Button variant="outline" size="sm" onClick={generateQrToken} disabled={qrLoading}>
+                  <QrCode className="mr-1.5 h-3.5 w-3.5" />{qrLoading ? 'Generuji...' : 'QR Docházka'}
+                </Button>
                 <Button variant="outline" size="sm" onClick={openEditForm}>
                   <Pencil className="mr-1.5 h-3.5 w-3.5" />Upravit
                 </Button>
@@ -384,6 +411,40 @@ export default function EventDetailPage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* QR Docházka panel */}
+      {qrUrl && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <QrCode className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">QR kód pro docházku</span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setQrUrl(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Hráči naskenují tento odkaz při příchodu. Kód je platný po dobu trvání události.
+            </p>
+            <div className="rounded-lg border border-border/50 bg-background p-3 font-mono text-xs break-all text-muted-foreground">
+              {qrUrl}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-8 text-xs"
+              onClick={copyQrUrl}
+            >
+              {qrCopied
+                ? <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Zkopírováno</>
+                : <><Copy className="mr-1.5 h-3.5 w-3.5" />Kopírovat odkaz</>
+              }
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -360,4 +360,123 @@ clubs.post(
   },
 );
 
+/**
+ * GET /v1/clubs/audit
+ *
+ * Club-scoped audit log. Requires OWNER or ADMIN role.
+ * Returns the ClubFeatureAudit rows for the active club.
+ */
+clubs.get('/audit', requireRole('OWNER', 'ADMIN'), async (c) => {
+  const clubId = c.get('clubId')!;
+  const limitParam = c.req.query('limit');
+  const cursor = c.req.query('cursor');
+  const limit = Math.min(Math.max(limitParam ? parseInt(limitParam, 10) : 20, 1), 100);
+
+  const rows = await prisma.clubFeatureAudit.findMany({
+    where: { clubId },
+    orderBy: { changedAt: 'desc' },
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    include: {
+      changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+    },
+  });
+
+  const hasMore = rows.length > limit;
+  const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => ({
+    id: r.id,
+    changedAt: r.changedAt.toISOString(),
+    reason: r.reason,
+    changedBy: {
+      id: r.changedBy.id,
+      email: r.changedBy.email,
+      name: `${r.changedBy.firstName} ${r.changedBy.lastName}`,
+    },
+    before: r.before,
+    after: r.after,
+  }));
+
+  return c.json({ items, hasMore, nextCursor: hasMore ? items[items.length - 1]!.id : null });
+});
+
+/**
+ * GET /v1/clubs/referral-code
+ *
+ * Returns a short referral code for the club (first 8 chars of club ID).
+ * Requires OWNER or ADMIN role.
+ */
+clubs.get('/referral-code', requireRole('OWNER', 'ADMIN'), async (c) => {
+  const clubId = c.get('clubId')!;
+  const club = await prisma.club.findUnique({
+    where: { id: clubId },
+    select: { id: true, slug: true, config: true },
+  });
+  if (!club) {
+    throw Object.assign(new Error('Club not found'), { statusCode: 404, code: 'CLUB_NOT_FOUND' });
+  }
+
+  const code = club.id.replace(/-/g, '').slice(0, 8).toUpperCase();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sport-manager.qawave.ai';
+  const link = `${baseUrl}/signup?ref=${code}`;
+
+  const cfg = (club.config as Record<string, unknown>) ?? {};
+  const referredClubs: string[] = Array.isArray(cfg.referredClubs)
+    ? (cfg.referredClubs as string[])
+    : [];
+
+  return c.json({ code, link, referredCount: referredClubs.length });
+});
+
+/**
+ * POST /v1/clubs/apply-referral
+ *
+ * Apply a referral code from another club. Stores the referrer in club config.
+ * Requires OWNER role.
+ */
+const ApplyReferralInput = z.object({ code: z.string().min(1).max(20) });
+
+clubs.post('/apply-referral', requireRole('OWNER'), zValidator('json', ApplyReferralInput), async (c) => {
+  const clubId = c.get('clubId')!;
+  const { code } = c.req.valid('json');
+
+  // Find the referrer club by matching code (first 8 chars of ID, uppercased, no dashes)
+  const allClubs = await prisma.club.findMany({ select: { id: true } });
+  const referrer = allClubs.find(
+    (cl) => cl.id.replace(/-/g, '').slice(0, 8).toUpperCase() === code.toUpperCase(),
+  );
+
+  if (!referrer) {
+    return c.json({ error: 'Not Found', message: 'Referral code not found' }, 404);
+  }
+  if (referrer.id === clubId) {
+    return c.json({ error: 'Bad Request', message: 'Cannot apply own referral code' }, 400);
+  }
+
+  // Store referredBy in current club config, add current club to referrer's referredClubs
+  await prisma.$transaction(async (tx) => {
+    const [currentClub, referrerClub] = await Promise.all([
+      tx.club.findUnique({ where: { id: clubId }, select: { config: true } }),
+      tx.club.findUnique({ where: { id: referrer.id }, select: { config: true } }),
+    ]);
+
+    const currentCfg = (currentClub?.config as Record<string, unknown>) ?? {};
+    await tx.club.update({
+      where: { id: clubId },
+      data: { config: asJson({ ...currentCfg, referredBy: referrer.id }) },
+    });
+
+    const referrerCfg = (referrerClub?.config as Record<string, unknown>) ?? {};
+    const referredClubs: string[] = Array.isArray(referrerCfg.referredClubs)
+      ? [...(referrerCfg.referredClubs as string[])]
+      : [];
+    if (!referredClubs.includes(clubId)) referredClubs.push(clubId);
+    await tx.club.update({
+      where: { id: referrer.id },
+      data: { config: asJson({ ...referrerCfg, referredClubs }) },
+    });
+  });
+
+  return c.json({ message: 'Referral applied', referrerId: referrer.id });
+});
+
 export { clubs as clubsRoutes };
