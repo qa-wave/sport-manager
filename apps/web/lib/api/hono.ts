@@ -28,6 +28,7 @@ import { galleryRoutes } from './routes/gallery.routes';
 import { pollsRoutes } from './routes/polls.routes';
 import { documentsRoutes } from './routes/documents.routes';
 import { waiversRoutes } from './routes/waivers.routes';
+import { proxyRoutes } from './routes/proxy.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -104,6 +105,7 @@ app.route('/v1/gallery', galleryRoutes);
 app.route('/v1/polls', pollsRoutes);
 app.route('/v1/clubs/documents', documentsRoutes);
 app.route('/v1/waivers', waiversRoutes);
+app.route('/v1/proxy', proxyRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

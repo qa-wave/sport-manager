@@ -19,6 +19,7 @@ import {
   Vote,
   FolderOpen,
   FileBarChart2,
+  Upload,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -130,6 +131,13 @@ export const ADMIN_NAV: NavItem[] = [
     label: 'Zpráva o sezoně',
     description: 'Přehled sezony a statistiky',
     icon: FileBarChart2,
+    access: 'admin',
+  },
+  {
+    href: '/admin/import',
+    label: 'Import',
+    description: 'Importovat data z jiné platformy',
+    icon: Upload,
     access: 'admin',
   },
   {
