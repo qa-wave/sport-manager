@@ -32,10 +32,10 @@ export default function BlogIndexPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm px-6 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 glass px-6 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
               <Trophy className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
@@ -46,9 +46,9 @@ export default function BlogIndexPage() {
             <Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all"
+              className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
             >
-              Začít zdarma
+              Registrace
             </Link>
           </nav>
         </div>
@@ -57,7 +57,7 @@ export default function BlogIndexPage() {
       <main className="mx-auto max-w-6xl px-6 py-16">
         {/* Header */}
         <div className="mb-14 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
             Blog
           </p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
@@ -85,11 +85,11 @@ export default function BlogIndexPage() {
                 {featured.readingTime}
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
               {featured.title}
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-6">{featured.excerpt}</p>
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
               Číst článek
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </span>
@@ -114,13 +114,13 @@ export default function BlogIndexPage() {
                     {post.readingTime}
                   </span>
                 </div>
-                <h2 className="text-base font-semibold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
+                <h2 className="text-base font-semibold mb-2 group-hover:text-primary transition-colors leading-snug">
                   {post.title}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">{post.excerpt}</p>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{formatDate(post.date)}</span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
               </div>
             </Link>
@@ -135,9 +135,9 @@ export default function BlogIndexPage() {
           <p className="text-muted-foreground mb-6">Žádná kreditní karta. Nastavení za 2 minuty.</p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
           >
-            Začít zdarma
+            Registrace
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -146,7 +146,7 @@ export default function BlogIndexPage() {
       <footer className="border-t border-border/40 px-6 py-8">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-blue-600 to-violet-600 text-white">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-brand text-white">
               <Trophy className="h-2.5 w-2.5" />
             </div>
             <span>Sport Manager</span>

@@ -48,10 +48,10 @@ export function SportPage({ sport }: SportPageProps) {
       />
 
       {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm px-6 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 glass px-6 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
               <Trophy className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
@@ -62,9 +62,9 @@ export function SportPage({ sport }: SportPageProps) {
             <Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all"
+              className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
             >
-              Začít zdarma
+              Registrace
             </Link>
           </nav>
         </div>
@@ -90,7 +90,7 @@ export function SportPage({ sport }: SportPageProps) {
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1] mb-6">
                   Sport Manager pro
                   <br />
-                  <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                  <span className="text-gradient-brand">
                     {sport.nameLong}
                   </span>
                 </h1>
@@ -100,16 +100,16 @@ export function SportPage({ sport }: SportPageProps) {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
                     href="/signup"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
                   >
-                    Začít zdarma
+                    Registrace
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     href="/k/fc-hvezda"
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-8 py-3.5 text-sm font-medium hover:bg-muted transition-all duration-300"
                   >
-                    Ukázka demo klubu
+                    Demo
                   </Link>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export function SportPage({ sport }: SportPageProps) {
         <section className="px-6 py-20 sm:py-28">
           <div className="mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
                 Funkce
               </p>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -229,7 +229,7 @@ export function SportPage({ sport }: SportPageProps) {
             </p>
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-10 py-4 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-10 py-4 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
             >
               Vytvořit {sport.name.toLowerCase()}ový klub
               <ArrowRight className="h-4 w-4" />
@@ -259,7 +259,7 @@ export function SportPage({ sport }: SportPageProps) {
       <footer className="border-t border-border/40 px-6 py-8">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-blue-600 to-violet-600 text-white">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-brand text-white">
               <Trophy className="h-2.5 w-2.5" />
             </div>
             <span>Sport Manager</span>

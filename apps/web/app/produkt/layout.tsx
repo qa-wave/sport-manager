@@ -4,10 +4,10 @@ import { Trophy } from 'lucide-react';
 export default function ProductLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg px-6 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 glass px-6 py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white">
               <Trophy className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
@@ -18,7 +18,7 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-4 py-2 text-sm font-medium text-white"
+              className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
             >
               Registrace
             </Link>

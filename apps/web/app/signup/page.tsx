@@ -160,7 +160,7 @@ export default function SignupPage() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" disabled={busy}>
+                <Button type="submit" className="w-full bg-gradient-brand hover:brightness-110 shadow-md" disabled={busy}>
                   {busy ? t('auth.registering') : t('auth.continue')}
                 </Button>
 
@@ -211,7 +211,7 @@ export default function SignupPage() {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" disabled={busy}>
+                <Button type="submit" className="w-full bg-gradient-brand hover:brightness-110 shadow-md" disabled={busy}>
                   {busy ? t('auth.creatingClub') : t('auth.createClub')}
                 </Button>
               </form>

@@ -485,7 +485,7 @@ export default function LandingPage() {
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 <li><Link href="#features" className="hover:text-foreground transition-colors">Funkce</Link></li>
                 <li><Link href="#how" className="hover:text-foreground transition-colors">Jak to funguje</Link></li>
-                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo klub</Link></li>
+                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link></li>
                 <li><Link href="/signup" className="hover:text-foreground transition-colors">Registrace zdarma</Link></li>
                 <li><Link href="/login" className="hover:text-foreground transition-colors">Přihlášení</Link></li>
               </ul>
@@ -513,7 +513,7 @@ export default function LandingPage() {
                 <li><Link href="/blog/jak-zacit-s-rizenim-klubu" className="hover:text-foreground transition-colors">Jak začít</Link></li>
                 <li><Link href="/blog/rsvp-bez-chaosu" className="hover:text-foreground transition-colors">RSVP bez chaosu</Link></li>
                 <li><Link href="/blog/migrace-z-teamsnap" className="hover:text-foreground transition-colors">Migrace z TeamSnap</Link></li>
-                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Ukázka (demo)</Link></li>
+                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link></li>
               </ul>
             </div>
           </div>

@@ -117,7 +117,7 @@ function JoinContent() {
                     <Link href={`/login?redirect=/join?token=${token}`}>Přihlásit se</Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link href={`/signup?redirect=/join?token=${token}`}>Zaregistrovat se</Link>
+                    <Link href={`/signup?redirect=/join?token=${token}`}>Registrace</Link>
                   </Button>
                 </div>
               </>

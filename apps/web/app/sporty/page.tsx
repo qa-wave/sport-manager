@@ -49,10 +49,10 @@ export default function SportyIndexPage() {
       />
 
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm px-6 py-3">
+      <header className="sticky top-0 z-50 border-b border-border/40 glass px-6 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
               <Trophy className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
@@ -63,9 +63,9 @@ export default function SportyIndexPage() {
             <Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all"
+              className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:brightness-110 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
             >
-              Začít zdarma
+              Registrace
             </Link>
           </nav>
         </div>
@@ -75,13 +75,13 @@ export default function SportyIndexPage() {
         {/* Hero */}
         <section className="px-6 py-20 sm:py-28 text-center border-b border-border/40">
           <div className="mx-auto max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
               Pro každý sport
             </p>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1] mb-6">
               Sport Manager funguje
               <br />
-              <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <span className="text-gradient-brand">
                 pro váš sport
               </span>
             </h1>
@@ -92,16 +92,16 @@ export default function SportyIndexPage() {
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
               >
-                Začít zdarma
+                Registrace
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/k/fc-hvezda"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-8 py-3.5 text-sm font-medium hover:bg-muted transition-all duration-300"
               >
-                Ukázka fotbalového klubu
+                Demo
               </Link>
             </div>
           </div>
@@ -118,13 +118,13 @@ export default function SportyIndexPage() {
                   className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 hover:border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="mb-4 text-4xl">{sport.emoji}</div>
-                  <h2 className="text-lg font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <h2 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">
                     {sport.name}
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
                     {sport.description}
                   </p>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
                     Zjistit více
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </span>
@@ -186,9 +186,9 @@ export default function SportyIndexPage() {
             </p>
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-10 py-4 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-10 py-4 text-sm font-semibold text-white shadow-lg hover:brightness-110 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
             >
-              Začít zdarma
+              Registrace
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -198,7 +198,7 @@ export default function SportyIndexPage() {
       <footer className="border-t border-border/40 px-6 py-8">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-blue-600 to-violet-600 text-white">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-brand text-white">
               <Trophy className="h-2.5 w-2.5" />
             </div>
             <span>Sport Manager</span>
