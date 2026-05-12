@@ -20,6 +20,7 @@ import {
   FolderOpen,
   FileBarChart2,
   Upload,
+  Globe,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -131,6 +132,13 @@ export const ADMIN_NAV: NavItem[] = [
     label: 'Zpráva o sezoně',
     description: 'Přehled sezony a statistiky',
     icon: FileBarChart2,
+    access: 'admin',
+  },
+  {
+    href: '/admin/federation-sync',
+    label: 'Liga sync',
+    description: 'Synchronizace rozpisu ze svazu',
+    icon: Globe,
     access: 'admin',
   },
   {
