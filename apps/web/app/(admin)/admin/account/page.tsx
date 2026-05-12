@@ -13,6 +13,7 @@ import {
   Copy,
   CreditCard,
   Gift,
+  Globe,
   LogOut,
   Moon,
   Palette,
@@ -25,10 +26,12 @@ import {
   User,
   Calendar,
   AlertTriangle,
+  ClipboardSignature,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, type MeResponse, type MeClubTheme, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useTranslation } from '@/lib/i18n';
 import { useMemberContext, getPrimaryRoleLabel } from '@/lib/member-context';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -44,12 +47,14 @@ import {
   generateDarkThemeVars,
   type ClubThemeInput,
 } from '@/lib/club-theme';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function AccountPage() {
   const auth = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
   const { data: memberCtx } = useMemberContext();
 
   const me = useQuery<MeResponse, ApiError>({
@@ -69,14 +74,14 @@ export default function AccountPage() {
     : '';
 
   const themes = [
-    { value: 'light', label: 'Světlý', icon: Sun },
-    { value: 'dark', label: 'Tmavý', icon: Moon },
-    { value: 'system', label: 'Systém', icon: Monitor },
+    { value: 'light', label: t('account.light'), icon: Sun },
+    { value: 'dark', label: t('account.dark'), icon: Moon },
+    { value: 'system', label: t('account.system'), icon: Monitor },
   ] as const;
 
   return (
     <>
-      <PageHeader title="Účet" subtitle="Profil a nastavení" />
+      <PageHeader title={t('account.title')} subtitle={t('account.profileAndSettings')} />
 
       {/* Profile card */}
       {me.isLoading ? (
@@ -159,7 +164,7 @@ export default function AccountPage() {
           <CardContent className="p-0">
             <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
               <Palette className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">Vzhled</span>
+              <span className="text-sm font-semibold">{t('account.appearance')}</span>
             </div>
             <div className="grid grid-cols-3 gap-2 p-4">
               {themes.map(({ value, label, icon: Icon }) => (
@@ -176,6 +181,20 @@ export default function AccountPage() {
                   {label}
                 </button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Language card */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+              <Globe className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">{t('account.language')}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-4">
+              <p className="text-xs text-muted-foreground">{t('account.languageDesc')}</p>
+              <LanguageSwitcher />
             </div>
           </CardContent>
         </Card>
@@ -228,6 +247,19 @@ export default function AccountPage() {
             />
           )}
 
+        {/* Registration config — only for OWNER */}
+        {memberCtx && memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
+          <RegistrationCard
+            clubSlug={
+              me.data.members.find((m) => m.clubId === auth.clubId)?.club.slug ?? ''
+            }
+            currentOpen={
+              !!((me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
+                ?.registration as Record<string, unknown> | undefined)?.open
+            }
+          />
+        )}
+
         {/* Notification preferences */}
         <NotificationPreferencesCard />
 
@@ -246,8 +278,8 @@ export default function AccountPage() {
           <CardContent className="divide-y divide-border/30 p-0">
             <MenuItem
               icon={Shield}
-              label="Role a oprávnění"
-              desc={roleLabel ? `Aktuální role: ${roleLabel}` : 'Zobrazit úroveň přístupu'}
+              label={t('account.rolesAndPermissions')}
+              desc={roleLabel ? `${t('account.currentRole')}: ${roleLabel}` : t('account.viewAccessLevel')}
               disabled
             />
             {memberCtx &&
@@ -276,7 +308,7 @@ export default function AccountPage() {
               }}
             >
               <LogOut className="h-4 w-4" />
-              Odhlásit se
+              {t('account.signOut')}
             </button>
           </CardContent>
         </Card>
@@ -1127,6 +1159,121 @@ function SeasonCard({ currentSeason }: { currentSeason?: string }) {
         {mutation.isError && (
           <p className="text-xs text-destructive">Nepodařilo se uložit. Zkuste znovu.</p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Registration card — OWNER only
+// ---------------------------------------------------------------------------
+
+function RegistrationCard({
+  clubSlug,
+  currentOpen,
+}: {
+  clubSlug: string;
+  currentOpen: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(currentOpen);
+  const [copied, setCopied] = useState(false);
+
+  const baseUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://sport-manager.qawave.ai';
+  const regUrl = `${baseUrl}/k/${clubSlug}/registrace`;
+
+  const mutation = useMutation({
+    mutationFn: (newOpen: boolean) =>
+      apiFetch('/clubs/registration-config', {
+        method: 'PATCH',
+        body: JSON.stringify({ open: newOpen }),
+      }),
+    onSuccess: (_data, newOpen) => {
+      setOpen(newOpen);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(regUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+          <ClipboardSignature className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Registrace</span>
+          <span
+            className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+              open
+                ? 'bg-emerald-500/10 text-emerald-600'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {open ? 'Otevřena' : 'Uzavřena'}
+          </span>
+        </div>
+        <div className="space-y-3 px-4 py-4">
+          <p className="text-xs text-muted-foreground">
+            Veřejný formulář pro registraci nových hráčů. Rodiče ho vyplní bez přihlášení.
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 truncate rounded-md border border-border/50 bg-secondary/20 px-3 py-1.5 font-mono text-xs text-primary">
+              {regUrl}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 h-8 text-xs"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <Check className="mr-1.5 h-3 w-3 text-emerald-500" />
+                  Zkopírováno
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-1.5 h-3 w-3" />
+                  Kopírovat
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              role="switch"
+              aria-checked={open}
+              onClick={() => mutation.mutate(!open)}
+              disabled={mutation.isPending}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+                open ? 'bg-primary' : 'bg-input'
+              }`}
+            >
+              <span
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                  open ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className="text-sm text-muted-foreground">
+              {open ? 'Registrace je otevřena' : 'Registrace je uzavřena'}
+            </span>
+          </div>
+          {mutation.isError && (
+            <p className="text-xs text-destructive">Nepodařilo se uložit.</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

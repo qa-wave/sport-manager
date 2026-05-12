@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -15,60 +17,69 @@ import {
 import { AuthRedirect } from '@/components/auth-redirect';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslation } from '@/lib/i18n';
 
-const FEATURES = [
+const FEATURE_KEYS = [
   {
     icon: Calendar,
-    title: 'Kalendář & RSVP',
-    desc: 'Měsíční grid, barevné typy událostí. RSVP na 2 kliknutí z notifikace.',
+    titleKey: 'landing.feature.calendar.title',
+    descKey: 'landing.feature.calendar.desc',
     gradient: 'from-blue-500/20 to-cyan-500/20',
     iconColor: 'text-blue-500',
   },
   {
     icon: Users,
-    title: 'Správa členů',
-    desc: 'Hráči, trenéři, rodiče. Rozvedení rodiče s oddělenými oprávněními.',
+    titleKey: 'landing.feature.members.title',
+    descKey: 'landing.feature.members.desc',
     gradient: 'from-violet-500/20 to-purple-500/20',
     iconColor: 'text-violet-500',
   },
   {
     icon: MessageSquare,
-    title: 'Komunikace',
-    desc: 'Týmové chaty, DM, oznámení. Privacy-by-participation — žádné úniky.',
+    titleKey: 'landing.feature.communication.title',
+    descKey: 'landing.feature.communication.desc',
     gradient: 'from-emerald-500/20 to-teal-500/20',
     iconColor: 'text-emerald-500',
   },
   {
     icon: Shield,
-    title: '5 rolí, 0 kompromisů',
-    desc: 'Owner, Admin, Trenér, Rodič, Hráč. Každý vidí přesně to, co potřebuje.',
+    titleKey: 'landing.feature.roles.title',
+    descKey: 'landing.feature.roles.desc',
     gradient: 'from-amber-500/20 to-orange-500/20',
     iconColor: 'text-amber-500',
   },
   {
     icon: Repeat,
-    title: 'Šablony tréninků',
-    desc: 'Po + St 17:30 — jednou nastavíte, události se generují celou sezonu.',
+    titleKey: 'landing.feature.templates.title',
+    descKey: 'landing.feature.templates.desc',
     gradient: 'from-rose-500/20 to-pink-500/20',
     iconColor: 'text-rose-500',
   },
   {
     icon: Zap,
-    title: 'Multi-tenant',
-    desc: 'Jeden účet, více klubů. Přepínání jako ve Slacku. Každý klub vlastní barvy.',
+    titleKey: 'landing.feature.multitenant.title',
+    descKey: 'landing.feature.multitenant.desc',
     gradient: 'from-cyan-500/20 to-blue-500/20',
     iconColor: 'text-cyan-500',
   },
 ];
 
 const STATS = [
-  { value: '2', label: 'Kluby v demo', suffix: '' },
-  { value: '66', label: 'Členů', suffix: '+' },
-  { value: '69', label: 'Událostí', suffix: '' },
-  { value: '5', label: 'Rolí', suffix: '' },
+  { value: '2', labelKey: 'landing.stats.clubs', suffix: '' },
+  { value: '66', labelKey: 'landing.stats.members', suffix: '+' },
+  { value: '69', labelKey: 'landing.stats.events', suffix: '' },
+  { value: '5', labelKey: 'landing.stats.roles', suffix: '' },
 ];
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+
+  const HOW_STEPS = [
+    { step: '01', titleKey: 'landing.how.step1.title', descKey: 'landing.how.step1.desc', icon: Smartphone },
+    { step: '02', titleKey: 'landing.how.step2.title', descKey: 'landing.how.step2.desc', icon: Users },
+    { step: '03', titleKey: 'landing.how.step3.title', descKey: 'landing.how.step3.desc', icon: Zap },
+  ];
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <AuthRedirect />
@@ -87,12 +98,12 @@ export default function LandingPage() {
               Demo
             </Link>
             <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Přihlásit se
+              {t('auth.signIn')}
             </Link>
             <LanguageSwitcher />
             <ThemeToggle />
             <Link href="/signup" className="rounded-lg bg-gradient-brand px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110">
-              Registrace
+              {t('auth.register')}
             </Link>
           </div>
         </div>
@@ -108,18 +119,17 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Sportovní platforma pro kluby
+            {t('landing.badge')}
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl leading-[1.1]">
-            Váš klub si zaslouží
+            {t('landing.hero.title1')}
             <br />
-            <span className="text-gradient-brand">lepší nástroje.</span>
+            <span className="text-gradient-brand">{t('landing.hero.title2')}</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-            Kalendář, docházka, komunikace, platby — vše v jedné platformě.
-            Postaveno pro trenéry, rodiče a vedoucí klubů.
+            {t('landing.hero.subtitle')}
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
@@ -128,7 +138,7 @@ export default function LandingPage() {
               className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
             >
               <span className="relative z-10 flex items-center gap-2">
-                Začít
+                {t('landing.cta')}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
             </Link>
@@ -136,7 +146,7 @@ export default function LandingPage() {
               href="/k/fc-hvezda"
               className="group inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card/50 backdrop-blur-sm px-8 py-3.5 text-sm font-medium hover:bg-card transition-all duration-300"
             >
-              Živá ukázka
+              {t('landing.demo')}
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
@@ -144,11 +154,11 @@ export default function LandingPage() {
           {/* Stats */}
           <div className="mt-16 mx-auto flex max-w-md justify-center divide-x divide-border/50">
             {STATS.map((s) => (
-              <div key={s.label} className="px-6 text-center">
+              <div key={s.labelKey} className="px-6 text-center">
                 <div className="text-2xl font-bold text-foreground font-mono tabular-nums">
                   {s.value}{s.suffix}
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">{s.label}</div>
+                <div className="text-[11px] text-muted-foreground mt-1">{t(s.labelKey)}</div>
               </div>
             ))}
           </div>
@@ -159,18 +169,18 @@ export default function LandingPage() {
       <section className="relative border-t border-border/40 px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">Funkce</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">{t('landing.features.label')}</p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Vše na jednom místě
+              {t('landing.features.title')}
             </h2>
             <p className="mt-4 text-muted-foreground max-w-lg mx-auto">
-              Konec s WhatsApp skupinami, Excel tabulkami a emailovými řetězci.
+              {t('landing.features.subtitle')}
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
+            {FEATURE_KEYS.map((f) => (
               <div
-                key={f.title}
+                key={f.titleKey}
                 className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-border"
               >
                 <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${f.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
@@ -178,8 +188,8 @@ export default function LandingPage() {
                   <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-muted transition-colors group-hover:bg-background ${f.iconColor}`}>
                     <f.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="text-base font-semibold mb-2">{f.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
+                  <h3 className="text-base font-semibold mb-2">{t(f.titleKey)}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{t(f.descKey)}</p>
                 </div>
               </div>
             ))}
@@ -191,22 +201,18 @@ export default function LandingPage() {
       <section className="border-t border-border/40 px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-foreground dark:text-accent mb-4">Jak to funguje</p>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">3 kroky, 2 minuty</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-foreground dark:text-accent mb-4">{t('landing.how.label')}</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('landing.how.title')}</h2>
           </div>
           <div className="grid gap-8 sm:grid-cols-3">
-            {[
-              { step: '01', title: 'Zaregistrujte se', desc: 'Email, heslo, jméno. Žádná kreditka.', icon: Smartphone },
-              { step: '02', title: 'Založte klub', desc: 'Název, sport, hotovo. Pozvěte trenéry a rodiče.', icon: Users },
-              { step: '03', title: 'Plánujte & komunikujte', desc: 'Šablony tréninků, RSVP, chat. Vše běží.', icon: Zap },
-            ].map((s) => (
+            {HOW_STEPS.map((s) => (
               <div key={s.step} className="text-center group">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-sm transition-all group-hover:shadow-lg group-hover:border-primary/30">
                   <s.icon className="h-6 w-6 text-primary" />
                 </div>
                 <div className="text-xs font-mono text-primary/60 mb-2">{s.step}</div>
-                <h3 className="text-base font-semibold mb-1">{s.title}</h3>
-                <p className="text-sm text-muted-foreground">{s.desc}</p>
+                <h3 className="text-base font-semibold mb-1">{t(s.titleKey)}</h3>
+                <p className="text-sm text-muted-foreground">{t(s.descKey)}</p>
               </div>
             ))}
           </div>
@@ -223,15 +229,19 @@ export default function LandingPage() {
                   <Lock className="h-3 w-3" /> Privacy-first
                 </div>
                 <h2 className="text-2xl font-bold tracking-tight sm:text-3xl mb-4">
-                  Rozvedení rodiče?
+                  {t('landing.privacy.title')}
                   <br />
-                  <span className="text-muted-foreground">Vyřešeno.</span>
+                  <span className="text-muted-foreground">{t('landing.privacy.subtitle')}</span>
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                  Každý rodič má vlastní oprávnění. Maminka nevidí DM tatínka s trenérem. Tatínek nevidí platby maminky. Žádné úniky, žádné kompromisy.
+                  {t('landing.privacy.desc')}
                 </p>
                 <ul className="space-y-3">
-                  {['Oddělená oprávnění per rodič', 'Privacy-by-participation pro zprávy', 'Granulární access control per modul'].map((item) => (
+                  {[
+                    t('landing.privacy.point1'),
+                    t('landing.privacy.point2'),
+                    t('landing.privacy.point3'),
+                  ].map((item) => (
                     <li key={item} className="flex items-center gap-2.5 text-sm">
                       <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10">
                         <svg className="h-3 w-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -247,12 +257,12 @@ export default function LandingPage() {
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 text-[10px] font-bold">M</div>
-                      <span className="text-xs font-semibold">Maminka vidí</span>
+                      <span className="text-xs font-semibold">{t('landing.privacy.momSees')}</span>
                     </div>
                     <div className="space-y-1.5">
-                      {['DM s trenérem', 'Platby za Annu', 'Lékařské záznamy'].map((t) => (
-                        <div key={t} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <div className="h-1 w-1 rounded-full bg-emerald-500" />{t}
+                      {[t('landing.privacy.momItem1'), t('landing.privacy.momItem2'), t('landing.privacy.momItem3')].map((item) => (
+                        <div key={item} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <div className="h-1 w-1 rounded-full bg-emerald-500" />{item}
                         </div>
                       ))}
                     </div>
@@ -260,12 +270,12 @@ export default function LandingPage() {
                   <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="h-6 w-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 text-[10px] font-bold">T</div>
-                      <span className="text-xs font-semibold">Tatínek nevidí</span>
+                      <span className="text-xs font-semibold">{t('landing.privacy.dadCannotSee')}</span>
                     </div>
                     <div className="space-y-1.5">
-                      {['DM maminky s trenérem', 'Platby (nemá oprávnění)', 'Lékařské záznamy'].map((t) => (
-                        <div key={t} className="flex items-center gap-2 text-[11px] text-muted-foreground line-through opacity-50">
-                          <div className="h-1 w-1 rounded-full bg-red-500" />{t}
+                      {[t('landing.privacy.dadItem1'), t('landing.privacy.dadItem2'), t('landing.privacy.dadItem3')].map((item) => (
+                        <div key={item} className="flex items-center gap-2 text-[11px] text-muted-foreground line-through opacity-50">
+                          <div className="h-1 w-1 rounded-full bg-red-500" />{item}
                         </div>
                       ))}
                     </div>
@@ -288,9 +298,9 @@ export default function LandingPage() {
             ))}
           </div>
           <blockquote className="text-lg sm:text-xl font-medium leading-relaxed">
-            &ldquo;Konečně nepotřebujeme WhatsApp skupinu, Excel tabulku a email dohromady. Trenéři plánují, rodiče RSVPují, admin má klid.&rdquo;
+            &ldquo;{t('landing.testimonial.quote')}&rdquo;
           </blockquote>
-          <p className="mt-4 text-sm text-muted-foreground">— Trenér mládežnického fotbalu</p>
+          <p className="mt-4 text-sm text-muted-foreground">— {t('landing.testimonial.author')}</p>
         </div>
       </section>
 
@@ -298,13 +308,13 @@ export default function LandingPage() {
       <section className="relative border-t border-border/40 px-6 py-20">
         <div className="pointer-events-none absolute inset-0 mesh-gradient opacity-50" />
         <div className="relative mx-auto max-w-lg text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Připraveni začít?</h2>
-          <p className="mt-3 text-muted-foreground">Bez závazků, bez limitů.</p>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('landing.ready')}</h2>
+          <p className="mt-3 text-muted-foreground">{t('landing.readySubtitle')}</p>
           <Link
             href="/signup"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-brand px-10 py-4 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
-            Registrace
+            {t('auth.register')}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

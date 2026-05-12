@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Trophy } from 'lucide-react';
 import { apiFetch, ApiError, type MeResponse } from '@/lib/api';
 import { authStore } from '@/lib/auth-store';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ type Step = 'account' | 'club';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('account');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,9 +44,9 @@ export default function SignupPage() {
       setStep('club');
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setError('Tento email je již registrován.');
+        setError(t('auth.emailTaken'));
       } else {
-        setError('Registrace selhala. Zkus to znovu.');
+        setError(t('auth.registerFailed'));
       }
     } finally {
       setBusy(false);
@@ -69,9 +71,9 @@ export default function SignupPage() {
       router.push('/admin');
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        setError('Klub s tímto názvem již existuje.');
+        setError(t('auth.clubNameTaken'));
       } else {
-        setError('Nepodařilo se vytvořit klub.');
+        setError(t('auth.clubCreateFailed'));
       }
     } finally {
       setBusy(false);
@@ -91,7 +93,7 @@ export default function SignupPage() {
           <div>
             <div className="text-base font-bold tracking-tight">Sport Manager</div>
             <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-              {step === 'account' ? 'Registrace' : 'Založení klubu'}
+              {step === 'account' ? t('auth.register') : t('auth.createClub')}
             </div>
           </div>
         </div>
@@ -108,7 +110,7 @@ export default function SignupPage() {
               <form onSubmit={handleAccountSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="firstName">Jméno</Label>
+                    <Label htmlFor="firstName">{t('account.firstName')}</Label>
                     <Input
                       id="firstName"
                       required
@@ -118,7 +120,7 @@ export default function SignupPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="lastName">Příjmení</Label>
+                    <Label htmlFor="lastName">{t('account.lastName')}</Label>
                     <Input
                       id="lastName"
                       required
@@ -129,7 +131,7 @@ export default function SignupPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -140,7 +142,7 @@ export default function SignupPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="password">Heslo</Label>
+                  <Label htmlFor="password">{t('auth.password')}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -159,23 +161,23 @@ export default function SignupPage() {
                 )}
 
                 <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? 'Registruji...' : 'Pokračovat'}
+                  {busy ? t('auth.registering') : t('auth.continue')}
                 </Button>
 
                 <div className="text-center text-xs text-muted-foreground">
-                  Už máš účet?{' '}
+                  {t('auth.hasAccount')}{' '}
                   <Link href="/login" className="text-primary hover:underline">
-                    Přihlásit se
+                    {t('auth.signIn')}
                   </Link>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleClubSubmit} className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Skvěle! Teď založ svůj první klub.
+                  {t('auth.createClubDesc')}
                 </p>
                 <div className="space-y-1.5">
-                  <Label htmlFor="clubName">Název klubu</Label>
+                  <Label htmlFor="clubName">{t('admin.clubName')}</Label>
                   <Input
                     id="clubName"
                     required
@@ -185,7 +187,7 @@ export default function SignupPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sport">Sport</Label>
+                  <Label htmlFor="sport">{t('admin.sport')}</Label>
                   <select
                     id="sport"
                     value={sport}
@@ -210,7 +212,7 @@ export default function SignupPage() {
                 )}
 
                 <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? 'Vytvářím klub...' : 'Založit klub'}
+                  {busy ? t('auth.creatingClub') : t('auth.createClub')}
                 </Button>
               </form>
             )}

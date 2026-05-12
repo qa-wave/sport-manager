@@ -20,6 +20,7 @@ import {
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, ApiError, type ChildDashboardEntry, type DashboardFeed, type EventSummary, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { useTranslation } from '@/lib/i18n';
 import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,16 +30,12 @@ function dayNum(d: string) { return new Date(d).getDate().toString(); }
 function weekdayShort(d: string) { return new Date(d).toLocaleDateString('cs-CZ', { weekday: 'short' }).toUpperCase(); }
 function formatTime(d: string) { return new Date(d).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }); }
 
-function relativeTime(d: string): string {
-  const diff = Date.now() - new Date(d).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'právě teď';
-  if (mins < 60) return `před ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `před ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return `před ${days} d`;
+function isHappeningNow(startsAt: string, endsAt: string): boolean {
+  const now = Date.now();
+  return new Date(startsAt).getTime() <= now && new Date(endsAt).getTime() >= now;
 }
+
+// relativeTime is now a hook-based function inside DashboardPage — see below
 
 const EVENT_BORDER: Record<string, string> = {
   PRACTICE: 'border-l-emerald-500',
@@ -48,39 +45,55 @@ const EVENT_BORDER: Record<string, string> = {
   SOCIAL: 'border-l-pink-500',
 };
 
-const EVENT_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Akce',
-};
+// EVENT_LABEL is now built dynamically using t() inside DashboardPage
 
-function getRoleGreeting(roleLabel: string): string {
-  switch (roleLabel) {
-    case 'Parent':
-      return 'Co čeká vaše děti.';
-    case 'Head Coach':
-    case 'Asst. Coach':
-      return 'Vaše týmy v přehledu.';
-    case 'Team Manager':
-      return 'Vaše týmy v přehledu.';
-    default:
-      return 'Přehled klubu.';
-  }
-}
-
-function getTimeGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Dobré ráno';
-  if (h < 18) return 'Dobré odpoledne';
-  return 'Dobrý večer';
-}
 
 export default function DashboardPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: memberCtx } = useMemberContext();
+
+  // Build event label map from translations
+  const EVENT_LABEL: Record<string, string> = {
+    PRACTICE: t('events.practice'),
+    MATCH: t('events.match'),
+    TOURNAMENT: t('events.tournament'),
+    MEETING: t('events.meeting'),
+    SOCIAL: t('events.social'),
+  };
+
+  function getRoleGreeting(roleLabel: string): string {
+    switch (roleLabel) {
+      case 'Parent':
+        return t('dashboard.greetingParent');
+      case 'Head Coach':
+      case 'Asst. Coach':
+        return t('dashboard.greetingCoach');
+      case 'Team Manager':
+        return t('dashboard.greetingCoach');
+      default:
+        return t('dashboard.greetingAdmin');
+    }
+  }
+
+  function getTimeGreeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return t('dashboard.greeting.morning');
+    if (h < 18) return t('dashboard.greeting.afternoon');
+    return t('dashboard.greeting.evening');
+  }
+
+  function relativeTime(d: string): string {
+    const diff = Date.now() - new Date(d).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t('time.justNow');
+    if (mins < 60) return t('time.minutesAgo', { n: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t('time.hoursAgo', { n: hours });
+    const days = Math.floor(hours / 24);
+    return t('time.daysAgo', { n: days });
+  }
 
   const { data: feed, isLoading } = useQuery<DashboardFeed, ApiError>({
     queryKey: ['dashboard-feed', auth.clubId],
@@ -140,7 +153,7 @@ export default function DashboardPage() {
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <Baby className="h-4 w-4 text-primary" />
-                Moje děti
+                {t('dashboard.myChildren')}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {feed.children.map((child) => (
@@ -155,11 +168,11 @@ export default function DashboardPage() {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <CalendarDays className="h-4 w-4 text-primary" />
-                Tento týden
+                {t('dashboard.thisWeek')}
               </h2>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/admin/events">
-                  Všechny události <ChevronRight className="ml-1 h-3 w-3" />
+                  {t('dashboard.allEvents')} <ChevronRight className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
             </div>
@@ -167,10 +180,10 @@ export default function DashboardPage() {
             {feed.thisWeek.length === 0 ? (
               <Card className="">
                 <CardContent className="py-8 text-center">
-                  <p className="text-sm text-muted-foreground">Tento týden žádné události</p>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.noEvents')}</p>
                   <Button asChild size="sm" className="mt-3">
                     <Link href="/admin/events/new">
-                      <Plus className="mr-1 h-4 w-4" />Naplánovat
+                      <Plus className="mr-1 h-4 w-4" />{t('dashboard.schedule')}
                     </Link>
                   </Button>
                 </CardContent>
@@ -181,12 +194,15 @@ export default function DashboardPage() {
                   const isMatch = event.type === 'MATCH' || event.type === 'TOURNAMENT';
                   const rsvp = event.rsvpSummary;
                   const total = rsvp.yes + rsvp.maybe + rsvp.no + rsvp.pending;
+                  const live = isMatch && isHappeningNow(event.startsAt, event.endsAt ?? event.startsAt);
 
                   return (
                     <div
                       key={event.id}
-                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md border-l-[3px] ${
-                        EVENT_BORDER[event.type] ?? 'border-l-border'
+                      className={`group cursor-pointer overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md border-l-[3px] ${
+                        live
+                          ? 'border-red-500/40 border-l-red-500'
+                          : `border-border/50 ${EVENT_BORDER[event.type] ?? 'border-l-border'}`
                       }`}
                       onClick={() => router.push(`/admin/events/${event.id}`)}
                     >
@@ -198,9 +214,17 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3 py-2.5">
                           <div className="min-w-0">
-                            <span className="text-sm font-bold uppercase tracking-wide transition-colors group-hover:text-primary">
-                              {isMatch ? event.title : EVENT_LABEL[event.type] ?? event.type}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold uppercase tracking-wide transition-colors group-hover:text-primary">
+                                {isMatch ? event.title : EVENT_LABEL[event.type] ?? event.type}
+                              </span>
+                              {live && (
+                                <span className="flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-bold text-red-500">
+                                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                                  LIVE
+                                </span>
+                              )}
+                            </div>
                             <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1"><Users className="h-3 w-3" />{total}</span>
                               {event.teamName && <span className="font-medium text-primary/70">{event.teamName}</span>}
@@ -214,11 +238,11 @@ export default function DashboardPage() {
                           </div>
                           <div className="shrink-0">
                             {total === 0 ? (
-                              <span className="text-xs text-muted-foreground/70">Žádné RSVP</span>
+                              <span className="text-xs text-muted-foreground/70">{t('dashboard.noRsvp')}</span>
                             ) : rsvp.pending > 0 && rsvp.pending >= rsvp.yes ? (
                               <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-500">RSVP?</span>
                             ) : (
-                              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-500">{rsvp.yes} jde</span>
+                              <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-500">{rsvp.yes} {t('dashboard.going')}</span>
                             )}
                           </div>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-colors group-hover:text-primary" />
@@ -236,7 +260,7 @@ export default function DashboardPage() {
             <section>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <AlertTriangle className="h-4 w-4 text-warning" />
-                Vyžaduje pozornost
+                {t('dashboard.needsAttention')}
               </h2>
               <div className="space-y-2">
                 {feed.needsAttention.map((item, i) => (
@@ -270,15 +294,15 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Rychlé akce
+              {t('dashboard.quickActions')}
             </h2>
             <div className={`grid gap-3 ${admin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               {(admin || coach) && (
                 <QuickAction
                   href="/admin/events/new"
                   icon={Plus}
-                  title="Naplánovat událost"
-                  desc="Vytvořit trénink, zápas nebo schůzku"
+                  title={t('dashboard.qa.createEvent')}
+                  desc={t('dashboard.qa.createEventDesc')}
                   primary
                 />
               )}
@@ -286,8 +310,8 @@ export default function DashboardPage() {
                 <QuickAction
                   href="/admin/events"
                   icon={Heart}
-                  title="Nadcházející události"
-                  desc="Zobrazit a potvrdit účast za děti"
+                  title={t('dashboard.qa.upcomingEvents')}
+                  desc={t('dashboard.qa.upcomingEventsDesc')}
                   primary
                 />
               )}
@@ -295,24 +319,24 @@ export default function DashboardPage() {
                 <QuickAction
                   href="/admin/members"
                   icon={UserCircle}
-                  title="Členové"
-                  desc="Zobrazit a spravovat členy"
+                  title={t('nav.members')}
+                  desc={t('dashboard.qa.membersDesc')}
                 />
               )}
               {(admin || coach) && (
                 <QuickAction
                   href="/admin/teams"
                   icon={Users}
-                  title="Týmy"
-                  desc="Soupisky a realizační tým"
+                  title={t('nav.teams')}
+                  desc={t('dashboard.qa.teamsDesc')}
                 />
               )}
               {!admin && !coach && (
                 <QuickAction
                   href="/admin/events"
                   icon={CalendarDays}
-                  title="Všechny události"
-                  desc="Zobrazit rozvrh a účasti"
+                  title={t('dashboard.allEvents')}
+                  desc={t('dashboard.qa.allEventsDesc')}
                 />
               )}
             </div>
@@ -322,7 +346,7 @@ export default function DashboardPage() {
           {feed.recentActivity.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Nedávná aktivita
+                {t('dashboard.recentActivity')}
               </h2>
               <Card className="">
                 <CardContent className="divide-y divide-border/30 p-0">
@@ -349,26 +373,11 @@ export default function DashboardPage() {
   );
 }
 
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Akce',
-};
-
 const RSVP_COLOR: Record<string, string> = {
   YES: 'text-green-500',
   NO: 'text-red-500',
   MAYBE: 'text-yellow-500',
   PENDING: 'text-muted-foreground',
-};
-
-const RSVP_LABEL: Record<string, string> = {
-  YES: 'Ano',
-  NO: 'Ne',
-  MAYBE: 'Možná',
-  PENDING: 'Čeká na odpověď',
 };
 
 function childAttendanceColor(rate: number): string {
@@ -378,6 +387,23 @@ function childAttendanceColor(rate: number): string {
 }
 
 function ChildCard({ child }: { child: ChildDashboardEntry }) {
+  const { t } = useTranslation();
+
+  const EVENT_TYPE_LABEL: Record<string, string> = {
+    PRACTICE: t('events.practice'),
+    MATCH: t('events.match'),
+    TOURNAMENT: t('events.tournament'),
+    MEETING: t('events.meeting'),
+    SOCIAL: t('events.social'),
+  };
+
+  const RSVP_LABEL: Record<string, string> = {
+    YES: t('events.yes'),
+    NO: t('events.no'),
+    MAYBE: t('events.maybe'),
+    PENDING: t('events.pending'),
+  };
+
   return (
     <Card className="overflow-hidden border-border/50">
       <CardContent className="p-4">
@@ -395,7 +421,7 @@ function ChildCard({ child }: { child: ChildDashboardEntry }) {
             href={`/admin/members/${child.childMemberId}`}
             className="shrink-0 text-[11px] text-primary/70 hover:text-primary hover:underline"
           >
-            Statistiky →
+            {t('dashboard.stats')} →
           </Link>
         </div>
 
@@ -405,21 +431,21 @@ function ChildCard({ child }: { child: ChildDashboardEntry }) {
             <div className={`text-base font-bold tabular-nums leading-none ${childAttendanceColor(child.attendanceRate)}`}>
               {child.attendanceRate}%
             </div>
-            <div className="mt-0.5 text-[10px] text-muted-foreground">Účast</div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">{t('dashboard.attendance')}</div>
           </div>
           <div className="h-6 w-px bg-border/50" />
           <div className="text-center">
             <div className={`text-base font-bold tabular-nums leading-none ${child.streak > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
               {child.streak}
             </div>
-            <div className="mt-0.5 text-[10px] text-muted-foreground">v řadě</div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">{t('dashboard.streak')}</div>
           </div>
         </div>
 
         {child.nextEvent ? (
           <div className="space-y-1.5">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Příští událost
+              {t('dashboard.nextEvent')}
             </div>
             <Link
               href={`/admin/events/${child.nextEvent.id}`}
@@ -445,7 +471,7 @@ function ChildCard({ child }: { child: ChildDashboardEntry }) {
             </Link>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Žádná nadcházející událost</p>
+          <p className="text-xs text-muted-foreground">{t('dashboard.noUpcomingEvents')}</p>
         )}
 
         {child.pendingPaymentsCount > 0 && (

@@ -6,6 +6,10 @@ import { ChevronLeft, ChevronRight, Trophy, X } from 'lucide-react';
 import { ADMIN_NAV, isNavItemFeatureEnabled } from '@/lib/nav';
 import { useMemberContext, canAccessNavItem, getPrimaryRoleLabel } from '@/lib/member-context';
 import { useFeatures } from '@/lib/features';
+import { useTranslation } from '@/lib/i18n';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch, type MeResponse } from '@/lib/api';
+import { useAuth } from '@/lib/auth-store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -28,13 +32,29 @@ export function Sidebar({
   onMobileClose?: () => void;
 }) {
   const pathname = usePathname();
+  const auth = useAuth();
+  const { t } = useTranslation();
   const { data: memberCtx } = useMemberContext();
   const flags = useFeatures();
+  const { data: me } = useQuery<MeResponse>({
+    queryKey: ['me', auth.accessToken],
+    queryFn: () => apiFetch<MeResponse>('/me'),
+    enabled: auth.isAuthenticated,
+    staleTime: 5 * 60_000,
+  });
   const nav = (memberCtx
-    ? ADMIN_NAV.filter((item) => canAccessNavItem(memberCtx, item.access))
+    ? ADMIN_NAV.filter((item) => canAccessNavItem(memberCtx, item.access, me?.isPlatformAdmin))
     : ADMIN_NAV
   ).filter((item) => isNavItemFeatureEnabled(item, flags));
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : 'Admin';
+
+  // Translate nav label: try nav.<key> translation, fall back to item.label
+  function navLabel(item: typeof nav[number]): string {
+    const key = `nav.${item.labelKey ?? ''}`;
+    const translated = t(key);
+    // If key not found, t() returns the key itself — use item.label as fallback
+    return translated !== key ? translated : item.label;
+  }
 
   const navItems = (onItemClick?: () => void) =>
     nav.map((item) => {
@@ -67,7 +87,7 @@ export function Sidebar({
                 : 'text-muted-foreground group-hover:text-foreground'
             )}
           />
-          <span>{item.label}</span>
+          <span>{navLabel(item)}</span>
         </Link>
       );
     });
@@ -131,7 +151,7 @@ export function Sidebar({
                       : 'text-muted-foreground group-hover:text-foreground'
                   )}
                 />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{navLabel(item)}</span>}
               </Link>
             );
 
@@ -140,7 +160,7 @@ export function Sidebar({
                 <Tooltip key={item.href}>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
                   <TooltipContent side="right" className="font-medium">
-                    {item.label}
+                    {navLabel(item)}
                   </TooltipContent>
                 </Tooltip>
               );

@@ -26,6 +26,8 @@ import {
 export type NavItem = {
   href: Route;
   label: string;
+  /** i18n key suffix used as nav.<labelKey> — falls back to label if missing */
+  labelKey?: string;
   description: string;
   icon: LucideIcon;
   access?: NavAccess;
@@ -37,12 +39,14 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin',
     label: 'Přehled',
+    labelKey: 'dashboard',
     description: 'Přehled a stav klubu',
     icon: LayoutDashboard,
   },
   {
     href: '/admin/teams',
     label: 'Týmy',
+    labelKey: 'teams',
     description: 'Soupiska a realizační tým',
     icon: Users,
     access: 'admin_or_coach',
@@ -50,6 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/events',
     label: 'Události',
+    labelKey: 'events',
     description: 'Tréninky, zápasy, RSVP',
     icon: CalendarDays,
     feature: 'calendar',
@@ -57,6 +62,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/treninky',
     label: 'Tréninky',
+    labelKey: 'training',
     description: 'Knihovna cvičení a tréninků',
     icon: Repeat,
     access: 'admin_or_coach',
@@ -65,6 +71,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/gallery',
     label: 'Galerie',
+    labelKey: 'gallery',
     description: 'Fotky z tréninků a zápasů',
     icon: Camera,
     feature: 'gallery',
@@ -72,6 +79,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/messages',
     label: 'Zprávy',
+    labelKey: 'messages',
     description: 'Týmový chat a přímé zprávy',
     icon: MessageCircle,
     feature: 'messages',
@@ -79,6 +87,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/notifications',
     label: 'Oznámení',
+    labelKey: 'notifications',
     description: 'Vaše oznámení',
     icon: Bell,
     feature: 'notifications',
@@ -86,6 +95,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/activity',
     label: 'Aktivita',
+    labelKey: 'activity',
     description: 'Timeline dění v klubu',
     icon: Activity,
     access: 'admin_or_coach',
@@ -93,6 +103,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/members',
     label: 'Členové',
+    labelKey: 'members',
     description: 'Hráči, rodiče, zákonní zástupci',
     icon: UserCircle,
     access: 'admin',
@@ -100,6 +111,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/payments',
     label: 'Platby',
+    labelKey: 'payments',
     description: 'Příspěvky a platební přehledy',
     icon: CreditCard,
     access: 'admin_or_finance',
@@ -108,6 +120,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/waivers',
     label: 'Souhlasy',
+    labelKey: 'waivers',
     description: 'GDPR, zdravotní a mediální souhlasy',
     icon: FileSignature,
     access: 'admin',
@@ -116,6 +129,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/polls',
     label: 'Hlasování',
+    labelKey: 'polls',
     description: 'Ankety a časová hlasování',
     icon: Vote,
     access: 'any' as NavAccess,
@@ -123,6 +137,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/documents',
     label: 'Dokumenty',
+    labelKey: 'documents',
     description: 'Pravidla, formuláře a dokumenty klubu',
     icon: FolderOpen,
     access: 'any' as NavAccess,
@@ -130,6 +145,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/season-report',
     label: 'Zpráva o sezoně',
+    labelKey: 'seasonReport',
     description: 'Přehled sezony a statistiky',
     icon: FileBarChart2,
     access: 'admin',
@@ -137,6 +153,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/federation-sync',
     label: 'Liga sync',
+    labelKey: 'federationSync',
     description: 'Synchronizace rozpisu ze svazu',
     icon: Globe,
     access: 'admin',
@@ -144,6 +161,7 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/import',
     label: 'Import',
+    labelKey: 'import',
     description: 'Importovat data z jiné platformy',
     icon: Upload,
     access: 'admin',
@@ -151,12 +169,14 @@ export const ADMIN_NAV: NavItem[] = [
   {
     href: '/admin/account',
     label: 'Účet',
+    labelKey: 'account',
     description: 'Profil a nastavení',
     icon: Settings,
   },
   {
     href: '/admin/platform-analytics',
     label: 'Platform Analytics',
+    labelKey: 'platformAnalytics',
     description: 'Souhrn dat platformy',
     icon: BarChart2,
     access: 'platform_admin',
