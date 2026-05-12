@@ -22,6 +22,7 @@ import { clubsRoutes } from './routes/clubs.routes';
 import { paymentsRoutes } from './routes/payments.routes';
 import { rsvpRoutes } from './routes/rsvp.routes';
 import { stripeRoutes } from './routes/stripe.routes';
+import { attendRoutes } from './routes/attend.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -92,6 +93,7 @@ app.route('/v1/clubs', clubsRoutes);
 app.route('/v1/payments', paymentsRoutes);
 app.route('/v1/rsvp', rsvpRoutes);
 app.route('/v1/stripe', stripeRoutes);
+app.route('/v1/attend', attendRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

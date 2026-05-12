@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Pencil, Users } from 'lucide-react';
+import { ChevronLeft, Pencil, Users, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
-import { apiFetch, ApiError, type TeamDetail, type TeamRosterEntry } from '@/lib/api';
+import { apiFetch, ApiError, type TeamDetail, type TeamRosterEntry, type TeamStats } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
@@ -220,6 +220,11 @@ export default function TeamDetailPage() {
         )}
       </Card>
 
+      {/* Statistiky trenéra */}
+      {(isAdminUser || memberCtx?.teamRoles.some((r) => r.teamId === teamId && ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(r.role))) && (
+        <CoachStatsSection teamId={teamId} />
+      )}
+
       {/* Heatmap docházky */}
       <AttendanceHeatmap teamId={teamId} />
     </>
@@ -285,6 +290,141 @@ function TeamEditForm({ team, teamId, onDone }: { team: TeamDetail; teamId: stri
           </Button>
         </div>
         {mutation.isError && <p className="text-xs text-destructive">Nepodařilo se uložit.</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CoachStatsSection({ teamId }: { teamId: string }) {
+  const auth = useAuth();
+  const { data: stats, isLoading } = useQuery<TeamStats, ApiError>({
+    queryKey: ['team-stats', teamId, auth.clubId],
+    queryFn: () => apiFetch<TeamStats>(`/teams/${teamId}/stats`),
+    enabled: auth.isAuthenticated && !!auth.clubId && !!teamId,
+    retry: false,
+  });
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="h-4 w-4 text-primary" />
+          <CardTitle className="text-sm">Statistiky</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        ) : !stats ? null : (
+          <>
+            {/* Stat cards row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 text-center">
+                <div className="text-xl font-bold text-primary">{stats.totalEvents}</div>
+                <div className="text-[11px] text-muted-foreground">Událostí</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {stats.totalPractices} trénink · {stats.totalMatches} zápas
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 text-center">
+                <div className="text-xl font-bold text-emerald-500">{stats.avgAttendance}%</div>
+                <div className="text-[11px] text-muted-foreground">Průměrná docházka</div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 text-center">
+                <div className="text-xl font-bold text-blue-500">{stats.rsvpReliability}%</div>
+                <div className="text-[11px] text-muted-foreground">RSVP spolehlivost</div>
+              </div>
+            </div>
+
+            {/* Top/Bottom attenders */}
+            {(stats.topAttenders.length > 0 || stats.worstAttenders.length > 0) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-600">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    Nejlepší docházka
+                  </div>
+                  <div className="space-y-1.5">
+                    {stats.topAttenders.map((a) => (
+                      <div key={a.name} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="truncate text-xs font-medium">{a.name}</span>
+                            <span className="shrink-0 text-xs font-bold text-emerald-600">{a.rate}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-emerald-100 dark:bg-emerald-950">
+                            <div
+                              className="h-1.5 rounded-full bg-emerald-500"
+                              style={{ width: `${a.rate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-amber-600">
+                    <TrendingDown className="h-3.5 w-3.5" />
+                    Potřebují pozornost
+                  </div>
+                  <div className="space-y-1.5">
+                    {stats.worstAttenders.map((a) => (
+                      <div key={a.name} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="truncate text-xs font-medium">{a.name}</span>
+                            <span className="shrink-0 text-xs font-bold text-amber-600">{a.rate}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-amber-100 dark:bg-amber-950">
+                            <div
+                              className="h-1.5 rounded-full bg-amber-500"
+                              style={{ width: `${a.rate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Monthly trend bar chart */}
+            {stats.monthlyTrend.length > 0 && (
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Trend docházky (6 měsíců)
+                </div>
+                <div className="flex items-end gap-1.5 h-20">
+                  {stats.monthlyTrend.map((m) => (
+                    <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-medium text-primary">{m.attendance > 0 ? `${m.attendance}%` : ''}</span>
+                      <div className="w-full flex items-end" style={{ height: '3rem' }}>
+                        <div
+                          className="w-full rounded-t bg-primary/60 transition-all"
+                          style={{ height: `${Math.max(m.attendance, 2)}%`, minHeight: m.attendance > 0 ? '4px' : '2px' }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{m.month}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {stats.totalEvents === 0 && (
+              <p className="text-center text-xs text-muted-foreground py-4">
+                Zatím žádná data — statistiky se zobrazí po prvních událostech.
+              </p>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, LayoutList, MapPin, Plus, Users } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, LayoutList, MapPin, Plus, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { EventCalendar } from '@/components/admin/event-calendar';
@@ -434,8 +434,51 @@ export default function EventsPage() {
   const auth = useAuth();
   const router = useRouter();
   const search = useSearchParams();
+  const queryClient = useQueryClient();
   const { data: memberCtx } = useMemberContext();
   const canCreate = memberCtx ? (isAdmin(memberCtx) || isCoach(memberCtx)) : false;
+  const canBulkDelete = memberCtx ? (isAdmin(memberCtx) || isCoach(memberCtx)) : false;
+
+  // Bulk selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  function toggleEvent(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll(ids: string[]) {
+    setSelected((prev) => {
+      if (ids.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...ids]);
+    });
+  }
+
+  async function handleBulkDelete() {
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        Array.from(selected).map((id) =>
+          apiFetch(`/events/${id}`, { method: 'DELETE' }),
+        ),
+      );
+      await queryClient.invalidateQueries({ queryKey: ['events'] });
+      setSelected(new Set());
+      setConfirmDelete(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   const rawView = search.get('view');
   const view: 'list' | 'calendar' | 'week' =
@@ -602,107 +645,208 @@ export default function EventsPage() {
           ) : undefined}
         />
       ) : (
-        <div className="space-y-8">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <div className="mb-3 flex items-center gap-3">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  {group.label}
-                </h3>
-                <div className="h-px flex-1 bg-border/50" />
-              </div>
-              <div className="space-y-3">
-                {group.events.map((event) => {
-                  const isMatch = event.type === 'MATCH' || event.type === 'TOURNAMENT';
-
-                  return (
-                    <div
-                      key={event.id}
-                      className={`group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/40 hover:shadow-md border-l-[3px] ${
-                        EVENT_BORDER_COLOR[event.type] ?? 'border-l-border'
-                      }`}
-                      onClick={() => router.push(`/admin/events/${event.id}`)}
+        <>
+          {/* Bulk action bar */}
+          {canBulkDelete && selected.size > 0 && (
+            <div className="sticky top-2 z-10 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 shadow-md backdrop-blur">
+              <span className="text-sm font-medium text-destructive">
+                Vybráno: {selected.size} {selected.size === 1 ? 'událost' : selected.size < 5 ? 'události' : 'událostí'}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => { setSelected(new Set()); setConfirmDelete(false); }}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Zrušit výběr
+                </Button>
+                {!confirmDelete ? (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    Smazat vybrané ({selected.size})
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-destructive font-medium">Opravdu smazat {selected.size} {selected.size === 1 ? 'událost' : selected.size < 5 ? 'události' : 'událostí'}?</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={isDeleting}
                     >
-                      <div className="flex items-stretch">
-                        {/* Date column */}
-                        <div className="flex w-[72px] shrink-0 flex-col items-center justify-center border-r border-border/30 py-4">
-                          <span className="text-2xl font-bold leading-none">
-                            {dayNum(event.startsAt)}
-                          </span>
-                          <span className="mt-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">
-                            {weekdayShort(event.startsAt)}
-                          </span>
-                          <span className="mt-1.5 text-xs font-semibold text-primary">
-                            {formatTime(event.startsAt)}
-                          </span>
-                          {isToday(event.startsAt) && (
-                            <span className="mt-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[11px] font-bold text-primary">
-                              DNES
-                            </span>
-                          )}
-                          {isTomorrow(event.startsAt) && (
-                            <span className="mt-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary/70">
-                              ZÍTRA
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3">
-                          <div className="min-w-0 flex-1">
-                            {/* Event type / title */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold uppercase tracking-wide transition-colors group-hover:text-primary">
-                                {isMatch ? event.title : EVENT_TYPE_LABEL[event.type] ?? event.type}
-                              </span>
-                              {event.homeAway && (
-                                <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                                  {event.homeAway}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Team + member count */}
-                            <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {event.rsvpSummary.total}
-                              </span>
-                              {event.teamName ? (
-                                <span className="font-medium text-primary/70">
-                                  {event.teamName}
-                                </span>
-                              ) : (
-                                <span className="text-amber-500/70">Celý klub</span>
-                              )}
-                            </div>
-
-                            {/* Location */}
-                            {event.location && (
-                              <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/60">
-                                <MapPin className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{event.location}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* RSVP status */}
-                          <div className="shrink-0 text-right">
-                            <RsvpBadge summary={event.rsvpSummary} />
-                            <div className="mt-1.5 flex items-center justify-end gap-0.5 text-[11px] text-muted-foreground/40 transition-colors group-hover:text-primary/50">
-                              <span>Detail</span>
-                              <ChevronDown className="h-3 w-3 -rotate-90" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      Ne
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleBulkDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Mažu...' : 'Ano, smazat'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          <div className="space-y-8">
+            {groups.map((group) => {
+              const groupIds = group.events.map((e) => e.id);
+              const allGroupSelected = canBulkDelete && groupIds.length > 0 && groupIds.every((id) => selected.has(id));
+
+              return (
+                <div key={group.label}>
+                  <div className="mb-3 flex items-center gap-3">
+                    {canBulkDelete && (
+                      <input
+                        type="checkbox"
+                        checked={allGroupSelected}
+                        onChange={() => toggleAll(groupIds)}
+                        className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-primary"
+                        title="Vybrat vše v měsíci"
+                      />
+                    )}
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      {group.label}
+                    </h3>
+                    <div className="h-px flex-1 bg-border/50" />
+                  </div>
+                  <div className="space-y-3">
+                    {group.events.map((event) => {
+                      const isMatch = event.type === 'MATCH' || event.type === 'TOURNAMENT';
+                      const isSelected = selected.has(event.id);
+
+                      return (
+                        <div
+                          key={event.id}
+                          className={cn(
+                            'group overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 border-l-[3px]',
+                            EVENT_BORDER_COLOR[event.type] ?? 'border-l-border',
+                            isSelected
+                              ? 'border-destructive/40 bg-destructive/5'
+                              : 'cursor-pointer hover:border-primary/40 hover:shadow-md',
+                          )}
+                          onClick={(e) => {
+                            // If clicking the checkbox area, don't navigate
+                            if ((e.target as HTMLElement).closest('[data-checkbox]')) return;
+                            if (canBulkDelete && selected.size > 0) {
+                              toggleEvent(event.id);
+                              return;
+                            }
+                            router.push(`/admin/events/${event.id}`);
+                          }}
+                        >
+                          <div className="flex items-stretch">
+                            {/* Checkbox column */}
+                            {canBulkDelete && (
+                              <div
+                                data-checkbox="1"
+                                className="flex w-10 shrink-0 items-center justify-center border-r border-border/20 cursor-pointer"
+                                onClick={(e) => { e.stopPropagation(); toggleEvent(event.id); }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleEvent(event.id)}
+                                  className="h-3.5 w-3.5 cursor-pointer accent-primary"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            )}
+
+                            {/* Date column */}
+                            <div className="flex w-[72px] shrink-0 flex-col items-center justify-center border-r border-border/30 py-4">
+                              <span className="text-2xl font-bold leading-none">
+                                {dayNum(event.startsAt)}
+                              </span>
+                              <span className="mt-0.5 text-[11px] font-medium tracking-wider text-muted-foreground">
+                                {weekdayShort(event.startsAt)}
+                              </span>
+                              <span className="mt-1.5 text-xs font-semibold text-primary">
+                                {formatTime(event.startsAt)}
+                              </span>
+                              {isToday(event.startsAt) && (
+                                <span className="mt-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[11px] font-bold text-primary">
+                                  DNES
+                                </span>
+                              )}
+                              {isTomorrow(event.startsAt) && (
+                                <span className="mt-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary/70">
+                                  ZÍTRA
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3">
+                              <div className="min-w-0 flex-1">
+                                {/* Event type / title */}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold uppercase tracking-wide transition-colors group-hover:text-primary">
+                                    {isMatch ? event.title : EVENT_TYPE_LABEL[event.type] ?? event.type}
+                                  </span>
+                                  {event.homeAway && (
+                                    <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                                      {event.homeAway}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Team + member count */}
+                                <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    {event.rsvpSummary.total}
+                                  </span>
+                                  {event.teamName ? (
+                                    <span className="font-medium text-primary/70">
+                                      {event.teamName}
+                                    </span>
+                                  ) : (
+                                    <span className="text-amber-500/70">Celý klub</span>
+                                  )}
+                                </div>
+
+                                {/* Location */}
+                                {event.location && (
+                                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/60">
+                                    <MapPin className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{event.location}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* RSVP status */}
+                              <div className="shrink-0 text-right">
+                                <RsvpBadge summary={event.rsvpSummary} />
+                                {!isSelected && (
+                                  <div className="mt-1.5 flex items-center justify-end gap-0.5 text-[11px] text-muted-foreground/40 transition-colors group-hover:text-primary/50">
+                                    <span>Detail</span>
+                                    <ChevronDown className="h-3 w-3 -rotate-90" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );

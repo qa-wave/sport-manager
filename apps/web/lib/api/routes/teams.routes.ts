@@ -290,6 +290,159 @@ teams.get('/:teamId/attendance-stats', async (c) => {
 });
 
 /**
+ * GET /v1/teams/:teamId/stats
+ * Coaching statistics: event counts, attendance rates, top/bottom attenders, monthly trend.
+ */
+teams.get('/:teamId/stats', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+
+  const { teamId } = c.req.param();
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const team = await tx.team.findFirst({ where: { id: teamId }, select: { id: true } });
+    if (!team) return null;
+
+    // Active members of the team
+    const memberships = await tx.teamMembership.findMany({
+      where: { teamId, leftAt: null },
+      select: {
+        member: {
+          select: {
+            id: true,
+            user: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    // All events for this team in the last 6 months
+    const events = await tx.event.findMany({
+      where: { teamId, startsAt: { gte: sixMonthsAgo } },
+      orderBy: { startsAt: 'asc' },
+      select: { id: true, type: true, startsAt: true },
+    });
+
+    const totalEvents = events.length;
+    const totalPractices = events.filter((e) => e.type === 'PRACTICE').length;
+    const totalMatches = events.filter((e) => e.type === 'MATCH' || e.type === 'TOURNAMENT').length;
+
+    if (totalEvents === 0 || memberships.length === 0) {
+      return {
+        totalEvents,
+        totalPractices,
+        totalMatches,
+        avgAttendance: 0,
+        rsvpReliability: 0,
+        topAttenders: [],
+        worstAttenders: [],
+        monthlyTrend: [],
+      };
+    }
+
+    const eventIds = events.map((e) => e.id);
+    const memberIds = memberships.map((m) => m.member.id);
+
+    const attendances = await tx.eventAttendance.findMany({
+      where: { eventId: { in: eventIds }, memberId: { in: memberIds } },
+      select: { eventId: true, memberId: true, attended: true, status: true },
+    });
+
+    // Per-member stats
+    const memberStats = memberships.map((m) => {
+      const memberAtt = attendances.filter((a) => a.memberId === m.member.id);
+      const recorded = memberAtt.filter((a) => a.attended !== null);
+      const attended = recorded.filter((a) => a.attended === true).length;
+      const rate = recorded.length > 0 ? Math.round((attended / recorded.length) * 100) : 0;
+
+      // RSVP reliability: said YES and actually attended / total YES RSVPs
+      const rsvpYes = memberAtt.filter((a) => a.status === 'YES');
+      const rsvpYesAttended = rsvpYes.filter((a) => a.attended === true).length;
+      const memberReliability = rsvpYes.length > 0 ? (rsvpYesAttended / rsvpYes.length) * 100 : 0;
+
+      return {
+        memberId: m.member.id,
+        name: `${m.member.user.firstName} ${m.member.user.lastName}`,
+        rate,
+        rsvpYesCount: rsvpYes.length,
+        rsvpYesAttended,
+        memberReliability,
+        recordedCount: recorded.length,
+      };
+    });
+
+    // Overall avg attendance
+    const totalRecorded = memberStats.reduce((s, m) => s + m.recordedCount, 0);
+    const totalAttended = memberStats.reduce((s, m) => {
+      const memberAtt = attendances.filter((a) => a.memberId === m.memberId && a.attended === true);
+      return s + memberAtt.length;
+    }, 0);
+    const avgAttendance = totalRecorded > 0 ? Math.round((totalAttended / totalRecorded) * 100) : 0;
+
+    // Overall RSVP reliability
+    const totalRsvpYes = memberStats.reduce((s, m) => s + m.rsvpYesCount, 0);
+    const totalRsvpYesAttended = memberStats.reduce((s, m) => s + m.rsvpYesAttended, 0);
+    const rsvpReliability = totalRsvpYes > 0 ? Math.round((totalRsvpYesAttended / totalRsvpYes) * 100) : 0;
+
+    // Sort for top/bottom
+    const withRecords = memberStats.filter((m) => m.recordedCount >= 3);
+    const sorted = [...withRecords].sort((a, b) => b.rate - a.rate);
+    const topAttenders = sorted.slice(0, 5).map((m) => ({ name: m.name, rate: m.rate }));
+    const worstAttenders = sorted.slice(-5).reverse().map((m) => ({ name: m.name, rate: m.rate }));
+
+    // Monthly trend — last 6 months
+    const monthlyTrend: Array<{ month: string; attendance: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      const monthEvents = events.filter((e) => {
+        const d = new Date(e.startsAt);
+        return d.getFullYear() === year && d.getMonth() === month;
+      });
+
+      if (monthEvents.length === 0) {
+        const label = date.toLocaleDateString('cs-CZ', { month: 'short' });
+        monthlyTrend.push({ month: label, attendance: 0 });
+        continue;
+      }
+
+      const monthEventIds = monthEvents.map((e) => e.id);
+      const monthAtt = attendances.filter((a) => monthEventIds.includes(a.eventId) && a.attended !== null);
+      const monthAttended = monthAtt.filter((a) => a.attended === true).length;
+      const monthRate = monthAtt.length > 0 ? Math.round((monthAttended / monthAtt.length) * 100) : 0;
+
+      const label = date.toLocaleDateString('cs-CZ', { month: 'short' });
+      monthlyTrend.push({ month: label, attendance: monthRate });
+    }
+
+    return {
+      totalEvents,
+      totalPractices,
+      totalMatches,
+      avgAttendance,
+      rsvpReliability,
+      topAttenders,
+      worstAttenders,
+      monthlyTrend,
+    };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Team not found', code: 'TEAM_NOT_FOUND' }, 404);
+  }
+
+  return c.json(result);
+});
+
+/**
  * PATCH /v1/teams/:teamId
  * Update team name, sport, ageGroup, season.
  */

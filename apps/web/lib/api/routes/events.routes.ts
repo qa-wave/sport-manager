@@ -558,6 +558,53 @@ events.post(
 );
 
 // ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/qr-token
+// Coach/admin generates a QR attendance token for an event.
+// ---------------------------------------------------------------------------
+events.post(
+  '/:eventId/qr-token',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+
+    const secret = process.env.JWT_ACCESS_SECRET;
+    if (!secret) {
+      return c.json({ error: 'Internal Server Error' }, 500);
+    }
+
+    const event = await prisma.withClub(member.clubId, async (tx) => {
+      return tx.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, endsAt: true, title: true },
+      });
+    });
+
+    if (!event) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    // Token expires when the event ends (or in 24h if endsAt is in the past)
+    const expiry = event.endsAt > new Date() ? event.endsAt : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresInSeconds = Math.floor((expiry.getTime() - Date.now()) / 1000);
+
+    const token = await new SignJWT({
+      eventId,
+      purpose: 'attend',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime(Math.floor(expiry.getTime() / 1000))
+      .sign(new TextEncoder().encode(secret));
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
+    const url = `${baseUrl}/attend/${token}`;
+
+    return c.json({ token, url, eventTitle: event.title, expiresAt: expiry });
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Internal helper — send RSVP emails to guardians of team members.
 // Called fire-and-forget after event creation.
 // ---------------------------------------------------------------------------

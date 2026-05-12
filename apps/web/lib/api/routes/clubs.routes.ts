@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import { ClubConfig, ClubTheme, CreateClubInput, UpdateClubThemeInput, UpdateClubSettingsInput } from '@sport-manager/contracts';
 import type { Prisma } from '@prisma/client';
 import { ClubRoleType } from '@prisma/client';
@@ -192,34 +193,95 @@ clubs.patch(
 /**
  * PATCH /v1/clubs/settings
  *
- * Update basic club settings: name, timezone.
+ * Update basic club settings: name, timezone, currentSeason.
  * Requires OWNER or ADMIN club role.
  */
+const UpdateClubSettingsExtendedInput = UpdateClubSettingsInput.extend({
+  currentSeason: z.string().min(1).max(20).optional(),
+});
+
 clubs.patch(
   '/settings',
   requireRole('OWNER', 'ADMIN'),
-  zValidator('json', UpdateClubSettingsInput),
+  zValidator('json', UpdateClubSettingsExtendedInput),
   async (c) => {
     const clubId = c.get('clubId')!;
     const input = c.req.valid('json');
 
-    if (!input.name && !input.timezone) {
+    if (!input.name && !input.timezone && !input.currentSeason) {
       return c.json({ error: 'Bad Request', message: 'At least one field required' }, 400);
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      // If updating currentSeason, merge into config
+      if (input.currentSeason) {
+        const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
+        const currentConfig = (current?.config as Record<string, unknown>) ?? {};
+        const newConfig = { ...currentConfig, currentSeason: input.currentSeason };
+        await tx.club.update({
+          where: { id: clubId },
+          data: { config: asJson(newConfig) },
+        });
+      }
+
       const row = await tx.club.update({
         where: { id: clubId },
         data: {
           ...(input.name ? { name: input.name } : {}),
           ...(input.timezone ? { timezone: input.timezone } : {}),
         },
-        select: { id: true, name: true, timezone: true },
+        select: { id: true, name: true, timezone: true, config: true },
       });
       return row;
     });
 
-    return c.json({ club: updated });
+    return c.json({ club: { id: updated.id, name: updated.name, timezone: updated.timezone } });
+  },
+);
+
+/**
+ * POST /v1/clubs/archive-season
+ *
+ * Close the current season: store new season name in club config.
+ * Requires OWNER role.
+ */
+const ArchiveSeasonInput = z.object({
+  newSeason: z.string().min(1).max(20),
+});
+
+clubs.post(
+  '/archive-season',
+  requireRole('OWNER'),
+  zValidator('json', ArchiveSeasonInput),
+  async (c) => {
+    const clubId = c.get('clubId')!;
+    const { newSeason } = c.req.valid('json');
+
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
+      const currentConfig = (current?.config as Record<string, unknown>) ?? {};
+      const archivedSeasons = Array.isArray(currentConfig.archivedSeasons)
+        ? [...(currentConfig.archivedSeasons as string[])]
+        : [];
+
+      const previousSeason = (currentConfig.currentSeason as string | undefined) ?? null;
+      if (previousSeason && !archivedSeasons.includes(previousSeason)) {
+        archivedSeasons.push(previousSeason);
+      }
+
+      const newConfig = {
+        ...currentConfig,
+        currentSeason: newSeason,
+        archivedSeasons,
+      };
+
+      await tx.club.update({
+        where: { id: clubId },
+        data: { config: asJson(newConfig) },
+      });
+    });
+
+    return c.json({ newSeason });
   },
 );
 

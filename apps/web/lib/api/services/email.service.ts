@@ -1,7 +1,7 @@
 /**
- * Email service — currently logs to console.
- * Replace sendEmail() body with Resend/Postmark when ready.
+ * Email service — Resend when RESEND_API_KEY is set, console fallback otherwise.
  */
+import { Resend } from 'resend';
 
 type EmailPayload = {
   to: string;
@@ -9,11 +9,30 @@ type EmailPayload = {
   html: string;
 };
 
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
 export async function sendEmail(payload: EmailPayload): Promise<void> {
-  // TODO: Replace with real email provider (Resend / Postmark)
-  console.log(`[email] To: ${payload.to}`);
-  console.log(`[email] Subject: ${payload.subject}`);
-  console.log(`[email] Body: ${payload.html.slice(0, 200)}...`);
+  if (!resend) {
+    // Dev fallback: log to console
+    console.log(`[email] To: ${payload.to}`);
+    console.log(`[email] Subject: ${payload.subject}`);
+    console.log(`[email] Body preview: ${payload.html.slice(0, 100)}...`);
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? 'Sport Manager <noreply@sport-manager.qawave.ai>',
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+  } catch (err) {
+    console.error('[email] Failed to send:', err);
+    // Don't throw — email failure shouldn't break the flow
+  }
 }
 
 export function rsvpReminderEmail(opts: {
