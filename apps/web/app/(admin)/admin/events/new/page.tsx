@@ -29,6 +29,8 @@ export default function NewEventPage() {
   const [homeAway, setHomeAway] = useState<string>('');
   const [rsvpDeadline, setRsvpDeadline] = useState('');
   const [description, setDescription] = useState('');
+  const [feeEnabled, setFeeEnabled] = useState(false);
+  const [feeAmount, setFeeAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const teams = useQuery<TeamSummary[], ApiError>({
@@ -72,7 +74,15 @@ export default function NewEventPage() {
     if (opponent.trim()) body.opponent = opponent.trim();
     if (homeAway) body.homeAway = homeAway;
     if (rsvpDeadline) body.rsvpDeadline = new Date(rsvpDeadline).toISOString();
-    if (description.trim()) body.description = description.trim();
+    let desc = description.trim();
+    if (feeEnabled && feeAmount) {
+      const parsedFee = parseInt(feeAmount, 10);
+      if (!isNaN(parsedFee) && parsedFee > 0) {
+        const feeMarker = `<!-- fee: ${JSON.stringify({ amount: parsedFee, currency: 'CZK' })} -->`;
+        desc = desc ? `${desc}\n\n${feeMarker}` : feeMarker;
+      }
+    }
+    if (desc) body.description = desc;
 
     createMutation.mutate(body);
   }
@@ -236,6 +246,34 @@ export default function NewEventPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
+            </div>
+
+            {/* Fee toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="fee-toggle"
+                  type="checkbox"
+                  checked={feeEnabled}
+                  onChange={(e) => setFeeEnabled(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer accent-primary"
+                />
+                <Label htmlFor="fee-toggle" className="cursor-pointer">Poplatek za účast (volitelné)</Label>
+              </div>
+              {feeEnabled && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="500"
+                    value={feeAmount}
+                    onChange={(e) => setFeeAmount(e.target.value)}
+                    className="w-40 h-9"
+                  />
+                  <span className="text-sm text-muted-foreground">CZK</span>
+                </div>
+              )}
             </div>
 
             {error && (

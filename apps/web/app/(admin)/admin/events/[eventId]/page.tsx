@@ -4,7 +4,7 @@ import { useState, useMemo, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, Pencil, Plus, QrCode, Search, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { BookOpen, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
 import { apiFetch, ApiError, type EventDetail, type TeamSummary } from '@/lib/api';
@@ -30,8 +30,383 @@ import {
   type Difficulty,
   type Drill,
 } from '@/lib/training-library';
+import { LineupBuilder } from '@/components/admin/lineup-builder';
 
 const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
+
+// ─── Score marker helpers ───
+
+const SCORE_MARKER_RE = /<!--\s*score:\s*(\{.*?\})\s*-->/s;
+
+type ScoreStatus = 'not_started' | 'first_half' | 'half_time' | 'second_half' | 'full_time';
+
+interface ScoreData {
+  home: number;
+  away: number;
+  status: ScoreStatus;
+  updatedAt: string;
+}
+
+function parseScoreMarker(description: string | null | undefined): ScoreData | null {
+  if (!description) return null;
+  const match = SCORE_MARKER_RE.exec(description);
+  if (!match) return null;
+  try { return JSON.parse(match[1]); } catch { return null; }
+}
+
+const SCORE_STATUS_LABEL: Record<ScoreStatus, string> = {
+  not_started: 'Nezahájeno',
+  first_half: '1. poločas',
+  half_time: 'Poločas',
+  second_half: '2. poločas',
+  full_time: 'Konec',
+};
+
+// ─── Fee marker helpers ───
+
+const FEE_MARKER_RE = /<!--\s*fee:\s*(\{.*?\})\s*-->/s;
+
+interface FeeData {
+  amount: number;
+  currency: string;
+}
+
+function parseFeeMarker(description: string | null | undefined): FeeData | null {
+  if (!description) return null;
+  const match = FEE_MARKER_RE.exec(description);
+  if (!match) return null;
+  try { return JSON.parse(match[1]); } catch { return null; }
+}
+
+function updateFeeMarker(description: string | null | undefined, fee: FeeData | null): string {
+  const base = description ?? '';
+  if (!fee) {
+    return base.replace(/\n\n<!--\s*fee:.*?-->/s, '').replace(/<!--\s*fee:.*?-->\n?\n?/s, '');
+  }
+  const marker = `<!-- fee: ${JSON.stringify(fee)} -->`;
+  if (FEE_MARKER_RE.test(base)) {
+    return base.replace(FEE_MARKER_RE, marker);
+  }
+  return base ? `${base}\n\n${marker}` : marker;
+}
+
+// ─── Live Score Section ───
+
+interface LiveScoreSectionProps {
+  eventId: string;
+  description: string | null | undefined;
+  opponent: string | null | undefined;
+  homeAway: string | null | undefined;
+  isCoachOrAdmin: boolean;
+  onDescriptionUpdate: (newDesc: string) => void;
+}
+
+function LiveScoreSection({
+  eventId,
+  description,
+  opponent,
+  homeAway,
+  isCoachOrAdmin,
+  onDescriptionUpdate,
+}: LiveScoreSectionProps) {
+  const queryClient = useQueryClient();
+  const [localScore, setLocalScore] = useState<ScoreData | null>(null);
+
+  const score = localScore ?? parseScoreMarker(description);
+  const isLive = score?.status === 'first_half' || score?.status === 'second_half';
+
+  const scoreMutation = useMutation({
+    mutationFn: (data: { homeScore: number; awayScore: number; status: ScoreStatus }) =>
+      apiFetch(`/events/${eventId}/score`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_result, vars) => {
+      const newScore: ScoreData = {
+        home: vars.homeScore,
+        away: vars.awayScore,
+        status: vars.status,
+        updatedAt: new Date().toISOString(),
+      };
+      setLocalScore(newScore);
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+
+  function updateScore(field: 'home' | 'away', delta: number) {
+    const current = score ?? { home: 0, away: 0, status: 'not_started' as ScoreStatus, updatedAt: '' };
+    const newHome = field === 'home' ? Math.max(0, current.home + delta) : current.home;
+    const newAway = field === 'away' ? Math.max(0, current.away + delta) : current.away;
+    scoreMutation.mutate({ homeScore: newHome, awayScore: newAway, status: current.status });
+  }
+
+  function updateStatus(status: ScoreStatus) {
+    const current = score ?? { home: 0, away: 0, status: 'not_started' as ScoreStatus, updatedAt: '' };
+    scoreMutation.mutate({ homeScore: current.home, awayScore: current.away, status });
+  }
+
+  const clubName = homeAway === 'HOME' ? 'Domácí' : homeAway === 'AWAY' ? 'Hosté' : 'My';
+  const oppName = opponent ?? 'Soupeř';
+  const leftTeam = homeAway === 'AWAY' ? oppName : clubName;
+  const rightTeam = homeAway === 'AWAY' ? clubName : oppName;
+  const leftScore = homeAway === 'AWAY' ? (score?.away ?? 0) : (score?.home ?? 0);
+  const rightScore = homeAway === 'AWAY' ? (score?.home ?? 0) : (score?.away ?? 0);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div className="flex items-center gap-2">
+          {isLive && (
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+              <span className="text-xs font-bold text-red-500 uppercase tracking-wider">LIVE</span>
+            </span>
+          )}
+          <CardTitle className="text-sm">Živý výsledek</CardTitle>
+        </div>
+        {score && (
+          <span className="text-xs text-muted-foreground">{SCORE_STATUS_LABEL[score.status]}</span>
+        )}
+      </CardHeader>
+
+      <CardContent className="pb-5 pt-0">
+        {!score ? (
+          <div className="rounded-lg border border-dashed border-border/60 py-6 text-center">
+            <p className="text-sm text-muted-foreground">Výsledek zatím nezadán</p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-4 py-2">
+            <div className="flex flex-col items-center gap-1 min-w-[80px]">
+              <span className="text-xs font-medium text-muted-foreground truncate max-w-[100px] text-center">{leftTeam}</span>
+              <span className="text-5xl font-black tabular-nums leading-none">{leftScore}</span>
+            </div>
+            <span className="text-3xl font-bold text-muted-foreground/50">:</span>
+            <div className="flex flex-col items-center gap-1 min-w-[80px]">
+              <span className="text-xs font-medium text-muted-foreground truncate max-w-[100px] text-center">{rightTeam}</span>
+              <span className="text-5xl font-black tabular-nums leading-none">{rightScore}</span>
+            </div>
+          </div>
+        )}
+
+        {isCoachOrAdmin && (
+          <div className="mt-4 space-y-3">
+            {/* Score controls */}
+            <div className="flex items-center justify-center gap-6">
+              {/* Home team controls */}
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">{homeAway === 'AWAY' ? oppName : clubName}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateScore('home', -1)}
+                    disabled={scoreMutation.isPending || (score?.home ?? 0) === 0}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-lg font-bold hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="w-6 text-center text-lg font-bold tabular-nums">{score?.home ?? 0}</span>
+                  <button
+                    onClick={() => updateScore('home', 1)}
+                    disabled={scoreMutation.isPending}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-lg font-bold hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <span className="text-muted-foreground/40 text-xl">:</span>
+              {/* Away team controls */}
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">{homeAway === 'AWAY' ? clubName : oppName}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateScore('away', -1)}
+                    disabled={scoreMutation.isPending || (score?.away ?? 0) === 0}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-lg font-bold hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="w-6 text-center text-lg font-bold tabular-nums">{score?.away ?? 0}</span>
+                  <button
+                    onClick={() => updateScore('away', 1)}
+                    disabled={scoreMutation.isPending}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-lg font-bold hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Status selector */}
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {(['not_started', 'first_half', 'half_time', 'second_half', 'full_time'] as ScoreStatus[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => updateStatus(s)}
+                  disabled={scoreMutation.isPending}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-all ${
+                    score?.status === s
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {SCORE_STATUS_LABEL[s]}
+                </button>
+              ))}
+            </div>
+
+            {/* Initialize button when no score yet */}
+            {!score && (
+              <div className="flex justify-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => scoreMutation.mutate({ homeScore: 0, awayScore: 0, status: 'not_started' })}
+                  disabled={scoreMutation.isPending}
+                >
+                  Zahájit sledování výsledku
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Per-Event Fee Section ───
+
+interface EventFeeSectionProps {
+  eventId: string;
+  description: string | null | undefined;
+  isCoachOrAdmin: boolean;
+  onDescriptionUpdate: (newDesc: string) => void;
+}
+
+function EventFeeSection({
+  eventId,
+  description,
+  isCoachOrAdmin,
+  onDescriptionUpdate,
+}: EventFeeSectionProps) {
+  const queryClient = useQueryClient();
+  const fee = parseFeeMarker(description);
+  const [editing, setEditing] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [payLoading, setPayLoading] = useState(false);
+
+  const feeMutation = useMutation({
+    mutationFn: (newDesc: string) =>
+      apiFetch(`/events/${eventId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ description: newDesc }),
+      }),
+    onSuccess: (_data, newDesc) => {
+      onDescriptionUpdate(newDesc);
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+
+  function saveFee(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = parseInt(amount, 10);
+    if (isNaN(parsed) || parsed <= 0) return;
+    const newFee: FeeData = { amount: parsed, currency: 'CZK' };
+    const newDesc = updateFeeMarker(description, newFee);
+    feeMutation.mutate(newDesc);
+  }
+
+  function removeFee() {
+    const newDesc = updateFeeMarker(description, null);
+    feeMutation.mutate(newDesc);
+  }
+
+  async function handlePay() {
+    if (!fee) return;
+    setPayLoading(true);
+    try {
+      const data = await apiFetch<{ url: string }>('/stripe/checkout', {
+        method: 'POST',
+        body: JSON.stringify({
+          feeName: `Poplatek za událost`,
+          amountCents: fee.amount * 100,
+          currency: fee.currency,
+          metadata: { eventId },
+        }),
+      });
+      if (data.url) window.location.href = data.url;
+    } catch {
+      // ignore — stripe may not be configured in dev
+    } finally {
+      setPayLoading(false);
+    }
+  }
+
+  if (!fee && !isCoachOrAdmin) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <span className="text-base">💳</span>
+          Poplatek za účast
+        </CardTitle>
+        {isCoachOrAdmin && fee && !editing && (
+          <div className="flex gap-1.5">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setAmount(String(fee.amount)); setEditing(true); }}>
+              Upravit
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={removeFee} disabled={feeMutation.isPending}>
+              Odebrat
+            </Button>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="pb-5 pt-0">
+        {editing ? (
+          <form onSubmit={saveFee} className="flex items-end gap-2">
+            <div className="space-y-1 flex-1">
+              <Label htmlFor="fee-amount" className="text-xs">Částka (CZK)</Label>
+              <Input
+                id="fee-amount"
+                type="number"
+                min="1"
+                step="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="500"
+                className="h-8 text-sm"
+                autoFocus
+              />
+            </div>
+            <Button type="submit" size="sm" className="h-8" disabled={feeMutation.isPending}>Uložit</Button>
+            <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => setEditing(false)}>Zrušit</Button>
+          </form>
+        ) : fee ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/40 px-4 py-3">
+            <div>
+              <div className="text-2xl font-bold tabular-nums">{fee.amount} Kč</div>
+              <div className="text-xs text-muted-foreground">za účast na události</div>
+            </div>
+            <Button size="sm" onClick={handlePay} disabled={payLoading}>
+              {payLoading ? 'Přesměrovávám...' : `Zaplatit ${fee.amount} Kč`}
+            </Button>
+          </div>
+        ) : isCoachOrAdmin ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Žádný poplatek nastaven.</p>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setAmount(''); setEditing(true); }}>
+              <Plus className="mr-1 h-3.5 w-3.5" />Přidat poplatek
+            </Button>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ─── Drill block marker ───
 // Format stored in description: <!-- drills: w1,p3,s2 -->
@@ -352,6 +727,60 @@ function DrillPickerModal({
   );
 }
 
+// ─── Lineup Builder Card ───
+
+function LineupBuilderCard({
+  eventId,
+  event,
+  isCoachOrAdmin,
+}: {
+  eventId: string;
+  event: EventDetail;
+  isCoachOrAdmin: boolean;
+}) {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+
+  // Build player list from YES RSVPs + all attendees
+  const players = useMemo(
+    () =>
+      event.attendees
+        .filter((a) => a.status === 'YES' || event.attendees.length < 6)
+        .map((a) => ({ memberId: a.memberId, name: a.name })),
+    [event.attendees],
+  );
+
+  const patchMutation = useMutation({
+    mutationFn: (newDesc: string) =>
+      apiFetch(`/events/${eventId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ description: newDesc }),
+      }),
+    onSuccess: (_data, newDesc) => {
+      queryClient.setQueryData(
+        ['event', eventId, auth.clubId],
+        (old: EventDetail | undefined) => (old ? { ...old, description: newDesc } : old),
+      );
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-5">
+        <LineupBuilder
+          eventId={eventId}
+          description={event.description ?? ''}
+          isCoachOrAdmin={isCoachOrAdmin}
+          players={players}
+          onDescriptionUpdate={(newDesc) => patchMutation.mutate(newDesc)}
+          isSaving={patchMutation.isPending}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function toLocalDatetimeValue(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -387,6 +816,7 @@ export default function EventDetailPage() {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrCopied, setQrCopied] = useState(false);
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   // Edit form state
   const [editType, setEditType] = useState('');
@@ -486,6 +916,36 @@ export default function EventDetailPage() {
         body: JSON.stringify({ attendances }),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
+  });
+
+  const carpoolMutation = useMutation({
+    mutationFn: (args: { type: 'offer' | 'request' | 'none'; seats?: number; note?: string }) =>
+      apiFetch(`/events/${eventId}/carpool`, {
+        method: 'PATCH',
+        body: JSON.stringify(args),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
+  });
+
+  const statsMutation = useMutation({
+    mutationFn: (stats: Array<{ memberId: string; goals: number; assists: number; yellowCards: number; redCards: number }>) =>
+      apiFetch(`/events/${eventId}/stats`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stats }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: (text: string) =>
+      apiFetch(`/events/${eventId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      }),
+    onSuccess: () => {
+      setCommentText('');
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
   });
 
   async function generateQrToken() {
@@ -861,6 +1321,36 @@ export default function EventDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Live Score — only for MATCH / TOURNAMENT events */}
+      {(event.type === 'MATCH' || event.type === 'TOURNAMENT') && (
+        <LiveScoreSection
+          eventId={eventId}
+          description={event.description}
+          opponent={event.opponent}
+          homeAway={event.homeAway}
+          isCoachOrAdmin={!!isCoachOrAdmin}
+          onDescriptionUpdate={(newDesc) => {
+            queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
+              old ? { ...old, description: newDesc } : old
+            );
+            queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+          }}
+        />
+      )}
+
+      {/* Per-event fee */}
+      <EventFeeSection
+        eventId={eventId}
+        description={event.description}
+        isCoachOrAdmin={!!isCoachOrAdmin}
+        onDescriptionUpdate={(newDesc) => {
+          queryClient.setQueryData(['event', eventId, auth.clubId], (old: EventDetail | undefined) =>
+            old ? { ...old, description: newDesc } : old
+          );
+          queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+        }}
+      />
+
       {/* Training plan — only for PRACTICE events */}
       {event.type === 'PRACTICE' && (
         <TrainingPlanSection
@@ -875,6 +1365,15 @@ export default function EventDetailPage() {
             );
             queryClient.invalidateQueries({ queryKey: ['event', eventId] });
           }}
+        />
+      )}
+
+      {/* Lineup builder — only for MATCH and TOURNAMENT events */}
+      {(event.type === 'MATCH' || event.type === 'TOURNAMENT') && (
+        <LineupBuilderCard
+          eventId={eventId}
+          event={event}
+          isCoachOrAdmin={!!isCoachOrAdmin}
         />
       )}
 
@@ -1017,6 +1516,380 @@ export default function EventDetailPage() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Carpool section */}
+      <CarpoolSection
+        event={event}
+        memberCtx={memberCtx}
+        onCarpool={(args) => carpoolMutation.mutate(args)}
+        isSaving={carpoolMutation.isPending}
+      />
+
+      {/* Game stats — only for MATCH events after they end */}
+      {event.type === 'MATCH' && (
+        <StatsSection
+          event={event}
+          isCoachOrAdmin={!!isCoachOrAdmin}
+          onSaveStats={(stats) => statsMutation.mutate(stats)}
+          isSaving={statsMutation.isPending}
+        />
+      )}
+
+      {/* Comments / Discussion */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Diskuze</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          {/* Comment list */}
+          {parseComments(event.description ?? '').length === 0 ? (
+            <p className="text-xs text-muted-foreground">Zatím žádné komentáře.</p>
+          ) : (
+            <div className="space-y-3">
+              {parseComments(event.description ?? '').map((c) => (
+                <div key={c.id} className="flex gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                    {c.author.split(' ').map((n: string) => n[0]).join('')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-semibold">{c.author}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(c.at).toLocaleString('cs-CZ', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground/80 break-words">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add comment */}
+          <div className="flex gap-2">
+            <Input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Napište komentář..."
+              className="h-8 text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
+                  e.preventDefault();
+                  commentMutation.mutate(commentText.trim());
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={!commentText.trim() || commentMutation.isPending}
+              onClick={() => commentMutation.mutate(commentText.trim())}
+            >
+              {commentMutation.isPending ? '...' : 'Přidat'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </>
+  );
+}
+
+// ─── Parse helpers ───
+
+function parseComments(description: string): Array<{ id: string; authorId: string; author: string; text: string; at: string }> {
+  const match = /<!--\s*comments:\s*([\s\S]*?)\s*-->/.exec(description);
+  if (!match) return [];
+  try {
+    return JSON.parse(match[1]) as ReturnType<typeof parseComments>;
+  } catch {
+    return [];
+  }
+}
+
+function parseStats(description: string): Array<{ memberId: string; goals: number; assists: number; yellowCards: number; redCards: number }> {
+  const match = /<!--\s*stats:\s*([\s\S]*?)\s*-->/.exec(description);
+  if (!match) return [];
+  try {
+    return JSON.parse(match[1]) as ReturnType<typeof parseStats>;
+  } catch {
+    return [];
+  }
+}
+
+function parseCarpoolEntries(attendees: EventDetail['attendees']): {
+  offers: Array<{ name: string; note: string }>;
+  requests: Array<{ name: string; note: string }>;
+} {
+  const offers: Array<{ name: string; note: string }> = [];
+  const requests: Array<{ name: string; note: string }> = [];
+  for (const a of attendees) {
+    if (!a.note?.startsWith('🚗')) continue;
+    if (a.note.includes('Nabízím')) {
+      offers.push({ name: a.name, note: a.note.replace('🚗 ', '') });
+    } else if (a.note.includes('Potřebuji')) {
+      requests.push({ name: a.name, note: a.note.replace('🚗 ', '') });
+    }
+  }
+  return { offers, requests };
+}
+
+// ─── Carpool Section ───
+
+function CarpoolSection({
+  event,
+  memberCtx,
+  onCarpool,
+  isSaving,
+}: {
+  event: EventDetail;
+  memberCtx: ReturnType<typeof useMemberContext>['data'];
+  onCarpool: (args: { type: 'offer' | 'request' | 'none'; seats?: number; note?: string }) => void;
+  isSaving: boolean;
+}) {
+  const [mode, setMode] = useState<'offer' | 'request' | 'none'>('none');
+  const [seats, setSeats] = useState(2);
+  const [note, setNote] = useState('');
+
+  const { offers, requests } = parseCarpoolEntries(event.attendees);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Car className="h-4 w-4 text-primary" />
+          <CardTitle className="text-sm">Doprava</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-0">
+        {/* Current offers */}
+        {offers.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Nabídky míst</p>
+            <div className="space-y-1.5">
+              {offers.map((o, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-500/5 px-3 py-2">
+                  <Car className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-medium">{o.name}</span>
+                  <span className="text-xs text-muted-foreground ml-1">{o.note}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Current requests */}
+        {requests.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Potřebují svézt</p>
+            <div className="space-y-1.5">
+              {requests.map((r, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-500/5 px-3 py-2">
+                  <User className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span className="text-xs font-medium">{r.name}</span>
+                  <span className="text-xs text-muted-foreground ml-1">{r.note}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {offers.length === 0 && requests.length === 0 && (
+          <p className="text-xs text-muted-foreground">Zatím žádné nabídky dopravy.</p>
+        )}
+
+        {/* My carpool preference */}
+        {memberCtx && (
+          <div className="border-t border-border/30 pt-4">
+            <p className="mb-2 text-xs font-medium">Moje doprava</p>
+            <div className="flex flex-wrap gap-2">
+              {(['offer', 'request', 'none'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setMode(t)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                    mode === t
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t === 'offer' ? 'Nabízím místa' : t === 'request' ? 'Potřebuji svézt' : 'Nic'}
+                </button>
+              ))}
+            </div>
+            {mode === 'offer' && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Počet míst</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={seats}
+                    onChange={(e) => setSeats(Number(e.target.value))}
+                    className="h-8 w-20 text-sm"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Místo odjezdu</label>
+                  <Input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Jedu z Prahy 6..."
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+            {mode === 'request' && (
+              <div className="mt-3">
+                <label className="text-xs font-medium text-muted-foreground">Poznámka</label>
+                <Input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Kde mě vyzvednout..."
+                  className="mt-1 h-8 text-sm"
+                />
+              </div>
+            )}
+            {mode !== 'none' && (
+              <Button
+                size="sm"
+                className="mt-3 h-7 text-xs"
+                onClick={() => onCarpool({ type: mode, seats: mode === 'offer' ? seats : undefined, note: note || undefined })}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Ukládám...' : 'Uložit'}
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Stats Section ───
+
+type StatRow = { memberId: string; goals: number; assists: number; yellowCards: number; redCards: number };
+
+function StatsSection({
+  event,
+  isCoachOrAdmin,
+  onSaveStats,
+  isSaving,
+}: {
+  event: EventDetail;
+  isCoachOrAdmin: boolean;
+  onSaveStats: (stats: StatRow[]) => void;
+  isSaving: boolean;
+}) {
+  const saved = parseStats(event.description ?? '');
+
+  const [rows, setRows] = useState<StatRow[]>(() => {
+    const playerAttendees = event.attendees.filter((a) => a.status === 'YES' || saved.some((s) => s.memberId === a.memberId));
+    return playerAttendees.map((a) => {
+      const existing = saved.find((s) => s.memberId === a.memberId);
+      return existing ?? { memberId: a.memberId, goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
+    });
+  });
+
+  const totals = rows.reduce(
+    (acc, r) => ({
+      goals: acc.goals + r.goals,
+      assists: acc.assists + r.assists,
+      yellowCards: acc.yellowCards + r.yellowCards,
+      redCards: acc.redCards + r.redCards,
+    }),
+    { goals: 0, assists: 0, yellowCards: 0, redCards: 0 },
+  );
+
+  function updateRow(memberId: string, field: keyof Omit<StatRow, 'memberId'>, value: number) {
+    setRows((prev) => prev.map((r) => (r.memberId === memberId ? { ...r, [field]: value } : r)));
+  }
+
+  const nameMap = Object.fromEntries(event.attendees.map((a) => [a.memberId, a.name]));
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SquareActivity className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm">Statistiky zápasu</CardTitle>
+          </div>
+          {isCoachOrAdmin && (
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => onSaveStats(rows)}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Ukládám...' : 'Uložit'}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="text-[11px] uppercase tracking-wider">Hráč</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-center">Góly</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-center">Asistence</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-center">ZK</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-center">CK</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.memberId} className="border-border/30">
+                  <TableCell className="text-sm font-medium">{nameMap[row.memberId] ?? row.memberId}</TableCell>
+                  {(['goals', 'assists', 'yellowCards', 'redCards'] as const).map((field) => (
+                    <TableCell key={field} className="text-center">
+                      {isCoachOrAdmin ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          max={field === 'redCards' ? 1 : field === 'yellowCards' ? 2 : 20}
+                          value={row[field]}
+                          onChange={(e) => updateRow(row.memberId, field, Math.max(0, Number(e.target.value)))}
+                          className="mx-auto h-7 w-14 text-center text-xs"
+                        />
+                      ) : (
+                        <span className="text-sm">{row[field] > 0 ? row[field] : '—'}</span>
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {/* Totals row */}
+              {rows.length > 0 && (
+                <TableRow className="border-border/50 bg-muted/30 font-bold">
+                  <TableCell className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Celkem</TableCell>
+                  <TableCell className="text-center text-sm font-bold">{totals.goals}</TableCell>
+                  <TableCell className="text-center text-sm font-bold">{totals.assists}</TableCell>
+                  <TableCell className="text-center text-sm">
+                    <span className={totals.yellowCards > 0 ? 'text-amber-500 font-bold' : ''}>{totals.yellowCards || '—'}</span>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    <span className={totals.redCards > 0 ? 'text-red-500 font-bold' : ''}>{totals.redCards || '—'}</span>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

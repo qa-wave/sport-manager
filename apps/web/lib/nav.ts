@@ -15,6 +15,10 @@ import {
   Repeat,
   Camera,
   BarChart2,
+  FileSignature,
+  Vote,
+  FolderOpen,
+  FileBarChart2,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -98,6 +102,35 @@ export const ADMIN_NAV: NavItem[] = [
     icon: CreditCard,
     access: 'admin_or_finance',
     feature: 'payments',
+  },
+  {
+    href: '/admin/waivers',
+    label: 'Souhlasy',
+    description: 'GDPR, zdravotní a mediální souhlasy',
+    icon: FileSignature,
+    access: 'admin',
+    feature: 'waivers',
+  },
+  {
+    href: '/admin/polls',
+    label: 'Hlasování',
+    description: 'Ankety a časová hlasování',
+    icon: Vote,
+    access: 'any' as NavAccess,
+  },
+  {
+    href: '/admin/documents',
+    label: 'Dokumenty',
+    description: 'Pravidla, formuláře a dokumenty klubu',
+    icon: FolderOpen,
+    access: 'any' as NavAccess,
+  },
+  {
+    href: '/admin/season-report',
+    label: 'Zpráva o sezoně',
+    description: 'Přehled sezony a statistiky',
+    icon: FileBarChart2,
+    access: 'admin',
   },
   {
     href: '/admin/account',

@@ -1,14 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, LayoutList, MapPin, Plus, Trash2, Users, X } from 'lucide-react';
+import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, Download, LayoutList, Link2, MapPin, Plus, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { EventCalendar } from '@/components/admin/event-calendar';
 import { apiFetch, ApiError, type EventSummary } from '@/lib/api';
+import { downloadICal, generateICal } from '@/lib/ical';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext, isAdmin, isCoach } from '@/lib/member-context';
 import { Button } from '@/components/ui/button';
@@ -559,6 +560,9 @@ export default function EventsPage() {
         actions={
           <div className="flex items-center gap-2">
             <ViewToggle view={view} />
+            {data && data.length > 0 && (
+              <ICalExportButton events={data} />
+            )}
             {canCreate && (
               <Button size="sm" asChild>
                 <Link href="/admin/events/new">
@@ -849,6 +853,81 @@ export default function EventsPage() {
         </>
       )}
     </>
+  );
+}
+
+/* ── iCal Export dropdown ─────────────────────────── */
+
+function ICalExportButton({ events }: { events: EventSummary[] }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  function handleDownload() {
+    downloadICal(events);
+    setOpen(false);
+  }
+
+  function handleCopyUrl() {
+    const content = generateICal(events);
+    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+    setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <CalendarDays className="h-3.5 w-3.5" />
+        Export
+        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+      </Button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-lg border border-border/60 bg-popover shadow-md">
+          <button
+            onClick={handleDownload}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs hover:bg-muted/60 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5 text-muted-foreground" />
+            <div>
+              <div className="font-medium">Stáhnout .ics</div>
+              <div className="text-muted-foreground/70">Apple / Outlook / Google</div>
+            </div>
+          </button>
+          <div className="h-px bg-border/40" />
+          <button
+            onClick={handleCopyUrl}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs hover:bg-muted/60 transition-colors"
+          >
+            <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+            <div>
+              <div className="font-medium">{copied ? 'Zkopírováno!' : 'Kopírovat URL'}</div>
+              <div className="text-muted-foreground/70">Pro Google Calendar</div>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

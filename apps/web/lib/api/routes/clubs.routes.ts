@@ -7,6 +7,7 @@ import { ClubRoleType } from '@prisma/client';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/rbac.middleware';
 import { invalidateFeatureCache } from '../middleware/feature-flag.middleware';
+import { sendEmail } from '../services/email.service';
 import type { HonoEnv } from '../../types/hono';
 
 /**
@@ -478,5 +479,243 @@ clubs.post('/apply-referral', requireRole('OWNER'), zValidator('json', ApplyRefe
 
   return c.json({ message: 'Referral applied', referrerId: referrer.id });
 });
+
+// ---------------------------------------------------------------------------
+// GET /v1/clubs/public/:slug/registration
+// PUBLIC — returns registration form config
+// ---------------------------------------------------------------------------
+clubs.get('/public/:slug/registration', async (c) => {
+  const slug = c.req.param('slug');
+
+  const club = await prisma.club.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      name: true,
+      config: true,
+      teams: {
+        select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+        orderBy: { name: 'asc' },
+      },
+    },
+  });
+
+  if (!club) {
+    return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
+  }
+
+  const cfg = (club.config as Record<string, unknown>) ?? {};
+  const regConfig = (cfg.registration as Record<string, unknown> | undefined) ?? {};
+  const open = (regConfig.open as boolean | undefined) ?? false;
+
+  return c.json({
+    open,
+    clubName: club.name,
+    teams: club.teams,
+    fields: [
+      { name: 'childFirstName', label: 'Jméno dítěte', required: true },
+      { name: 'childLastName', label: 'Příjmení dítěte', required: true },
+      { name: 'dateOfBirth', label: 'Datum narození', required: true, type: 'date' },
+      { name: 'parentFirstName', label: 'Jméno rodiče/zákonného zástupce', required: true },
+      { name: 'parentLastName', label: 'Příjmení rodiče/zákonného zástupce', required: true },
+      { name: 'parentEmail', label: 'Email rodiče', required: true, type: 'email' },
+      { name: 'parentPhone', label: 'Telefon rodiče', required: false },
+      { name: 'teamId', label: 'Tým (volitelné)', required: false },
+      { name: 'notes', label: 'Poznámky', required: false },
+    ],
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /v1/clubs/public/:slug/registration
+// PUBLIC — submit registration form
+// ---------------------------------------------------------------------------
+const RegistrationInput = z.object({
+  childFirstName: z.string().min(1).max(100),
+  childLastName: z.string().min(1).max(100),
+  dateOfBirth: z.string().min(1),
+  parentFirstName: z.string().min(1).max(100),
+  parentLastName: z.string().min(1).max(100),
+  parentEmail: z.string().email(),
+  parentPhone: z.string().optional(),
+  teamId: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+clubs.post('/public/:slug/registration', zValidator('json', RegistrationInput), async (c) => {
+  const slug = c.req.param('slug');
+  const input = c.req.valid('json');
+
+  const club = await prisma.club.findUnique({
+    where: { slug },
+    select: { id: true, name: true, config: true },
+  });
+
+  if (!club) {
+    return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
+  }
+
+  const cfg = (club.config as Record<string, unknown>) ?? {};
+  const regConfig = (cfg.registration as Record<string, unknown> | undefined) ?? {};
+  const open = (regConfig.open as boolean | undefined) ?? false;
+
+  if (!open) {
+    return c.json({ error: 'Forbidden', message: 'Registrace je momentálně uzavřena' }, 403);
+  }
+
+  // Check team exists in this club if teamId provided
+  if (input.teamId) {
+    const team = await prisma.team.findFirst({ where: { id: input.teamId, clubId: club.id } });
+    if (!team) {
+      return c.json({ error: 'Bad Request', message: 'Team not found in this club' }, 400);
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Upsert parent user
+    let parentUser = await tx.user.findUnique({ where: { email: input.parentEmail } });
+    if (!parentUser) {
+      parentUser = await tx.user.create({
+        data: {
+          email: input.parentEmail,
+          firstName: input.parentFirstName,
+          lastName: input.parentLastName,
+          phone: input.parentPhone ?? null,
+        },
+      });
+    }
+
+    // Upsert child user — use fake email derived from parent email + child name
+    const childEmailKey = `${input.childFirstName.toLowerCase()}.${input.childLastName.toLowerCase()}+child@reg.sport-manager.internal`;
+    let childUser = await tx.user.findFirst({
+      where: {
+        firstName: input.childFirstName,
+        lastName: input.childLastName,
+        dateOfBirth: new Date(input.dateOfBirth),
+      },
+    });
+    if (!childUser) {
+      // Generate a unique internal email that won't conflict
+      const existing = await tx.user.count({ where: { email: childEmailKey } });
+      const uniqueEmail = existing > 0 ? `${childEmailKey}.${Date.now()}` : childEmailKey;
+      childUser = await tx.user.create({
+        data: {
+          email: uniqueEmail,
+          firstName: input.childFirstName,
+          lastName: input.childLastName,
+          dateOfBirth: new Date(input.dateOfBirth),
+        },
+      });
+    }
+
+    // Upsert parent member in this club
+    let parentMember = await tx.member.findUnique({
+      where: { userId_clubId: { userId: parentUser.id, clubId: club.id } },
+    });
+    if (!parentMember) {
+      parentMember = await tx.member.create({
+        data: { userId: parentUser.id, clubId: club.id, isMinor: false },
+      });
+    }
+
+    // Upsert child member in this club
+    let childMember = await tx.member.findUnique({
+      where: { userId_clubId: { userId: childUser.id, clubId: club.id } },
+    });
+    if (!childMember) {
+      childMember = await tx.member.create({
+        data: {
+          userId: childUser.id,
+          clubId: club.id,
+          isMinor: true,
+        },
+      });
+    }
+
+    // Create guardian link if not exists
+    const existingLink = await tx.guardianLink.findUnique({
+      where: { guardianId_childId: { guardianId: parentMember.id, childId: childMember.id } },
+    });
+    if (!existingLink) {
+      await tx.guardianLink.create({
+        data: {
+          guardianId: parentMember.id,
+          childId: childMember.id,
+          relationship: 'PARENT',
+          isPrimary: true,
+          canViewSchedule: true,
+          canRsvp: true,
+          canSignWaivers: true,
+        },
+      });
+    }
+
+    // Add child to team if specified
+    if (input.teamId && childMember) {
+      const existingMembership = await tx.teamMembership.findFirst({
+        where: { memberId: childMember.id, teamId: input.teamId, leftAt: null },
+      });
+      if (!existingMembership) {
+        await tx.teamMembership.create({
+          data: { memberId: childMember.id, teamId: input.teamId, role: 'PLAYER' },
+        });
+      }
+    }
+
+    // Store notes in member (we reuse medicalNotes field as general notes for now)
+    if (input.notes && childMember) {
+      await tx.member.update({
+        where: { id: childMember.id },
+        data: { medicalNotes: input.notes },
+      });
+    }
+  });
+
+  // Send confirmation email (fire-and-forget)
+  void sendEmail({
+    to: input.parentEmail,
+    subject: `Registrace do ${club.name} — potvrzení`,
+    html: `
+      <h2>Registrace potvrzena</h2>
+      <p>Dobrý den ${input.parentFirstName},</p>
+      <p>Vaše dítě <strong>${input.childFirstName} ${input.childLastName}</strong> bylo úspěšně zaregistrováno do klubu <strong>${club.name}</strong>.</p>
+      <p>Administrátor klubu Vás brzy kontaktuje s dalšími informacemi.</p>
+      <p style="color:#666;font-size:12px">Sport Manager</p>
+    `,
+  });
+
+  return c.json({ message: 'Registrace byla úspěšně odeslána' }, 201);
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /v1/clubs/registration-config — toggle registration open/closed
+// Requires OWNER role
+// ---------------------------------------------------------------------------
+const RegistrationConfigInput = z.object({
+  open: z.boolean(),
+});
+
+clubs.patch(
+  '/registration-config',
+  requireRole('OWNER'),
+  zValidator('json', RegistrationConfigInput),
+  async (c) => {
+    const clubId = c.get('clubId')!;
+    const { open } = c.req.valid('json');
+
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
+      const currentConfig = (current?.config as Record<string, unknown>) ?? {};
+      const regConfig = (currentConfig.registration as Record<string, unknown> | undefined) ?? {};
+      const newConfig = {
+        ...currentConfig,
+        registration: { ...regConfig, open },
+      };
+      await tx.club.update({ where: { id: clubId }, data: { config: asJson(newConfig) } });
+    });
+
+    return c.json({ open });
+  },
+);
 
 export { clubs as clubsRoutes };

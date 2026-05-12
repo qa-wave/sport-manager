@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import { SignJWT } from 'jose';
 import {
   CreateEventInput,
@@ -605,6 +606,78 @@ events.post(
 );
 
 // ---------------------------------------------------------------------------
+// PATCH /v1/events/:eventId/score
+// Store live score in event description marker.
+// ---------------------------------------------------------------------------
+const SCORE_STATUSES = ['not_started', 'first_half', 'half_time', 'second_half', 'full_time'] as const;
+type ScoreStatus = (typeof SCORE_STATUSES)[number];
+
+const SCORE_MARKER_RE = /<!--\s*score:\s*(\{.*?\})\s*-->/s;
+
+function parseScoreMarker(description: string | null): { home: number; away: number; status: ScoreStatus; updatedAt: string } | null {
+  if (!description) return null;
+  const match = SCORE_MARKER_RE.exec(description);
+  if (!match || !match[1]) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+function updateScoreMarker(description: string | null, data: { home: number; away: number; status: ScoreStatus; updatedAt: string }): string {
+  const marker = `<!-- score: ${JSON.stringify(data)} -->`;
+  const base = description ?? '';
+  if (SCORE_MARKER_RE.test(base)) {
+    return base.replace(SCORE_MARKER_RE, marker);
+  }
+  return base ? `${base}\n\n${marker}` : marker;
+}
+
+events.patch(
+  '/:eventId/score',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH'),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+    const body = await c.req.json<{ homeScore?: number; awayScore?: number; status?: string }>();
+
+    if (body.homeScore === undefined || body.awayScore === undefined || !body.status) {
+      return c.json({ error: 'Bad Request', message: 'homeScore, awayScore and status are required' }, 400);
+    }
+    if (!SCORE_STATUSES.includes(body.status as ScoreStatus)) {
+      return c.json({ error: 'Bad Request', message: `status must be one of: ${SCORE_STATUSES.join(', ')}` }, 400);
+    }
+
+    const result = await prisma.withClub(member.clubId, async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) return null;
+
+      const scoreData = {
+        home: body.homeScore!,
+        away: body.awayScore!,
+        status: body.status as ScoreStatus,
+        updatedAt: new Date().toISOString(),
+      };
+      const newDescription = updateScoreMarker(event.description, scoreData);
+
+      await tx.event.update({
+        where: { id: eventId },
+        data: { description: newDescription },
+      });
+
+      return scoreData;
+    });
+
+    if (!result) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    return c.json({ homeScore: result.home, awayScore: result.away, status: result.status });
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Internal helper — send RSVP emails to guardians of team members.
 // Called fire-and-forget after event creation.
 // ---------------------------------------------------------------------------
@@ -675,5 +748,186 @@ async function sendRsvpEmailsForEvent(opts: {
     console.error('[rsvp] Failed to send RSVP emails:', err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// PATCH /v1/events/:eventId/carpool
+// Stores carpool offer/request in the RSVP note field using a 🚗 prefix.
+// ---------------------------------------------------------------------------
+const CarpoolInput = z.object({
+  type: z.enum(['offer', 'request', 'none']),
+  seats: z.number().int().min(1).max(20).optional(),
+  note: z.string().max(300).optional(),
+});
+
+events.patch('/:eventId/carpool', requireAuth(), zValidator('json', CarpoolInput), async (c) => {
+  const member = c.get('member');
+  const clubId = c.get('clubId');
+  if (!member || !clubId) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const eventId = c.req.param('eventId');
+  const { type, seats, note } = c.req.valid('json');
+
+  // Build the carpool note value
+  let carpoolNote: string | null = null;
+  if (type === 'offer') {
+    carpoolNote = `🚗 Nabízím ${seats ?? 1} míst${seats && seats > 1 ? 'a' : 'o'}${note ? ` | ${note}` : ''}`;
+  } else if (type === 'request') {
+    carpoolNote = `🚗 Potřebuji svézt${note ? ` | ${note}` : ''}`;
+  }
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId } });
+    if (!event) return null;
+
+    await tx.eventAttendance.upsert({
+      where: { eventId_memberId: { eventId, memberId: member.memberId } },
+      create: {
+        eventId,
+        memberId: member.memberId,
+        respondedById: member.memberId,
+        status: 'PENDING',
+        note: carpoolNote,
+      },
+      update: { note: carpoolNote },
+    });
+
+    return { ok: true };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /v1/events/:eventId/stats
+// Stores match stats as a marker in event description.
+// Format: <!-- stats: [{"memberId":"...","goals":1,"assists":0,"yellowCards":0,"redCards":0}] -->
+// ---------------------------------------------------------------------------
+
+const StatEntrySchema = z.object({
+  memberId: z.string(),
+  goals: z.number().int().min(0).default(0),
+  assists: z.number().int().min(0).default(0),
+  yellowCards: z.number().int().min(0).max(2).default(0),
+  redCards: z.number().int().min(0).max(1).default(0),
+});
+
+const StatsInput = z.object({
+  stats: z.array(StatEntrySchema),
+});
+
+const STATS_MARKER_RE = /<!--\s*stats:\s*([\s\S]*?)\s*-->/;
+
+events.patch(
+  '/:eventId/stats',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH'),
+  zValidator('json', StatsInput),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+    const { stats } = c.req.valid('json');
+
+    const result = await prisma.withClub(member.clubId, async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) return null;
+
+      const marker = `<!-- stats: ${JSON.stringify(stats)} -->`;
+      let newDesc = event.description ?? '';
+      if (STATS_MARKER_RE.test(newDesc)) {
+        newDesc = newDesc.replace(STATS_MARKER_RE, marker);
+      } else {
+        newDesc = newDesc ? `${newDesc}\n\n${marker}` : marker;
+      }
+
+      await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+      return { ok: true };
+    });
+
+    if (!result) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    return c.json(result);
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/comments
+// Stores comments as a marker in event description.
+// Format: <!-- comments: [{"id":"...","authorId":"...","author":"...","text":"...","at":"..."}] -->
+// ---------------------------------------------------------------------------
+
+const CommentInput = z.object({
+  text: z.string().min(1).max(1000),
+});
+
+const COMMENTS_MARKER_RE = /<!--\s*comments:\s*([\s\S]*?)\s*-->/;
+
+events.post('/:eventId/comments', requireAuth(), zValidator('json', CommentInput), async (c) => {
+  const member = c.get('member');
+  const clubId = c.get('clubId');
+  if (!member || !clubId) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const eventId = c.req.param('eventId');
+  const { text } = c.req.valid('json');
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId } });
+    if (!event) return null;
+
+    // Get author name
+    const memberRecord = await tx.member.findUnique({
+      where: { id: member.memberId },
+      select: { user: { select: { firstName: true, lastName: true } } },
+    });
+    const authorName = memberRecord
+      ? `${memberRecord.user.firstName} ${memberRecord.user.lastName}`
+      : 'Neznámý';
+
+    // Parse existing comments
+    let existing: Array<{ id: string; authorId: string; author: string; text: string; at: string }> = [];
+    const match = COMMENTS_MARKER_RE.exec(event.description ?? '');
+    if (match && match[1]) {
+      try {
+        existing = JSON.parse(match[1]) as typeof existing;
+      } catch {
+        existing = [];
+      }
+    }
+
+    const newComment = {
+      id: crypto.randomUUID(),
+      authorId: member.memberId,
+      author: authorName,
+      text,
+      at: new Date().toISOString(),
+    };
+    existing.push(newComment);
+
+    const marker = `<!-- comments: ${JSON.stringify(existing)} -->`;
+    let newDesc = event.description ?? '';
+    if (COMMENTS_MARKER_RE.test(newDesc)) {
+      newDesc = newDesc.replace(COMMENTS_MARKER_RE, marker);
+    } else {
+      newDesc = newDesc ? `${newDesc}\n\n${marker}` : marker;
+    }
+
+    await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+    return newComment;
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.json(result, 201);
+});
 
 export { events as eventsRoutes };

@@ -24,6 +24,10 @@ import { rsvpRoutes } from './routes/rsvp.routes';
 import { stripeRoutes } from './routes/stripe.routes';
 import { attendRoutes } from './routes/attend.routes';
 import { uploadRoutes } from './routes/upload.routes';
+import { galleryRoutes } from './routes/gallery.routes';
+import { pollsRoutes } from './routes/polls.routes';
+import { documentsRoutes } from './routes/documents.routes';
+import { waiversRoutes } from './routes/waivers.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -96,6 +100,10 @@ app.route('/v1/rsvp', rsvpRoutes);
 app.route('/v1/stripe', stripeRoutes);
 app.route('/v1/attend', attendRoutes);
 app.route('/v1/upload', uploadRoutes);
+app.route('/v1/gallery', galleryRoutes);
+app.route('/v1/polls', pollsRoutes);
+app.route('/v1/clubs/documents', documentsRoutes);
+app.route('/v1/waivers', waiversRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

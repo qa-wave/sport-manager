@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   '/v1/clubs/public',
   '/v1/rsvp',
   '/v1/stripe/webhook',
+  '/v1/attend',
 ];
 
 function isPublicPath(pathname: string): boolean {
