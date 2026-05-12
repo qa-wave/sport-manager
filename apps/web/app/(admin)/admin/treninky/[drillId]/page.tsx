@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ChevronLeft, Clock, Users, Dumbbell, MapPin, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Clock, Users, Dumbbell, MapPin, Package, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { DrillDiagram } from '@/components/admin/drill-diagram';
+import { DrillVideoPreview } from '@/components/admin/drill-video-preview';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,10 @@ import {
   CATEGORY_ICONS,
   DIFFICULTY_LABELS,
   DIFFICULTY_COLORS,
-  type Drill,
+  AGE_GROUP_DESCRIPTIONS,
+  AGE_GROUP_LABELS,
+  formatAgeGroups,
+  getPrimaryAgeGroup,
 } from '@/lib/training-library';
 
 export default function DrillDetailPage() {
@@ -40,12 +44,13 @@ export default function DrillDetailPage() {
 
   // Find related drills (same category, different drill)
   const related = DRILLS.filter(d => d.category === drill.category && d.id !== drill.id).slice(0, 3);
+  const primaryAgeGroup = getPrimaryAgeGroup(drill);
 
   return (
     <>
       <PageHeader
         title={drill.name}
-        subtitle={`${CATEGORY_LABELS[drill.category]} · ${drill.durationMin} min · ${DIFFICULTY_LABELS[drill.difficulty]}`}
+        subtitle={`${CATEGORY_LABELS[drill.category]} · ${formatAgeGroups(drill.ageGroups)} · ${drill.durationMin} min · ${DIFFICULTY_LABELS[drill.difficulty]}`}
         actions={
           <Button variant="ghost" size="sm" asChild>
             <Link href="/admin/treninky"><ChevronLeft className="mr-1 h-4 w-4" />Knihovna</Link>
@@ -72,6 +77,7 @@ export default function DrillDetailPage() {
                 {drill.sport !== 'universal' && (
                   <Badge variant="outline">{drill.sport === 'fotbal' ? '⚽ Fotbal' : '🏑 Florbal'}</Badge>
                 )}
+                <Badge variant="outline">Věk {formatAgeGroups(drill.ageGroups)}</Badge>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{drill.description}</p>
             </div>
@@ -80,10 +86,13 @@ export default function DrillDetailPage() {
             <div className="grid grid-cols-4 divide-x divide-border border-t border-border">
               <QuickStat icon={Clock} label="Délka" value={`${drill.durationMin} min`} />
               <QuickStat icon={Users} label="Hráči" value={`${drill.playersMin}–${drill.playersMax}`} />
-              <QuickStat icon={Dumbbell} label="Kategorie" value={drill.ageGroups.join(', ')} />
+              <QuickStat icon={Dumbbell} label="Věk" value={formatAgeGroups(drill.ageGroups)} />
               <QuickStat icon={MapPin} label="Prostor" value={drill.fieldSize ?? '—'} />
             </div>
           </Card>
+
+          {/* Age-aware video preview */}
+          <DrillVideoPreview drill={drill} />
 
           {/* Instructions */}
           <Card>
@@ -148,11 +157,19 @@ export default function DrillDetailPage() {
               <h3 className="text-sm font-semibold mb-3">Vhodné pro</h3>
               <div className="flex flex-wrap gap-1.5">
                 {drill.ageGroups.map(ag => (
-                  <Badge key={ag} variant="outline" className="text-xs">
-                    {ag === 'senior' ? 'Senior' : ag}
+                  <Badge
+                    key={ag}
+                    variant="outline"
+                    className={`text-xs ${ag === primaryAgeGroup ? 'border-primary/40 bg-primary/10 text-primary' : ''}`}
+                  >
+                    {AGE_GROUP_LABELS[ag]}
+                    {ag === primaryAgeGroup && <span className="ml-1 text-[10px]">dop.</span>}
                   </Badge>
                 ))}
               </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {AGE_GROUP_DESCRIPTIONS[primaryAgeGroup]}
+              </p>
             </CardContent>
           </Card>
 
@@ -199,9 +216,9 @@ export default function DrillDetailPage() {
 
 function QuickStat({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
   return (
-    <div className="p-4 text-center">
+    <div className="min-w-0 p-4 text-center">
       <Icon className="mx-auto h-4 w-4 text-muted-foreground mb-1" />
-      <div className="text-xs font-semibold">{value}</div>
+      <div className="break-words text-xs font-semibold leading-tight">{value}</div>
       <div className="text-[11px] text-muted-foreground">{label}</div>
     </div>
   );

@@ -331,10 +331,22 @@ const diagrams: Record<string, (w: number, h: number) => string> = {
     ${ball(w * 0.38, h * 0.65)}`,
 };
 
+const categoryDiagrams: Record<DrillCategory, (w: number, h: number) => string> = {
+  warmup: diagrams.w2!,
+  passing: diagrams.p3!,
+  shooting: diagrams.s1!,
+  dribbling: diagrams.d1!,
+  defending: diagrams.def1!,
+  fitness: diagrams.f2!,
+  tactics: diagrams.t3!,
+  goalkeeping: diagrams.gk1!,
+  game: diagrams.g2!,
+};
+
 export function DrillDiagram({ drillId, category, className, compact }: DiagramProps) {
   const w = compact ? 160 : 320;
   const h = compact ? 100 : 200;
-  const gen = diagrams[drillId];
+  const gen = diagrams[drillId] ?? categoryDiagrams[category];
 
   if (!gen) {
     // Fallback — category icon on field background

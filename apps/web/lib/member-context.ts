@@ -64,9 +64,13 @@ export function isGuardian(ctx: MemberContext): boolean {
   return ctx.guardianOf.length > 0;
 }
 
-export type NavAccess = 'admin' | 'admin_or_finance' | 'admin_or_coach' | 'any';
+export type NavAccess = 'admin' | 'admin_or_finance' | 'admin_or_coach' | 'platform_admin' | 'any';
 
-export function canAccessNavItem(ctx: MemberContext, access?: NavAccess): boolean {
+export function canAccessNavItem(
+  ctx: MemberContext,
+  access?: NavAccess,
+  isPlatformAdmin?: boolean,
+): boolean {
   if (!access || access === 'any') return true;
   switch (access) {
     case 'admin':
@@ -75,6 +79,8 @@ export function canAccessNavItem(ctx: MemberContext, access?: NavAccess): boolea
       return isAdmin(ctx) || ctx.clubRoles.includes('FINANCE');
     case 'admin_or_coach':
       return isAdmin(ctx) || isCoach(ctx);
+    case 'platform_admin':
+      return isPlatformAdmin === true;
     default:
       return true;
   }
