@@ -88,6 +88,51 @@ export function generateICal(events: EventSummary[], calendarName = 'Sport Manag
   return lines.join('\r\n');
 }
 
+/**
+ * Generate a Google Calendar "Add Event" URL for a single event.
+ * Opens Google Calendar with pre-filled event data.
+ */
+export function googleCalendarUrl(event: EventSummary): string {
+  const start = toIcalDate(event.startsAt);
+  const end = event.endsAt ? toIcalDate(event.endsAt) : start;
+  const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
+  const title = event.type === 'MATCH' || event.type === 'TOURNAMENT'
+    ? `${event.title}${event.opponent ? ` vs ${event.opponent}` : ''}`
+    : `${typeLabel}: ${event.title}`;
+  const details = event.teamName ? `Tým: ${event.teamName}` : '';
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${start}/${end}`,
+    details,
+    location: event.location ?? '',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/**
+ * Generate an Outlook.com "Add Event" URL.
+ */
+export function outlookCalendarUrl(event: EventSummary): string {
+  const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
+  const title = event.type === 'MATCH' || event.type === 'TOURNAMENT'
+    ? `${event.title}${event.opponent ? ` vs ${event.opponent}` : ''}`
+    : `${typeLabel}: ${event.title}`;
+
+  const params = new URLSearchParams({
+    rru: 'addevent',
+    subject: title,
+    startdt: event.startsAt,
+    enddt: event.endsAt,
+    location: event.location ?? '',
+    body: event.teamName ? `Tým: ${event.teamName}` : '',
+  });
+
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+}
+
 export function downloadICal(events: EventSummary[], filename = 'sport-manager.ics'): void {
   const content = generateICal(events);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });

@@ -4,7 +4,8 @@ import { useState, useMemo, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { BookOpen, Calendar, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { googleCalendarUrl, outlookCalendarUrl, downloadICal } from '@/lib/ical';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
 import { apiFetch, ApiError, type EventDetail, type TeamSummary } from '@/lib/api';
@@ -1292,6 +1293,35 @@ export default function EventDetailPage() {
               {event.description && (
                 <p className="text-sm text-muted-foreground/80">{event.description}</p>
               )}
+
+              {/* Add to calendar buttons */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <a
+                  href={googleCalendarUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Google Calendar
+                </a>
+                <a
+                  href={outlookCalendarUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Outlook
+                </a>
+                <button
+                  onClick={() => downloadICal([event], `${event.title}.ics`)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Calendar className="h-3 w-3" />
+                  Stáhnout .ics
+                </button>
+              </div>
             </div>
 
             {/* RSVP summary */}
