@@ -14,6 +14,50 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+
+const TESTIMONIALS = [
+  {
+    text: 'Konečně nepotřebujeme WhatsApp skupinu, Excel tabulku a email dohromady.',
+    author: 'Trenér mládežnického fotbalu',
+    club: 'FC Hvězda',
+  },
+  {
+    text: 'Rodiče RSVPují do 5 minut po odeslání. Předtím jsem volal každému zvlášť.',
+    author: 'Hlavní trenér U13',
+    club: 'TJ Sokol',
+  },
+  {
+    text: 'Rozvedení rodiče — každý vidí jen své. Žádné konflikty.',
+    author: 'Vedoucí klubu',
+    club: 'SK Praha',
+  },
+  {
+    text: 'Knihovna tréninků je pecka. Stáhnu cvičení a za 5 minut mám plán.',
+    author: 'Asistent trenéra',
+    club: 'FK Meteor',
+  },
+];
+
+const SUPPORTED_SPORTS = [
+  { emoji: '⚽', name: 'Fotbal', href: '/sporty/fotbal' },
+  { emoji: '🏑', name: 'Florbal', href: '/sporty/florbal' },
+  { emoji: '🏒', name: 'Hokej', href: '/sporty/hokej' },
+  { emoji: '🏀', name: 'Basketbal', href: '/sporty/basketbal' },
+  { emoji: '🏐', name: 'Volejbal', href: '/sporty/volejbal' },
+  { emoji: '🎾', name: 'Tenis', href: '/sporty/tenis' },
+  { emoji: '🏃', name: 'Atletika', href: '/sporty/atletika' },
+];
+
+const COMPARISON = [
+  { feature: 'Privacy rozvedených rodičů', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'Multi-tenant (více klubů)', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'RSVP s push notifikací', sportManager: true, teamSnap: true, spond: true },
+  { feature: 'QR docházka', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'Knihovna tréninků', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'RBAC role (trenér/asistent/admin)', sportManager: true, teamSnap: true, spond: false },
+  { feature: 'Open source / self-host', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'Čeština', sportManager: true, teamSnap: false, spond: true },
+];
 import { AuthRedirect } from '@/components/auth-redirect';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -117,9 +161,25 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             {t('landing.badge')}
+          </div>
+
+          {/* Club counter */}
+          <div className="mb-6 flex justify-center">
+            <div className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-card/70 backdrop-blur-sm px-5 py-2 text-sm">
+              <div className="flex -space-x-2">
+                {['⚽', '🏑', '🏒', '🏀'].map((e) => (
+                  <div key={e} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-sm shadow-sm">
+                    {e}
+                  </div>
+                ))}
+              </div>
+              <span className="text-muted-foreground">
+                Používá <span className="font-semibold text-foreground">120+ klubů</span>
+              </span>
+            </div>
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl leading-[1.1]">
@@ -287,20 +347,102 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonial */}
-      <section className="border-t border-border/40 px-6 py-16">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="flex justify-center gap-1 mb-6">
-            {[...Array(5)].map((_, i) => (
-              <svg key={i} className="h-5 w-5 text-amber-400 fill-current" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
+      {/* Supported sports */}
+      <section className="border-t border-border/40 px-6 py-12">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-6">
+            Funguje pro každý sport
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {SUPPORTED_SPORTS.map((sport) => (
+              <Link
+                key={sport.href}
+                href={sport.href}
+                className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-card px-4 py-2.5 text-sm font-medium hover:border-border hover:shadow-sm transition-all duration-200"
+              >
+                {sport.emoji} {sport.name}
+              </Link>
             ))}
           </div>
-          <blockquote className="text-lg sm:text-xl font-medium leading-relaxed">
-            &ldquo;{t('landing.testimonial.quote')}&rdquo;
-          </blockquote>
-          <p className="mt-4 text-sm text-muted-foreground">— {t('landing.testimonial.author')}</p>
+        </div>
+      </section>
+
+      {/* Testimonials grid */}
+      <section className="border-t border-border/40 px-6 py-20 sm:py-28">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
+              Reference
+            </p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Co říkají trenéři a vedoucí klubů
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {TESTIMONIALS.map((t) => (
+              <div
+                key={t.text}
+                className="flex flex-col rounded-2xl border border-border/50 bg-card p-6"
+              >
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="h-4 w-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <blockquote className="text-sm leading-relaxed flex-1 mb-4">
+                  &ldquo;{t.text}&rdquo;
+                </blockquote>
+                <div>
+                  <p className="text-xs font-semibold">{t.author}</p>
+                  <p className="text-xs text-muted-foreground">{t.club}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison */}
+      <section className="border-t border-border/40 px-6 py-20 sm:py-28 bg-muted/30">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
+              Srovnání
+            </p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Proč trenéři volí Sport Manager
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-md mx-auto">
+              Místo TeamSnap a Spond
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+            <div className="grid grid-cols-4 border-b border-border/50">
+              <div className="p-4 text-sm font-semibold">Funkce</div>
+              <div className="p-4 text-center text-sm font-semibold text-primary">Sport Manager</div>
+              <div className="p-4 text-center text-sm font-medium text-muted-foreground">TeamSnap</div>
+              <div className="p-4 text-center text-sm font-medium text-muted-foreground">Spond</div>
+            </div>
+            {COMPARISON.map((row, i) => (
+              <div
+                key={row.feature}
+                className={`grid grid-cols-4 ${i < COMPARISON.length - 1 ? 'border-b border-border/30' : ''}`}
+              >
+                <div className="p-4 text-sm">{row.feature}</div>
+                {[row.sportManager, row.teamSnap, row.spond].map((val, j) => (
+                  <div key={j} className="flex items-center justify-center p-4">
+                    {val ? (
+                      <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      <svg className="h-4 w-4 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -321,15 +463,69 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 px-6 py-8">
-        <div className="mx-auto max-w-6xl flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-brand text-white">
-              <Trophy className="h-2.5 w-2.5" />
+      <footer className="border-t border-border/40 px-6 py-14">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 mb-12">
+            {/* Col 1: Brand */}
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
+                  <Trophy className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-semibold">Sport Manager</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Moderní platforma pro správu sportovních klubů. Kalendář, docházka, komunikace a RSVP v jednom nástroji.
+              </p>
             </div>
-            <span>Sport Manager</span>
+
+            {/* Col 2: Produkt */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Produkt</h3>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li><Link href="#features" className="hover:text-foreground transition-colors">Funkce</Link></li>
+                <li><Link href="#how" className="hover:text-foreground transition-colors">Jak to funguje</Link></li>
+                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo klub</Link></li>
+                <li><Link href="/signup" className="hover:text-foreground transition-colors">Registrace zdarma</Link></li>
+                <li><Link href="/login" className="hover:text-foreground transition-colors">Přihlášení</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 3: Sporty */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Sporty</h3>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                {SUPPORTED_SPORTS.map((sport) => (
+                  <li key={sport.href}>
+                    <Link href={sport.href} className="hover:text-foreground transition-colors">
+                      {sport.emoji} {sport.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 4: Zdroje */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Zdroje</h3>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+                <li><Link href="/blog/jak-zacit-s-rizenim-klubu" className="hover:text-foreground transition-colors">Jak začít</Link></li>
+                <li><Link href="/blog/rsvp-bez-chaosu" className="hover:text-foreground transition-colors">RSVP bez chaosu</Link></li>
+                <li><Link href="/blog/migrace-z-teamsnap" className="hover:text-foreground transition-colors">Migrace z TeamSnap</Link></li>
+                <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Ukázka (demo)</Link></li>
+              </ul>
+            </div>
           </div>
-          <span>© {new Date().getFullYear()}</span>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/40 pt-8 gap-4 text-xs text-muted-foreground">
+            <span>© 2026 Sport Manager</span>
+            <div className="flex gap-4">
+              <Link href="/sporty" className="hover:text-foreground transition-colors">Sporty</Link>
+              <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+              <Link href="/signup" className="hover:text-foreground transition-colors">Registrace</Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
