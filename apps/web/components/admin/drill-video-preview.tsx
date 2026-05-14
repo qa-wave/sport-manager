@@ -25,10 +25,14 @@ export function DrillVideoPreview({ drill }: { drill: Drill }) {
   const [playing, setPlaying] = useState(false);
   const primaryAge = getPrimaryAgeGroup(drill);
   const youtubeId = drill.youtubeId;
+  const videoUrl = drill.videoUrl;
 
-  if (!youtubeId) return null;
+  if (!youtubeId && !videoUrl) return null;
 
-  const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+  const isYoutube = !!youtubeId && !videoUrl;
+  const thumbnailUrl = isYoutube
+    ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
+    : undefined;
 
   return (
     <Card className="overflow-hidden">
@@ -40,6 +44,7 @@ export function DrillVideoPreview({ drill }: { drill: Drill }) {
               <PlayCircle className="h-4 w-4 text-primary" />
               <h2 className="text-base font-semibold">Video ukázka</h2>
               <Badge variant="outline" className="text-xs">{AGE_GROUP_LABELS[primaryAge]}</Badge>
+              {!isYoutube && <Badge variant="outline" className="text-xs text-primary">AI</Badge>}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {drill.name} · {CATEGORY_LABELS[drill.category]}
@@ -50,25 +55,46 @@ export function DrillVideoPreview({ drill }: { drill: Drill }) {
         {/* Video */}
         <div className="relative aspect-video bg-black">
           {playing ? (
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1`}
-              title={drill.name}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 h-full w-full"
-            />
+            isYoutube ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                title={drill.name}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full"
+              />
+            ) : (
+              <video
+                src={videoUrl}
+                autoPlay
+                loop
+                playsInline
+                controls
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            )
           ) : (
             <button
               onClick={() => setPlaying(true)}
               className="group absolute inset-0 flex items-center justify-center"
             >
-              {/* YouTube thumbnail */}
-              <img
-                src={thumbnailUrl}
-                alt={drill.name}
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="lazy"
-              />
+              {/* Thumbnail — YouTube image or video first frame */}
+              {isYoutube ? (
+                <img
+                  src={thumbnailUrl}
+                  alt={drill.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <video
+                  src={videoUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
               {/* Dark overlay */}
               <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/20" />
               {/* Play button */}

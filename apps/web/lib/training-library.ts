@@ -45,6 +45,8 @@ export type Drill = {
   diagram?: string;
   /** YouTube video ID for real training footage */
   youtubeId?: string;
+  /** Direct video URL (e.g. AI-generated training demo) */
+  videoUrl?: string;
 };
 
 export const CATEGORY_LABELS: Record<DrillCategory, string> = {
@@ -661,6 +663,7 @@ const BASE_DRILLS: Drill[] = [
     coachingPoints: ['Přihrávka tahem — nejpřesnější', 'Přijímání na forhendovou stranu', 'Správný grip'],
     equipment: ['Florbalky', 'Míčky'], fieldSize: 'Celá hala', icon: '⚽',
     tags: ['florbal', 'přihrávka', 'forhend', 'dvojice'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_2e078827-c59f-4d10-8302-b28ebf776374.mp4',
   },
   {
     id: 'fl2', name: 'Střelba tahem (florbal)', category: 'shooting', sport: 'florbal',
@@ -677,6 +680,7 @@ const BASE_DRILLS: Drill[] = [
     coachingPoints: ['Pohyb celého těla — ne jen rukou', 'Čepel přiklopen přes míček', 'Follow-through po střele'],
     equipment: ['Florbalky', 'Míčky', 'Branka'], fieldSize: 'Před bránou', icon: '🎯',
     tags: ['florbal', 'střela tahem', 'forhend', 'zakončení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_6d4c68c2-899c-4a76-88b1-03e424897877.mp4',
   },
   {
     id: 'fl3', name: 'Přečíslení 2v1 (florbal)', category: 'tactics', sport: 'florbal',
@@ -693,6 +697,7 @@ const BASE_DRILLS: Drill[] = [
     coachingPoints: ['Nositel míčku táhne obránce', 'Přihrávka až v poslední chvíli', 'Zakončení z pozice', 'Obránce: netlač, couvej'],
     equipment: ['Florbalky', 'Míčky', 'Branka'], fieldSize: 'Polovina hřiště', icon: '🧠',
     tags: ['florbal', 'přečíslení', '2v1', 'narážečka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_5b47823a-4f42-4244-8822-8aa4f5a09beb.mp4',
   },
 ];
 
@@ -713,6 +718,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Hlava nahoře', 'Krátké doteky', 'Rychlá reakce na pokyn', 'Bezpečné rozestupy'],
     equipment: ['16 kuželů ve 4 barvách', '1 míč na hráče'], fieldSize: '20×20 m', icon: '🔥',
     tags: ['barvy', 'vedení míče', 'reakce', 'přípravka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_6174e37e-d916-41eb-b806-fb1613965b67.mp4',
   },
   {
     id: 'w6', name: 'Lovci míčů', category: 'warmup', sport: 'universal',
@@ -728,6 +734,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Krytí míče tělem', 'Periferní vidění', 'Změna směru', 'Fair play při kontaktu'],
     equipment: ['Kužely', '1 míč na hráče'], fieldSize: '20×20 m', icon: '🔥',
     tags: ['honění', 'ochrana míče', 'zábava', 'zahřátí'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_9507def5-d8e6-417d-9e31-fa3fbcddf2d7.mp4',
   },
   {
     id: 'w7', name: 'Rondo 5v2 na dva doteky', category: 'warmup', sport: 'fotbal',
@@ -744,6 +751,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Otevřený postoj těla', 'Nabídka mimo stín obránce', 'Pressing ve dvojici', 'Přesnost prvního doteku'],
     equipment: ['4 kužely', '1 míč', 'Rozlišovací dresy'], fieldSize: '12×12 m', icon: '🔥',
     tags: ['rondo', '5v2', 'zahřátí', 'pressing'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_be07d29b-00ef-4807-a1f0-66ddcc535acf.mp4',
   },
   {
     id: 'w8', name: 'Reakční starty na číslo', category: 'warmup', sport: 'universal',
@@ -760,6 +768,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['První tři kroky', 'Brzdění před kuželem', 'Nízké těžiště', 'Reakce bez hádání dopředu'],
     equipment: ['Kužely ve 4 barvách'], fieldSize: '15×10 m', icon: '🔥',
     tags: ['reakce', 'sprint', 'koncentrace', 'start'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_6bbccc4c-c3d8-4cab-92f6-7aa7efde9a52.mp4',
   },
   {
     id: 'w9', name: 'Aktivační přihrávky a výměna míst', category: 'warmup', sport: 'fotbal',
@@ -775,6 +784,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Pohyb po přihrávce', 'Příjem otevřeným tělem', 'Komunikace jménem', 'Tempo bez zbytečného rizika'],
     equipment: ['Kužely', '1–2 míče na skupinu'], fieldSize: '10×10 m', icon: '🔥',
     tags: ['aktivace', 'přihrávka', 'pohyb', 'zahřátí'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_c3a50b51-b28e-4013-a1c4-c89dc2547cfb.mp4',
   },
 
   // ═══ PŘIHRÁVKY — doplněná knihovna ═══
@@ -792,6 +802,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Stojná noha míří na cíl', 'Přihrávka vnitřní stranou', 'První dotek do prostoru', 'Hlava nahoře před přihrávkou'],
     equipment: ['16 kuželů', '1 míč na dvojici'], fieldSize: '25×20 m', icon: '⚽',
     tags: ['branky', 'přesnost', 'dvojice', 'přípravka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_89ceaf9e-ac1e-4d54-b093-31b6c10345b4.mp4',
   },
   {
     id: 'p7', name: 'Diamant pass and follow', category: 'passing', sport: 'fotbal',
@@ -808,6 +819,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Přihrávka na zadní nohu', 'První dotek mimo kužel', 'Plynulá rotace', 'Komunikace před přijetím'],
     equipment: ['4 kužely', '1–2 míče'], fieldSize: '15×15 m', icon: '⚽',
     tags: ['diamant', 'rotace', 'pass and follow', 'technika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_da54351b-9cd8-40ce-9598-61c229390098.mp4',
   },
   {
     id: 'p8', name: 'Třetí hráč v náběhu', category: 'passing', sport: 'fotbal',
@@ -824,6 +836,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Timing náběhu', 'Sklepnutí pod správným úhlem', 'Přihrávka do prostoru', 'Nekoukat jen na míč'],
     equipment: ['Kužely', '2 míče'], fieldSize: '25×18 m', icon: '⚽',
     tags: ['třetí hráč', 'průnik', 'kombinace', 'timing'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_314883f9-e4ba-445d-9def-359e6b930bf8.mp4',
   },
   {
     id: 'p9', name: '4v2 rondo s přechodem', category: 'passing', sport: 'fotbal',
@@ -840,6 +853,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Přenesení hry včas', 'Nabídka v nové zóně', 'Pressing po ztrátě', 'První přihrávka po přesunu'],
     equipment: ['8 kuželů', '1 míč', 'Rozlišovací dresy'], fieldSize: '22×10 m', icon: '⚽',
     tags: ['rondo', 'transition', 'přesun hry', 'držení míče'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_c4e47fc2-6248-4523-bf75-9ce2fcded9d7.mp4',
   },
   {
     id: 'p10', name: 'Překlopení hry přes stopera', category: 'passing', sport: 'fotbal',
@@ -856,6 +870,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Otevřený postoj stopera', 'Přihrávka na vzdálenější nohu', 'Rychlost cirkulace', 'Kvalita prvního doteku'],
     equipment: ['Kužely', '2–3 míče'], fieldSize: '45×30 m', icon: '⚽',
     tags: ['přenesení hry', 'rozehrávka', 'stoper', 'šířka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135344_a7bf930c-d6e4-4291-8232-44386929af4b.mp4',
   },
   {
     id: 'p11', name: 'Narážečka ve dvojici', category: 'passing', sport: 'universal',
@@ -872,6 +887,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Sklepnutí z první', 'Náběh po přihrávce', 'Přesnost do běhu', 'Změna tempa po kombinaci'],
     equipment: ['Kužely', '1 míč na dvojici'], fieldSize: '15×10 m', icon: '⚽',
     tags: ['narážečka', 'dvojice', '1-2', 'kombinace'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_0dadf554-f7b5-4c9a-9432-4bbd76d21ba2.mp4',
   },
   {
     id: 'p12', name: 'Přihrávky pod tlakem v kruhu', category: 'passing', sport: 'fotbal',
@@ -888,6 +904,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Skenování před přijetím', 'První dotek pryč od tlaku', 'Komunikace z obvodu', 'Rychlé rozhodnutí'],
     equipment: ['Kužely', '1 míč', 'Rozlišovací dres'], fieldSize: 'Kruh 16 m', icon: '⚽',
     tags: ['tlak', 'orientace', 'kruh', 'přihrávky'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135343_a669c9d3-84de-4fd0-a35e-d25a9fd89dd2.mp4',
   },
 
   // ═══ STŘELBA — doplněná knihovna ═══
@@ -906,6 +923,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Náběh proti směru obrany', 'Přihrávka pod sebe', 'Klid v zakončení', 'Trefit prostor brány'],
     equipment: ['Míče', 'Kužely', 'Branka'], fieldSize: 'Velké vápno', icon: '🎯',
     tags: ['cutback', 'zpětná přihrávka', 'zakončení', 'křídlo'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_38952c33-5f00-40de-96bf-25c65969246f.mp4',
   },
   {
     id: 's6', name: '2v1 do zakončení', category: 'shooting', sport: 'fotbal',
@@ -922,6 +940,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Nositel míče táhne obránce', 'Přihrávka ve správný moment', 'Zakončení bez zbytečného doteku', 'Druhý hráč drží šířku'],
     equipment: ['Míče', 'Branka', 'Rozlišovací dresy'], fieldSize: '30×25 m', icon: '🎯',
     tags: ['2v1', 'přečíslení', 'zakončení', 'rozhodování'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141915_af122af1-e307-4002-8be1-486612a6e859.mp4',
   },
   {
     id: 's7', name: 'Dorážky po střele', category: 'shooting', sport: 'fotbal',
@@ -938,6 +957,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Doběh po střele', 'Krátká reakce na odražený míč', 'Přesnost před silou', 'Střela přes nárt i placírkou'],
     equipment: ['Míče', 'Branka', 'Brankář volitelně'], fieldSize: 'Velké vápno', icon: '🎯',
     tags: ['dorážka', 'reakce', 'střelba', 'zakončení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_2ea4fb4a-0cb0-46a9-b20e-235ec57aa412.mp4',
   },
   {
     id: 's8', name: 'Otočka a střela zády k bráně', category: 'shooting', sport: 'fotbal',
@@ -954,6 +974,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Kontrola ramen před přijetím', 'První dotek mimo obránce', 'Rychlé zakončení', 'Použití těla k ochraně míče'],
     equipment: ['Míče', 'Branka', 'Kužely'], fieldSize: 'Velké vápno', icon: '🎯',
     tags: ['otočka', 'útočník', 'zády k bráně', 'zakončení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_5e17c269-06a2-4612-8866-3947e8d0c9af.mp4',
   },
   {
     id: 's9', name: 'Barevné rohy brány', category: 'shooting', sport: 'fotbal',
@@ -970,6 +991,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Hlava nahoru před střelou', 'Přesnost na cíl', 'Stojná noha k bráně', 'Klidný kontakt s míčem'],
     equipment: ['Malá brána', 'Barevné značky', 'Míče'], fieldSize: '15×12 m', icon: '🎯',
     tags: ['barvy', 'přesnost', 'přípravka', 'střelba'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_432d0c6b-fdaf-419a-b2bc-facc3a9fe311.mp4',
   },
   {
     id: 's10', name: 'Střela po zisku míče', category: 'shooting', sport: 'fotbal',
@@ -985,6 +1007,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Okamžitý tah na bránu', 'První přihrávka dopředu', 'Podpora za zakončujícím', 'Rychlá reakce po zisku'],
     equipment: ['Míče', 'Branka', 'Rozlišovací dresy', 'Kužely'], fieldSize: '30×25 m', icon: '🎯',
     tags: ['presink', 'transition', 'zakončení', 'zisk míče'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_3beacb82-2d2f-413e-8006-1b3a23f612a6.mp4',
   },
   {
     id: 's11', name: 'Centruj a zavírej zadní tyč', category: 'shooting', sport: 'fotbal',
@@ -1001,6 +1024,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Rozdělení náběhů', 'Timing do centru', 'Zakončení jedním dotekem', 'Druhý hráč nesmí zastavit akci'],
     equipment: ['Míče', 'Branka', 'Kužely'], fieldSize: 'Křídelní prostor + vápno', icon: '🎯',
     tags: ['centr', 'zadní tyč', 'náběh', 'zakončení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_0cf52ac2-581c-4b9a-aecf-48d8d9a3c658.mp4',
   },
 
   // ═══ DRIBLING — doplněná knihovna ═══
@@ -1019,6 +1043,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Míč blízko nohy', 'Hlava nahoře', 'Změna směru mezi brankami', 'Obě nohy'],
     equipment: ['20 kuželů', '1 míč na hráče'], fieldSize: '25×20 m', icon: '💨',
     tags: ['branky', 'dribling', 'doteky', 'slabší noha'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141914_4311dafd-a76f-40c5-bf08-3ee99f132a57.mp4',
   },
   {
     id: 'd6', name: 'Únik ze čtverce', category: 'dribbling', sport: 'fotbal',
@@ -1035,6 +1060,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Naznačení pohybu', 'Explozivní první krok', 'Ochrana míče ramenem', 'Rozhodnutí před kontaktem'],
     equipment: ['8 kuželů', 'Míče'], fieldSize: '12×12 m', icon: '💨',
     tags: ['1v1', 'únik', 'branky', 'finta'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135946_91f6ef6a-f812-4caa-8d54-4efbf6d012e1.mp4',
   },
   {
     id: 'd7', name: 'Slabší noha v bludišti', category: 'dribbling', sport: 'universal',
@@ -1051,6 +1077,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Trpělivost', 'Malé doteky', 'Kotník zpevněný', 'Pohled střídá míč a prostor'],
     equipment: ['Kužely', 'Míč na hráče', 'Mini branka'], fieldSize: '20×8 m', icon: '💨',
     tags: ['slabší noha', 'kontrola', 'bludiště', 'technika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_135947_f19532eb-5ffc-46aa-9588-931c46b63c82.mp4',
   },
   {
     id: 'd8', name: '1v1 na čtyři cíle', category: 'dribbling', sport: 'fotbal',
@@ -1067,6 +1094,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Změna tempa', 'Čtení těžiště obránce', 'Finta s následným zrychlením', 'Nepředvídatelnost'],
     equipment: ['8 kuželů', 'Míče'], fieldSize: '18×18 m', icon: '💨',
     tags: ['1v1', 'čtyři branky', 'kreativita', 'dribling'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_03fd10d9-5764-4036-810d-641a90be9e78.mp4',
   },
   {
     id: 'd9', name: 'Ball mastery box', category: 'dribbling', sport: 'fotbal',
@@ -1082,6 +1110,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Rytmus doteků', 'Lehké nohy', 'Kontrola pod tělem', 'Postupně zvyšovat tempo'],
     equipment: ['4 kužely na hráče', 'Míč na hráče'], fieldSize: '4×4 m na hráče', icon: '💨',
     tags: ['ball mastery', 'doteky', 'technika', 'přípravka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_b920a8b8-a746-46bb-9735-920a458c825a.mp4',
   },
   {
     id: 'd10', name: 'Klička a finální přihrávka', category: 'dribbling', sport: 'fotbal',
@@ -1098,6 +1127,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Finta před překážkou', 'Zrychlení po kličce', 'Hlava nahoru před přihrávkou', 'Přihrávka po kontrole míče'],
     equipment: ['Kužely nebo figuríny', 'Míče', 'Mini branka'], fieldSize: '25×15 m', icon: '💨',
     tags: ['klička', 'finální přihrávka', '1v1', 'technika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141914_b27ee0c0-4c27-4139-9c0a-30da92405935.mp4',
   },
 
   // ═══ OBRANA — doplněná knihovna ═══
@@ -1116,6 +1146,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Nejít zbytečně do souboje', 'Krýt přihrávkovou linii', 'Couání bokem', 'Vytlačit akci do strany'],
     equipment: ['Míče', 'Branka', 'Rozlišovací dresy'], fieldSize: '35×25 m', icon: '🛡️',
     tags: ['1v2', 'zdržení', 'protiútok', 'obrana'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141915_9267aa53-b048-4d1d-9a08-f2b7079b04bb.mp4',
   },
   {
     id: 'def5', name: '2v2 v obranném koridoru', category: 'defending', sport: 'fotbal',
@@ -1132,6 +1163,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Vystoupení a zajištění', 'Komunikace dvojice', 'Tlačit na slabší stranu', 'Správná vzdálenost mezi obránci'],
     equipment: ['Kužely', 'Míče', 'Rozlišovací dresy'], fieldSize: '14×22 m', icon: '🛡️',
     tags: ['2v2', 'zajištění', 'koridor', 'obrana'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_e0958201-c060-4188-8643-d51c06960795.mp4',
   },
   {
     id: 'def6', name: 'Třísekundový counterpress', category: 'defending', sport: 'fotbal',
@@ -1148,6 +1180,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Nejbližší hráč tlačí míč', 'Ostatní zavírají možnosti', 'Krátká intenzivní reakce', 'Po neúspěchu rychlý návrat do bloku'],
     equipment: ['Kužely', 'Míč', 'Rozlišovací dresy'], fieldSize: '22×18 m', icon: '🛡️',
     tags: ['counterpress', 'po ztrátě', 'presink', 'reakce'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_c9613b1a-3aeb-478e-8fca-19fe2e1aaf38.mp4',
   },
   {
     id: 'def7', name: 'Posun obranné čtyřky', category: 'defending', sport: 'fotbal',
@@ -1164,6 +1197,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Vzdálenosti mezi hráči', 'Společný posun', 'Tělo otevřené k míči i soupeři', 'Včasné couvání při hrozbě za záda'],
     equipment: ['Kužely', 'Míče', 'Rozlišovací dresy'], fieldSize: '45×35 m', icon: '🛡️',
     tags: ['obranná řada', 'posun', 'taktika', 'hloubka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_5f4508b2-52bb-4c40-aefe-8e4606c5ed9f.mp4',
   },
   {
     id: 'def8', name: 'Blokování střel', category: 'defending', sport: 'fotbal',
@@ -1180,6 +1214,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Doběhnout pod kontrolou', 'Natočit tělo bokem', 'Ruce u těla', 'Neotáčet se zády před střelou'],
     equipment: ['Míče', 'Branka', 'Kužely'], fieldSize: 'Velké vápno', icon: '🛡️',
     tags: ['blok', 'střela', 'obrana', 'úhel'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_143856_22dda632-9a7c-413d-90a9-ce28ffdca407.mp4',
   },
 
   // ═══ KONDICE — doplněná knihovna ═══
@@ -1198,6 +1233,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Krátký kontakt se zemí', 'Plynulý přechod k míči', 'Koordinace rukou', 'Technika před rychlostí'],
     equipment: ['Agility žebřík', 'Kužely', 'Míče'], fieldSize: '15×6 m', icon: '💪',
     tags: ['agility', 'žebřík', 'koordinace', 'míč'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_2c34639a-d3b4-4025-892e-817f063561f6.mp4',
   },
   {
     id: 'f5', name: 'Opakované sprinty s míčem', category: 'fitness', sport: 'fotbal',
@@ -1214,6 +1250,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Kvalita sprintu v každé sérii', 'První dotek do běhu', 'Kontrola při únavě', 'Dostatečná pauza pro intenzitu'],
     equipment: ['Kužely', 'Míče', 'Stopky'], fieldSize: '30×8 m', icon: '💪',
     tags: ['RSA', 'sprint', 'kondice', 'rychlost'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140438_38cb1117-4cf1-4637-b222-0983994ab50a.mp4',
   },
   {
     id: 'f6', name: 'Změna směru po přihrávce', category: 'fitness', sport: 'universal',
@@ -1230,6 +1267,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Kvalita přihrávky i v pohybu', 'Brzdění přes pokrčená kolena', 'Rychlý první krok', 'Pohyb hned po odehrání'],
     equipment: ['Kužely', '1 míč na dvojici'], fieldSize: '15×12 m', icon: '💪',
     tags: ['změna směru', 'přihrávka', 'agility', 'kondice'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140939_6c4a9fb7-1790-425b-94cd-6d7c65ff485f.mp4',
   },
   {
     id: 'f7', name: 'Kondiční držení míče 4v4', category: 'fitness', sport: 'fotbal',
@@ -1246,6 +1284,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Pracovat i bez míče', 'Okamžitý přechod po ztrátě', 'Podpora hráče s míčem', 'Udržet techniku v únavě'],
     equipment: ['Kužely', 'Míč', 'Rozlišovací dresy', 'Stopky'], fieldSize: '25×20 m', icon: '💪',
     tags: ['kondice', 'držení míče', 'interval', '4v4'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140939_70aabeb3-37e7-4301-82ee-acf226fbe624.mp4',
   },
 
   // ═══ TAKTIKA — doplněná knihovna ═══
@@ -1264,6 +1303,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Trpělivá rozehrávka', 'Nabídka mezi liniemi', 'Přenesení hry při tlaku', 'Zrychlení po překonání zóny'],
     equipment: ['Kužely', 'Míče', 'Rozlišovací dresy', 'Branky'], fieldSize: '50×35 m', icon: '🧠',
     tags: ['zóny', 'rozehrávka', 'build-up', 'taktika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140939_f0a8f76f-eb54-41b5-bc08-b510415720fd.mp4',
   },
   {
     id: 't5', name: 'Rychlý protiútok 3v2', category: 'tactics', sport: 'fotbal',
@@ -1280,6 +1320,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Šířka krajních hráčů', 'Včasná přihrávka', 'Nositel míče táhne obránce', 'Zakončení před návratem obrany'],
     equipment: ['Míče', 'Branka', 'Rozlišovací dresy'], fieldSize: '40×30 m', icon: '🧠',
     tags: ['protiútok', '3v2', 'transition', 'taktika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140938_725634a0-f916-4d99-8a9c-f8b79934e05f.mp4',
   },
   {
     id: 't6', name: 'Pressingové spouště 6v4', category: 'tactics', sport: 'fotbal',
@@ -1296,6 +1337,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Rozpoznat spoušť', 'Vystoupit společně', 'Zavřít přihrávku zpět', 'Po zisku rychle zakončit'],
     equipment: ['Kužely', 'Mini branky', 'Míč', 'Rozlišovací dresy'], fieldSize: '35×25 m', icon: '🧠',
     tags: ['pressing', 'spouště', '6v4', 'taktika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_143332_dab5167d-d760-4395-a8f1-b13a79aead92.mp4',
   },
   {
     id: 't7', name: 'Křídelní přečíslení', category: 'tactics', sport: 'fotbal',
@@ -1312,6 +1354,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Trojúhelník na straně', 'Náběh za záda obránce', 'Správný moment centru', 'Zajištění za akcí'],
     equipment: ['Kužely', 'Míče', 'Branka'], fieldSize: 'Křídlo + vápno', icon: '🧠',
     tags: ['křídlo', 'přečíslení', 'centr', 'kombinace'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141915_ab9577af-70d4-4621-b6ae-85c961df6cbc.mp4',
   },
   {
     id: 't8', name: 'Hra přes neutrální krajní hráče', category: 'tactics', sport: 'fotbal',
@@ -1328,6 +1371,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Využívat šířku', 'Rychlá změna strany', 'Nabídka pod míčem', 'Krajní hráč hraje rychle zpět do hry'],
     equipment: ['Kužely', 'Míč', 'Rozlišovací dresy'], fieldSize: '30×22 m', icon: '🧠',
     tags: ['šířka', 'neutrální hráč', 'malá hra', 'přenesení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140938_899bae7c-22b7-4e52-81d6-227276a32e17.mp4',
   },
   {
     id: 't9', name: 'Zajištění po útoku', category: 'tactics', sport: 'fotbal',
@@ -1344,6 +1388,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Zajištění za míčem', 'Pozice proti protiútoku', 'Rychlá reakce po ztrátě', 'Komunikace stoperů a zálohy'],
     equipment: ['Branka', '2 mini branky', 'Míče', 'Rozlišovací dresy'], fieldSize: '45×35 m', icon: '🧠',
     tags: ['rest defense', 'zajištění', 'protiútok', 'taktika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141914_4c143bbc-7fb0-447a-b9bc-1279c98bfe0f.mp4',
   },
   {
     id: 't10', name: 'Výstavba od brankáře', category: 'tactics', sport: 'fotbal',
@@ -1360,6 +1405,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Úhly pro rozehrávku', 'Trpělivost brankáře', 'Přihrávka skrz linii', 'Pohyb šestky mimo stín'],
     equipment: ['Branka', 'Kužely', 'Míče', 'Rozlišovací dresy'], fieldSize: '35×30 m', icon: '🧠',
     tags: ['build-up', 'brankář', 'rozehrávka', 'presink'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141915_9c2ca2ce-d1d5-4ce7-991d-a035a8f489cb.mp4',
   },
 
   // ═══ BRANKÁŘ — doplněná knihovna ═══
@@ -1378,6 +1424,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Ruce za míčem', 'Dopad na bok', 'Hlava za rukama', 'Rychlý návrat do postoje'],
     equipment: ['Míče', 'Branka'], fieldSize: 'Brankoviště', icon: '🧤',
     tags: ['brankář', 'nízký zákrok', 'technika', 'chytání'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_140938_8ba16edb-af58-405b-a2fe-340f6cbbc712.mp4',
   },
   {
     id: 'gk4', name: 'Výběh proti 1v1', category: 'goalkeeping', sport: 'fotbal',
@@ -1394,6 +1441,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Neutíkat příliš brzy', 'Zmenšit střelecký úhel', 'Stabilní ruce a těžiště', 'Číst dotek útočníka'],
     equipment: ['Míče', 'Branka', 'Kužely'], fieldSize: 'Velké vápno', icon: '🧤',
     tags: ['brankář', '1v1', 'výběh', 'nájezd'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_0288e25a-8e4a-4429-b8f0-769ce3da85ce.mp4',
   },
   {
     id: 'gk5', name: 'Centrování a komunikace', category: 'goalkeeping', sport: 'fotbal',
@@ -1410,6 +1458,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['První krok vpřed', 'Hlasitý pokyn', 'Chytit v nejvyšším bodě', 'Rozhodnutí chytit nebo boxovat'],
     equipment: ['Míče', 'Branka', 'Rozlišovací dresy'], fieldSize: 'Velké vápno', icon: '🧤',
     tags: ['brankář', 'centr', 'komunikace', 'vzduch'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141915_d8d5c345-65bd-410b-90bb-4eb220cf8d73.mp4',
   },
   {
     id: 'gk6', name: 'Zpětná přihrávka a první dotek', category: 'goalkeeping', sport: 'fotbal',
@@ -1426,6 +1475,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['První dotek mimo tlak', 'Tělo otevřené ke hřišti', 'Přihrávka na správnou nohu', 'Klid pod tlakem'],
     equipment: ['Míče', 'Kužely', 'Branka'], fieldSize: '25×20 m', icon: '🧤',
     tags: ['brankář', 'nohy', 'zpětná přihrávka', 'rozehrávka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_63694284-ec3e-4cb9-af4a-5d660186def3.mp4',
   },
 
   // ═══ HERNÍ CVIČENÍ — doplněná knihovna ═══
@@ -1444,6 +1494,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Odvaha hrát 1v1', 'Rychlé zapojení po gólu', 'Podpora spoluhráče', 'Radost ze hry'],
     equipment: ['Mini branky', 'Kužely', 'Míče', 'Dresy'], fieldSize: '12×16 m na hřiště', icon: '🏟️',
     tags: ['2v2', 'turnaj', 'malá hra', 'přípravka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_e074325b-afc8-4413-aebc-19441c8a5bb4.mp4',
   },
   {
     id: 'g5', name: 'Hra do koncových zón', category: 'game', sport: 'fotbal',
@@ -1460,6 +1511,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Náběh za obranu', 'Přihrávka do prostoru', 'Šířka hry', 'Rychlý přechod po bodu'],
     equipment: ['Kužely', 'Míč', 'Rozlišovací dresy'], fieldSize: '30×20 m', icon: '🏟️',
     tags: ['koncová zóna', 'náběh', 'malá hra', 'přihrávka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_bcb90552-acee-4517-81dc-df7a884f9981.mp4',
   },
   {
     id: 'g6', name: '5v5 ve čtyřech zónách', category: 'game', sport: 'fotbal',
@@ -1476,6 +1528,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Roztažení hřiště', 'Přenesení hry', 'Nabídka ve volné zóně', 'Rozhodování pod tlakem'],
     equipment: ['Kužely', 'Mini branky', 'Míč', 'Dresy'], fieldSize: '36×28 m', icon: '🏟️',
     tags: ['zóny', '5v5', 'šířka', 'taktika'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_2326255f-a735-46a5-9456-b5018dbccb06.mp4',
   },
   {
     id: 'g7', name: '4v4+2 neutrální na držení', category: 'game', sport: 'fotbal',
@@ -1492,6 +1545,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Trojúhelníky kolem míče', 'Rychlá podpora', 'Neutrální se neukrývá', 'Přechod po ztrátě'],
     equipment: ['Kužely', 'Míč', '3 barvy dresů'], fieldSize: '25×20 m', icon: '🏟️',
     tags: ['držení míče', 'neutrální', '4v4+2', 'podpora'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_141338_341b307b-9240-4fd7-a34d-ed766cc7488d.mp4',
   },
   {
     id: 'g8', name: 'Číselná hra do branek', category: 'game', sport: 'universal',
@@ -1508,6 +1562,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Rychlá reakce', 'Orientace po startu', 'Přepnutí z čekání do hry', 'Spolupráce v malém počtu hráčů'],
     equipment: ['2 mini branky', 'Míče', 'Kužely', 'Dresy'], fieldSize: '18×22 m', icon: '🏟️',
     tags: ['číselná hra', '1v1', '2v2', 'reakce'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_142447_bb6ccb38-7f4b-41e8-96d0-fe1f7f108f03.mp4',
   },
 
   // ═══ FLORBAL — doplněná knihovna ═══
@@ -1526,6 +1581,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Míček blízko čepele', 'Hlava nahoře', 'Měkké ruce', 'Změna směru přes tělo'],
     equipment: ['Florbalky', 'Míčky', 'Kužely'], fieldSize: 'Polovina haly', icon: '💨',
     tags: ['florbal', 'vedení míčku', 'branky', 'přípravka'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_49b27fd0-1b4d-47d7-9b0f-7fc02a82f26c.mp4',
   },
   {
     id: 'fl5', name: 'Florbalová narážečka za branku', category: 'passing', sport: 'florbal',
@@ -1542,6 +1598,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Přihrávka po zemi', 'Rychlá práce rukou', 'Náběh do slotu', 'Zakončení bez přípravy'],
     equipment: ['Florbalky', 'Míčky', 'Branka'], fieldSize: 'Útočná třetina', icon: '⚽',
     tags: ['florbal', 'za brankou', 'narážečka', 'slot'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_51e60a4a-c05b-4fc0-a9fe-08f069df9abe.mp4',
   },
   {
     id: 'fl6', name: 'Florbal 3v2 do útoku', category: 'tactics', sport: 'florbal',
@@ -1558,6 +1615,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Šířka tří hráčů', 'Přihrávka až po přitažení obránce', 'Střela z první', 'Obránci drží střed'],
     equipment: ['Florbalky', 'Míčky', 'Branka', 'Dresy'], fieldSize: 'Polovina haly', icon: '🧠',
     tags: ['florbal', '3v2', 'přečíslení', 'zakončení'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_4cb9f93d-7c7a-4e40-ada6-0de4dbd44fb7.mp4',
   },
   {
     id: 'fl7', name: 'Florbalový obranný box', category: 'defending', sport: 'florbal',
@@ -1574,6 +1632,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Hůl v přihrávkové linii', 'Krátké posuny', 'Nenechat volný slot', 'Blokovat tělem pod kontrolou'],
     equipment: ['Florbalky', 'Míčky', 'Branka', 'Dresy'], fieldSize: 'Obranná třetina', icon: '🛡️',
     tags: ['florbal', 'obranný box', 'blok', 'posun'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_dbce50dd-5c72-4a2d-8d26-356a3d1f5051.mp4',
   },
   {
     id: 'fl8', name: 'Florbalová hra na koncové mantinely', category: 'game', sport: 'florbal',
@@ -1590,6 +1649,7 @@ const EXTRA_DRILLS: Drill[] = [
     coachingPoints: ['Náběh za obranu', 'Využití mantinelu', 'Rychlá změna směru hry', 'Podpora hráče s míčkem'],
     equipment: ['Florbalky', 'Míčky', 'Dresy', 'Kužely'], fieldSize: '20×15 m u mantinelu', icon: '🏟️',
     tags: ['florbal', 'mantinel', 'malá hra', 'náběh'],
+    videoUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_3DTvoXBkzzWe1hlJ95aIqCKgMLs/hf_20260514_134734_a0cfe254-b067-47bc-bc12-c82cdd7ff032.mp4',
   },
 ];
 
