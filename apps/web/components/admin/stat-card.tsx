@@ -52,7 +52,7 @@ export function StatCard({
             {trend !== undefined && (
               <div className={cn(
                 'flex items-center gap-0.5 text-xs font-semibold',
-                trend >= 0 ? 'text-emerald-500' : 'text-red-500'
+                trend >= 0 ? 'text-accent' : 'text-red-500'
               )}>
                 {trend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 <span>{trend >= 0 ? '+' : ''}{trend}%</span>

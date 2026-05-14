@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Trophy, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 import { ADMIN_NAV, isNavItemFeatureEnabled } from '@/lib/nav';
 import { useMemberContext, canAccessNavItem, getPrimaryRoleLabel } from '@/lib/member-context';
 import { useFeatures } from '@/lib/features';
@@ -128,8 +129,8 @@ export function Sidebar({
       >
         {/* Brand */}
         <div className="relative flex h-14 items-center gap-2.5 border-b border-border/60 px-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
-            <Trophy className="h-4 w-4" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 shadow-sm">
+            <BrandLogo size={20} />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
@@ -253,8 +254,8 @@ export function Sidebar({
           {/* Brand + close button */}
           <div className="relative flex h-14 items-center justify-between border-b border-border/60 px-3">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
-                <Trophy className="h-4 w-4" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 shadow-sm">
+                <BrandLogo size={20} />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold tracking-tight">

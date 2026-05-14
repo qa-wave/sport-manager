@@ -19,8 +19,8 @@ export function EmptyState({
         {Icon && (
           <div className="mb-5 relative">
             <div className="absolute inset-0 rounded-2xl bg-primary/5 blur-xl scale-150" />
-            <div className="relative rounded-2xl bg-gradient-to-br from-muted to-muted/50 p-4">
-              <Icon className="h-7 w-7 text-muted-foreground/60" />
+            <div className="relative rounded-2xl bg-primary/10 ring-1 ring-primary/20 p-4">
+              <Icon className="h-7 w-7 text-primary/70" />
             </div>
           </div>
         )}

@@ -4,47 +4,58 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Calendar,
+  CircleDot,
+  Dumbbell,
   Lock,
   MessageSquare,
   Repeat,
   Shield,
   Smartphone,
-  Trophy,
+  Swords,
   Users,
   Zap,
 } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 
 const TESTIMONIALS = [
   {
     text: 'Konečně nepotřebujeme WhatsApp skupinu, Excel tabulku a email dohromady.',
-    author: 'Trenér mládežnického fotbalu',
-    club: 'FC Hvězda',
+    author: 'Jan N.',
+    role: 'Trenér mládeže',
+    club: 'FC Hvězda Strašnice',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Jan%20N&backgroundColor=7c3aed&fontColor=ffffff',
   },
   {
     text: 'Rodiče RSVPují do 5 minut po odeslání. Předtím jsem volal každému zvlášť.',
-    author: 'Hlavní trenér U13',
-    club: 'TJ Sokol',
+    author: 'Michal V.',
+    role: 'Hlavní trenér U13',
+    club: 'TJ Sokol Měcholupy',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Michal%20V&backgroundColor=2563eb&fontColor=ffffff',
   },
   {
-    text: 'Rozvedení rodiče — každý vidí jen své. Žádné konflikty.',
-    author: 'Vedoucí klubu',
-    club: 'SK Praha',
+    text: 'Rozvedení rodiče — každý vidí jen své. Žádné konflikty, žádné přeposílání.',
+    author: 'Petra K.',
+    role: 'Vedoucí klubu',
+    club: 'SK Praha Letňany',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Petra%20K&backgroundColor=0d9488&fontColor=ffffff',
   },
   {
     text: 'Knihovna tréninků je pecka. Stáhnu cvičení a za 5 minut mám plán.',
-    author: 'Asistent trenéra',
-    club: 'FK Meteor',
+    author: 'Tomáš R.',
+    role: 'Asistent trenéra',
+    club: 'FK Meteor Praha',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Tomas%20R&backgroundColor=d97706&fontColor=ffffff',
   },
 ];
 
 const SUPPORTED_SPORTS = [
-  { emoji: '⚽', name: 'Fotbal', href: '/sporty/fotbal' },
-  { emoji: '🏑', name: 'Florbal', href: '/sporty/florbal' },
-  { emoji: '🏒', name: 'Hokej', href: '/sporty/hokej' },
-  { emoji: '🏀', name: 'Basketbal', href: '/sporty/basketbal' },
-  { emoji: '🏐', name: 'Volejbal', href: '/sporty/volejbal' },
-  { emoji: '🎾', name: 'Tenis', href: '/sporty/tenis' },
-  { emoji: '🏃', name: 'Atletika', href: '/sporty/atletika' },
+  { icon: CircleDot, name: 'Fotbal', href: '/sporty/fotbal' },
+  { icon: Swords, name: 'Florbal', href: '/sporty/florbal' },
+  { icon: Shield, name: 'Hokej', href: '/sporty/hokej' },
+  { icon: Zap, name: 'Basketbal', href: '/sporty/basketbal' },
+  { icon: Users, name: 'Volejbal', href: '/sporty/volejbal' },
+  { icon: Repeat, name: 'Tenis', href: '/sporty/tenis' },
+  { icon: Dumbbell, name: 'Atletika', href: '/sporty/atletika' },
 ];
 
 const COMPARISON = [
@@ -130,8 +141,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border/40 glass px-6 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm transition-shadow group-hover:shadow-md">
-              <Trophy className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 shadow-sm transition-shadow group-hover:shadow-md">
+              <BrandLogo size={20} />
             </div>
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
           </Link>
@@ -335,7 +346,8 @@ export default function LandingPage() {
                 href={sport.href}
                 className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-card px-4 py-2.5 text-sm font-medium hover:border-border hover:shadow-sm transition-all duration-200"
               >
-                {sport.emoji} {sport.name}
+                <sport.icon className="h-4 w-4 text-muted-foreground" />
+                {sport.name}
               </Link>
             ))}
           </div>
@@ -369,9 +381,18 @@ export default function LandingPage() {
                 <blockquote className="text-sm leading-relaxed flex-1 mb-4">
                   &ldquo;{t.text}&rdquo;
                 </blockquote>
-                <div>
-                  <p className="text-xs font-semibold">{t.author}</p>
-                  <p className="text-xs text-muted-foreground">{t.club}</p>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={t.avatar}
+                    alt={t.author}
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 rounded-full shrink-0"
+                  />
+                  <div>
+                    <p className="text-xs font-semibold">{t.author}, {t.role}</p>
+                    <p className="text-xs text-muted-foreground">{t.club}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -444,8 +465,8 @@ export default function LandingPage() {
             {/* Col 1: Brand */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-sm">
-                  <Trophy className="h-4 w-4" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 shadow-sm">
+                  <BrandLogo size={20} />
                 </div>
                 <span className="text-sm font-semibold">Sport Manager</span>
               </div>
@@ -472,8 +493,9 @@ export default function LandingPage() {
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 {SUPPORTED_SPORTS.map((sport) => (
                   <li key={sport.href}>
-                    <Link href={sport.href} className="hover:text-foreground transition-colors">
-                      {sport.emoji} {sport.name}
+                    <Link href={sport.href} className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
+                      <sport.icon className="h-3.5 w-3.5 shrink-0" />
+                      {sport.name}
                     </Link>
                   </li>
                 ))}

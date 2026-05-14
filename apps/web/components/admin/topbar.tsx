@@ -59,7 +59,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
         {me.data && me.data.members.length > 1 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:brightness-110">
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-gradient-brand px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:shadow-md hover:opacity-90">
                 <span className="max-w-[120px] truncate">{clubName ?? 'Bez klubu'}</span>
                 <ChevronDown className="h-3 w-3 opacity-70" />
               </button>
@@ -112,7 +112,6 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
             ⌘K
           </kbd>
         </button>
-        <LanguageSwitcher compact />
         {process.env.NODE_ENV === 'development' && <ApiStatus />}
         <NotificationBell />
         {auth.isAuthenticated && me.data ? (
@@ -142,6 +141,10 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Nastavení</span>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5">
+                <LanguageSwitcher compact />
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {

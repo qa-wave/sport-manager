@@ -29,7 +29,11 @@ const FIELD_BG = (w: number, h: number) =>
    <rect x="2" y="2" width="${w - 4}" height="${h - 4}" rx="6" fill="none" stroke="hsl(142 40% 40%)" stroke-width="1" opacity="0.3"/>`;
 
 const player = (x: number, y: number, color: 'blue' | 'red' | 'gray' = 'blue', label?: string) => {
-  const c = color === 'blue' ? '#6366f1' : color === 'red' ? '#ef4444' : '#9ca3af';
+  // Colors align with design system tokens:
+  // blue  → --primary          hsl(250 85% 60%)
+  // red   → --destructive      hsl(0 84% 60%)
+  // gray  → --muted-foreground hsl(240 5% 65%)
+  const c = color === 'blue' ? 'hsl(250,85%,60%)' : color === 'red' ? 'hsl(0,84%,60%)' : 'hsl(240,5%,65%)';
   return `<circle cx="${x}" cy="${y}" r="8" fill="${c}" opacity="0.9"/>
     <circle cx="${x}" cy="${y}" r="8" fill="none" stroke="white" stroke-width="1.5" opacity="0.6"/>
     ${label ? `<text x="${x}" y="${y + 3}" text-anchor="middle" fill="white" font-size="7" font-weight="bold">${label}</text>` : ''}`;
