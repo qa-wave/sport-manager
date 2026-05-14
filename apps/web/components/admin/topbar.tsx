@@ -113,7 +113,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
           </kbd>
         </button>
         <LanguageSwitcher compact />
-        <ApiStatus />
+        {process.env.NODE_ENV === 'development' && <ApiStatus />}
         <NotificationBell />
         {auth.isAuthenticated && me.data ? (
           <DropdownMenu>

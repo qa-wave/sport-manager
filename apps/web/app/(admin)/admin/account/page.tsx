@@ -42,12 +42,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ROLE_VARIANT } from '@/lib/role-colors';
 import {
   STYLE_CATALOG,
-  hexToHsl,
   generateThemeVars,
   generateDarkThemeVars,
   type ClubThemeInput,
 } from '@/lib/club-theme';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AccountPage() {
   const auth = useAuth();
@@ -73,11 +73,17 @@ export default function AccountPage() {
     ? (me.data.firstName[0] ?? '') + (me.data.lastName[0] ?? '')
     : '';
 
+  const isClubAdmin = !!(memberCtx &&
+    (memberCtx.clubRoles.includes('OWNER') || memberCtx.clubRoles.includes('ADMIN')));
+
   const themes = [
     { value: 'light', label: t('account.light'), icon: Sun },
     { value: 'dark', label: t('account.dark'), icon: Moon },
     { value: 'system', label: t('account.system'), icon: Monitor },
   ] as const;
+
+  // Default to "klub" tab when Stripe just connected
+  const defaultTab = stripeJustConnected ? 'klub' : 'profil';
 
   return (
     <>
@@ -157,92 +163,98 @@ export default function AccountPage() {
         </Card>
       ) : null}
 
-      {/* Settings sections */}
-      <div className="space-y-3">
-        {/* ── Váš profil ── */}
-        <h2 className="text-lg font-semibold mt-8 mb-4">Váš profil</h2>
+      {/* Settings tabs */}
+      <Tabs defaultValue={defaultTab} className="mt-6">
+        <TabsList className="w-full">
+          <TabsTrigger value="profil" className="flex-1">Profil</TabsTrigger>
+          {isClubAdmin && (
+            <TabsTrigger value="klub" className="flex-1">Klub</TabsTrigger>
+          )}
+          {isClubAdmin && (
+            <TabsTrigger value="pokrocile" className="flex-1">Pokrocile</TabsTrigger>
+          )}
+        </TabsList>
 
-        {/* Edit profile */}
-        {me.data && <EditProfileCard user={me.data} />}
+        {/* ── Tab: Profil ── */}
+        <TabsContent value="profil" className="space-y-3 mt-4">
+          {/* Edit profile */}
+          {me.data && <EditProfileCard user={me.data} />}
 
-        {/* Theme */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
-              <Palette className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">{t('account.appearance')}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 p-4">
-              {themes.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => setTheme(value)}
-                  className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-xs font-medium transition-all ${
-                    theme === value
-                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                      : 'border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Theme */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+                <Palette className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">{t('account.appearance')}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 p-4">
+                {themes.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setTheme(value)}
+                    className={`flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-4 text-xs font-medium transition-all ${
+                      theme === value
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Language card */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
-              <Globe className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">{t('account.language')}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-4">
-              <p className="text-xs text-muted-foreground">{t('account.languageDesc')}</p>
-              <LanguageSwitcher />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Language card */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3">
+                <Globe className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">{t('account.language')}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-4">
+                <p className="text-xs text-muted-foreground">{t('account.languageDesc')}</p>
+                <LanguageSwitcher />
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Notification preferences */}
-        <NotificationPreferencesCard />
+          {/* Notification preferences */}
+          <NotificationPreferencesCard />
 
-        {/* Roles & permissions (personal view) */}
-        <Card className="overflow-hidden">
-          <CardContent className="divide-y divide-border/30 p-0">
-            <MenuItem
-              icon={Shield}
-              label={t('account.rolesAndPermissions')}
-              desc={roleLabel ? `${t('account.currentRole')}: ${roleLabel}` : t('account.viewAccessLevel')}
-              disabled
-            />
-          </CardContent>
-        </Card>
+          {/* Roles & permissions (personal view) */}
+          <Card className="overflow-hidden">
+            <CardContent className="divide-y divide-border/30 p-0">
+              <MenuItem
+                icon={Shield}
+                label={t('account.rolesAndPermissions')}
+                desc={roleLabel ? `${t('account.currentRole')}: ${roleLabel}` : t('account.viewAccessLevel')}
+                disabled
+              />
+            </CardContent>
+          </Card>
 
-        {/* Sign out */}
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <button
-              className="flex w-full items-center gap-3 px-4 py-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5"
-              onClick={() => {
-                auth.signOut();
-                router.push('/login');
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              {t('account.signOut')}
-            </button>
-          </CardContent>
-        </Card>
+          {/* Sign out */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <button
+                className="flex w-full items-center gap-3 px-4 py-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5"
+                onClick={() => {
+                  auth.signOut();
+                  router.push('/login');
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                {t('account.signOut')}
+              </button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* ── Nastavení klubu (admin only) ── */}
-        {memberCtx &&
-          (memberCtx.clubRoles.includes('OWNER') ||
-            memberCtx.clubRoles.includes('ADMIN')) && (
-          <>
-            <h2 className="text-lg font-semibold mt-10 mb-4">Nastavení klubu</h2>
-
+        {/* ── Tab: Klub (admin only) ── */}
+        {isClubAdmin && (
+          <TabsContent value="klub" className="space-y-3 mt-4">
             {/* Club settings — name + timezone */}
             {me.data && (
               <ClubSettingsCard
@@ -252,25 +264,6 @@ export default function AccountPage() {
                 }
                 currentTimezone={
                   me.data.members.find((m) => m.clubId === auth.clubId)?.club.timezone ?? 'Europe/Prague'
-                }
-              />
-            )}
-
-            {/* Stripe Connect — only for OWNER */}
-            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && (
-              <StripeConnectCard
-                clubId={auth.clubId}
-                connected={stripeConnected}
-                justConnected={stripeJustConnected}
-              />
-            )}
-
-            {/* Season management — only for OWNER */}
-            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
-              <SeasonCard
-                currentSeason={
-                  (me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
-                    ?.currentSeason as string | undefined
                 }
               />
             )}
@@ -285,8 +278,18 @@ export default function AccountPage() {
               />
             )}
 
+            {/* Season management — only for OWNER */}
+            {memberCtx?.clubRoles.includes('OWNER') && auth.clubId && me.data && (
+              <SeasonCard
+                currentSeason={
+                  (me.data.members.find((m) => m.clubId === auth.clubId)?.club.config as Record<string, unknown>)
+                    ?.currentSeason as string | undefined
+                }
+              />
+            )}
+
             {/* Registration config — only for OWNER */}
-            {memberCtx.clubRoles.includes('OWNER') && auth.clubId && me.data && (
+            {memberCtx?.clubRoles.includes('OWNER') && auth.clubId && me.data && (
               <RegistrationCard
                 clubSlug={
                   me.data.members.find((m) => m.clubId === auth.clubId)?.club.slug ?? ''
@@ -298,10 +301,24 @@ export default function AccountPage() {
               />
             )}
 
+            {/* Stripe Connect — only for OWNER */}
+            {memberCtx?.clubRoles.includes('OWNER') && auth.clubId && (
+              <StripeConnectCard
+                clubId={auth.clubId}
+                connected={stripeConnected}
+                justConnected={stripeJustConnected}
+              />
+            )}
+          </TabsContent>
+        )}
+
+        {/* ── Tab: Pokrocile (admin only) ── */}
+        {isClubAdmin && (
+          <TabsContent value="pokrocile" className="space-y-3 mt-4">
             {/* Referral */}
             <ReferralCard />
 
-            {/* Audit log + Roles links */}
+            {/* Audit log link */}
             <Card className="overflow-hidden">
               <CardContent className="divide-y divide-border/30 p-0">
                 <Link href="/admin/audit-log" className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-primary/[0.03] active:bg-primary/[0.05]">
@@ -314,9 +331,9 @@ export default function AccountPage() {
                 </Link>
               </CardContent>
             </Card>
-          </>
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
     </>
   );
 }

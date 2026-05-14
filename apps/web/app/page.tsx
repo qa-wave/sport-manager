@@ -4,7 +4,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Calendar,
-  ChevronRight,
   Lock,
   MessageSquare,
   Repeat,
@@ -108,11 +107,10 @@ const FEATURE_KEYS = [
   },
 ];
 
-const STATS = [
-  { value: '30', labelKey: 'landing.stats.exercises', suffix: '+' },
-  { value: '9', labelKey: 'landing.stats.trainingCategories', suffix: '' },
-  { value: '13', labelKey: 'landing.stats.federations', suffix: '' },
-  { value: '5', labelKey: 'landing.stats.roles', suffix: '' },
+const VALUE_STATS = [
+  { label: 'Pro fotbal i florbal' },
+  { label: 'Zdarma do 25 členů' },
+  { label: 'Bez reklam' },
 ];
 
 export default function LandingPage() {
@@ -160,28 +158,6 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 dot-grid opacity-20" />
 
         <div className="relative mx-auto max-w-4xl text-center">
-          {/* Badge */}
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {t('landing.badge')}
-          </div>
-
-          {/* Sport icons */}
-          <div className="mb-6 flex justify-center">
-            <div className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-card/70 backdrop-blur-sm px-5 py-2 text-sm">
-              <div className="flex -space-x-2">
-                {['⚽', '🏑', '🏒', '🏀'].map((e) => (
-                  <div key={e} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-sm shadow-sm">
-                    {e}
-                  </div>
-                ))}
-              </div>
-              <span className="text-muted-foreground">
-                Důvěřují nám kluby po celé ČR
-              </span>
-            </div>
-          </div>
-
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl leading-[1.1]">
             {t('landing.hero.title1')}
             <br />
@@ -192,7 +168,7 @@ export default function LandingPage() {
             {t('landing.hero.subtitle')}
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+          <div className="mt-10 flex flex-col items-center gap-4">
             <Link
               href="/signup"
               className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
@@ -204,21 +180,17 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/k/fc-hvezda"
-              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card/50 backdrop-blur-sm px-8 py-3.5 text-sm font-medium hover:bg-card transition-all duration-300"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {t('landing.demo')}
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              {t('landing.demo')} &rarr;
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="mt-16 mx-auto flex max-w-md justify-center divide-x divide-border/50">
-            {STATS.map((s) => (
-              <div key={s.labelKey} className="px-6 text-center">
-                <div className="text-2xl font-bold text-foreground font-mono tabular-nums">
-                  {s.value}{s.suffix}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-1">{t(s.labelKey)}</div>
+          {/* Value stats */}
+          <div className="mt-14 mx-auto flex max-w-lg justify-center divide-x divide-border/50">
+            {VALUE_STATS.map((s) => (
+              <div key={s.label} className="px-5 text-center">
+                <div className="text-[12px] text-muted-foreground leading-snug">{s.label}</div>
               </div>
             ))}
           </div>

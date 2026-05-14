@@ -24,7 +24,7 @@ function dayNum(d: string): string {
 }
 
 function weekdayShort(d: string): string {
-  return new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
+  return new Date(d).toLocaleDateString('cs-CZ', { weekday: 'short' }).toUpperCase();
 }
 
 function formatTime(d: string): string {

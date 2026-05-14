@@ -18,25 +18,19 @@ const DEMO_ACCOUNTS: Array<{
   email: string;
   role: string;
   hint: string;
-  accent: 'primary' | 'amber' | 'emerald' | 'rose' | 'violet' | 'slate';
+  accent: 'primary' | 'amber' | 'emerald' | 'violet';
 }> = [
-  { email: 'admin@hvezda.cz',        role: 'Admin klubu',     hint: 'FC Hvězda — vše',                                  accent: 'primary' },
-  { email: 'coach@hvezda.cz',        role: 'Hlavní trenér',   hint: 'U13 — RSVP, attendance, chat',                     accent: 'amber'   },
-  { email: 'parent@hvezda.cz',       role: 'Máma',            hint: 'Lucie — vidí DM s trenérem',                       accent: 'emerald' },
-  { email: 'petr.pekar@hvezda.cz',   role: 'Táta (rozvedený)', hint: 'Petr — nevidí DM ani platby',                     accent: 'rose'    },
-  { email: 'simon.assist@hvezda.cz', role: 'Hráč 16+',        hint: 'Šimon — U15 hráč + U13 asistent',                  accent: 'violet'  },
-  { email: 'tomas@example.com',      role: 'Multi-klub',      hint: 'Tomáš — Hvězda rodič + Sokol trenér',              accent: 'primary' },
-  { email: 'admin@sokoli.cz',        role: 'Admin Sokoli',    hint: 'TJ Sokol Měcholupy — florbal',                     accent: 'emerald' },
-  { email: 'platform@example.com',   role: 'Platform admin',  hint: 'Super-user, cross-club',                           accent: 'slate'   },
+  { email: 'admin@hvezda.cz',        role: 'Admin klubu',   hint: 'FC Hvězda — plný přístup, Stripe, audit', accent: 'primary' },
+  { email: 'coach@hvezda.cz',        role: 'Hlavní trenér', hint: 'RSVP, docházka, chat, plány tréninků',    accent: 'amber'   },
+  { email: 'parent@hvezda.cz',       role: 'Rodič',         hint: 'Dashboard dítěte, DM s trenérem',         accent: 'emerald' },
+  { email: 'tomas@example.com',      role: 'Multi-role',    hint: 'Hvězda rodič + Sokol trenér (2 kluby)',   accent: 'violet'  },
 ];
 
 const accentClasses: Record<typeof DEMO_ACCOUNTS[number]['accent'], string> = {
   primary: 'bg-primary/10 text-primary border-primary/20',
   amber:   'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-  rose:    'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
   violet:  'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/20',
-  slate:   'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20',
 };
 
 function LoginForm() {

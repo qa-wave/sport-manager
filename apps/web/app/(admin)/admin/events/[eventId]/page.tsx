@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Calendar, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { googleCalendarUrl, outlookCalendarUrl, downloadICal } from '@/lib/ical';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -34,6 +36,21 @@ import {
 import { LineupBuilder } from '@/components/admin/lineup-builder';
 
 const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  PRACTICE: 'Trénink',
+  MATCH: 'Zápas',
+  TOURNAMENT: 'Turnaj',
+  MEETING: 'Schůzka',
+  SOCIAL: 'Společenská akce',
+};
+
+const RSVP_STATUS_LABEL: Record<string, string> = {
+  YES: 'Ano',
+  NO: 'Ne',
+  MAYBE: 'Možná',
+  PENDING: 'Čeká',
+};
 
 // ─── Score marker helpers ───
 
@@ -799,6 +816,7 @@ export default function EventDetailPage() {
   const [bulkAttendance, setBulkAttendance] = useState<Record<string, boolean>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [bulkRsvpConfirm, setBulkRsvpConfirm] = useState<'YES' | 'NO' | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
@@ -1080,150 +1098,150 @@ export default function EventDetailPage() {
         }
       />
 
-      {/* Edit form — stays above tabs */}
-      {isEditing && (
-        <Card>
-          <div className="h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-          <CardContent className="p-6">
-            <form onSubmit={handleEditSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <Label>Typ události</Label>
-                <div className="flex flex-wrap gap-2">
-                  {EVENT_TYPES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setEditType(t)}
-                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                        editType === t
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'bg-secondary text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+      {/* Edit form — Sheet panel from the right */}
+      <Sheet open={isEditing} onOpenChange={(open) => { if (!open) { setIsEditing(false); setEditError(null); } }}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="mb-5">
+            <SheetTitle>Upravit událost</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label>Typ události</Label>
+              <div className="flex flex-wrap gap-2">
+                {EVENT_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setEditType(t)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                      editType === t
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {EVENT_TYPE_LABEL[t] ?? t}
+                  </button>
+                ))}
               </div>
+            </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-title">Název</Label>
+              <Input
+                id="edit-title"
+                required
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-team">Tým</Label>
+              <select
+                id="edit-team"
+                value={editTeamId}
+                onChange={(e) => setEditTeamId(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Celý klub (bez konkrétního týmu)</option>
+                {teams?.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-title">Název</Label>
+                <Label htmlFor="edit-startsAt">Začátek</Label>
                 <Input
-                  id="edit-title"
+                  id="edit-startsAt"
+                  type="datetime-local"
                   required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
+                  value={editStartsAt}
+                  onChange={(e) => setEditStartsAt(e.target.value)}
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label htmlFor="edit-team">Tým</Label>
-                <select
-                  id="edit-team"
-                  value={editTeamId}
-                  onChange={(e) => setEditTeamId(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Celý klub (bez konkrétního týmu)</option>
-                  {teams?.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
+                <Label htmlFor="edit-endsAt">Konec</Label>
+                <Input
+                  id="edit-endsAt"
+                  type="datetime-local"
+                  required
+                  value={editEndsAt}
+                  onChange={(e) => setEditEndsAt(e.target.value)}
+                />
               </div>
+            </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-location">Místo</Label>
+              <Input
+                id="edit-location"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+              />
+            </div>
+
+            {showOpponentFields && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-startsAt">Začátek</Label>
+                  <Label htmlFor="edit-opponent">Soupeř</Label>
                   <Input
-                    id="edit-startsAt"
-                    type="datetime-local"
-                    required
-                    value={editStartsAt}
-                    onChange={(e) => setEditStartsAt(e.target.value)}
+                    id="edit-opponent"
+                    value={editOpponent}
+                    onChange={(e) => setEditOpponent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-endsAt">Konec</Label>
-                  <Input
-                    id="edit-endsAt"
-                    type="datetime-local"
-                    required
-                    value={editEndsAt}
-                    onChange={(e) => setEditEndsAt(e.target.value)}
-                  />
+                  <Label htmlFor="edit-homeAway">Domácí / Hosté</Label>
+                  <select
+                    id="edit-homeAway"
+                    value={editHomeAway}
+                    onChange={(e) => setEditHomeAway(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">Nenastaveno</option>
+                    <option value="HOME">Domácí</option>
+                    <option value="AWAY">Hosté</option>
+                    <option value="NEUTRAL">Neutrální</option>
+                  </select>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-location">Místo</Label>
-                <Input
-                  id="edit-location"
-                  value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                />
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-description">Popis (volitelné)</Label>
+              <textarea
+                id="edit-description"
+                rows={3}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+
+            {editError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {editError}
               </div>
+            )}
 
-              {showOpponentFields && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-opponent">Soupeř</Label>
-                    <Input
-                      id="edit-opponent"
-                      value={editOpponent}
-                      onChange={(e) => setEditOpponent(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-homeAway">Domácí / Hosté</Label>
-                    <select
-                      id="edit-homeAway"
-                      value={editHomeAway}
-                      onChange={(e) => setEditHomeAway(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <option value="">Nenastaveno</option>
-                      <option value="HOME">Domácí</option>
-                      <option value="AWAY">Hosté</option>
-                      <option value="NEUTRAL">Neutrální</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-description">Popis (volitelné)</Label>
-                <textarea
-                  id="edit-description"
-                  rows={3}
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </div>
-
-              {editError && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {editError}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? 'Ukládám...' : 'Uložit'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => { setIsEditing(false); setEditError(null); }}
-                  disabled={updateMutation.isPending}
-                >
-                  Zrušit
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Ukládám...' : 'Uložit'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => { setIsEditing(false); setEditError(null); }}
+                disabled={updateMutation.isPending}
+              >
+                Zrušit
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       {/* Hero card — always visible */}
       <Card className="relative overflow-hidden">
@@ -1233,7 +1251,7 @@ export default function EventDetailPage() {
             <div className="flex-1 space-y-3">
               <div className="flex items-center gap-2">
                 <Badge variant={EVENT_TYPE_VARIANT[event.type] ?? 'default'} className="text-xs">
-                  {event.type}
+                  {EVENT_TYPE_LABEL[event.type] ?? event.type}
                 </Badge>
                 {event.homeAway && (
                   <Badge variant="outline" className="text-[11px]">{event.homeAway}</Badge>
@@ -1440,20 +1458,25 @@ export default function EventDetailPage() {
                 <p className="mb-3 text-xs text-muted-foreground">
                   Hráči naskenují tento odkaz při příchodu. Kód je platný po dobu trvání události.
                 </p>
-                <div className="rounded-lg border border-border/50 bg-background p-3 font-mono text-xs break-all text-muted-foreground">
-                  {qrUrl}
+                <div className="flex justify-center rounded-lg border border-border/50 bg-white p-4">
+                  <QRCodeSVG value={qrUrl} size={200} />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 h-8 text-xs"
-                  onClick={copyQrUrl}
-                >
-                  {qrCopied
-                    ? <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Zkopírováno</>
-                    : <><Copy className="mr-1.5 h-3.5 w-3.5" />Kopírovat odkaz</>
-                  }
-                </Button>
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="min-w-0 flex-1 rounded-lg border border-border/50 bg-background px-3 py-2 font-mono text-xs break-all text-muted-foreground">
+                    {qrUrl}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 text-xs"
+                    onClick={copyQrUrl}
+                  >
+                    {qrCopied
+                      ? <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Zkopírováno</>
+                      : <><Copy className="mr-1.5 h-3.5 w-3.5" />Kopírovat odkaz</>
+                    }
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1472,46 +1495,72 @@ export default function EventDetailPage() {
                 {/* Bulk RSVP — for coaches, future events */}
                 {isCoachOrAdmin && !past && (
                   <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={rsvpMutation.isPending}
-                      onClick={() => {
-                        const pending = event.attendees.filter(a => a.status === 'PENDING');
-                        if (pending.length === 0) return;
-                        if (!window.confirm(`Nastavit RSVP "ANO" pro ${pending.length} čekajících členů?`)) return;
-                        Promise.all(pending.map(a =>
-                          apiFetch(`/events/${eventId}/rsvp`, {
-                            method: 'POST',
-                            body: JSON.stringify({ memberId: a.memberId, eventId, status: 'YES' }),
-                          })
-                        )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
-                      }}
-                    >
-                      <CheckCheck className="mr-1 h-3 w-3" />
-                      Vše ANO
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={rsvpMutation.isPending}
-                      onClick={() => {
-                        const pending = event.attendees.filter(a => a.status === 'PENDING');
-                        if (pending.length === 0) return;
-                        if (!window.confirm(`Nastavit RSVP "NE" pro ${pending.length} čekajících členů?`)) return;
-                        Promise.all(pending.map(a =>
-                          apiFetch(`/events/${eventId}/rsvp`, {
-                            method: 'POST',
-                            body: JSON.stringify({ memberId: a.memberId, eventId, status: 'NO' }),
-                          })
-                        )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
-                      }}
-                    >
-                      <X className="mr-1 h-3 w-3" />
-                      Vše NE
-                    </Button>
+                    {bulkRsvpConfirm ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Nastavit RSVP &quot;{bulkRsvpConfirm === 'YES' ? 'ANO' : 'NE'}&quot; pro {event.attendees.filter(a => a.status === 'PENDING').length} čekajících?
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setBulkRsvpConfirm(null)}
+                          disabled={rsvpMutation.isPending}
+                        >
+                          Ne
+                        </Button>
+                        <Button
+                          variant={bulkRsvpConfirm === 'YES' ? 'default' : 'destructive'}
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={rsvpMutation.isPending}
+                          onClick={() => {
+                            const status = bulkRsvpConfirm;
+                            const pending = event.attendees.filter(a => a.status === 'PENDING');
+                            setBulkRsvpConfirm(null);
+                            Promise.all(pending.map(a =>
+                              apiFetch(`/events/${eventId}/rsvp`, {
+                                method: 'POST',
+                                body: JSON.stringify({ memberId: a.memberId, eventId, status }),
+                              })
+                            )).then(() => queryClient.invalidateQueries({ queryKey: ['event', eventId] }));
+                          }}
+                        >
+                          Ano
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={rsvpMutation.isPending}
+                          onClick={() => {
+                            const pending = event.attendees.filter(a => a.status === 'PENDING');
+                            if (pending.length === 0) return;
+                            setBulkRsvpConfirm('YES');
+                          }}
+                        >
+                          <CheckCheck className="mr-1 h-3 w-3" />
+                          Vše ANO
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={rsvpMutation.isPending}
+                          onClick={() => {
+                            const pending = event.attendees.filter(a => a.status === 'PENDING');
+                            if (pending.length === 0) return;
+                            setBulkRsvpConfirm('NO');
+                          }}
+                        >
+                          <X className="mr-1 h-3 w-3" />
+                          Vše NE
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
                 {/* Bulk attendance — for coaches, past events */}
@@ -1560,7 +1609,7 @@ export default function EventDetailPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={RSVP_VARIANT[a.status] ?? 'default'} className="text-[11px]">
-                        {a.status}
+                        {RSVP_STATUS_LABEL[a.status] ?? a.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">

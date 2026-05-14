@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Search, Upload, UserCircle, UserPlus } from 'lucide-react';
+import { ChevronDown, Download, Filter, Search, Upload, UserCircle, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type MemberSummary } from '@/lib/api';
@@ -54,10 +54,59 @@ function age(dob: string | null): string {
   return `${y} let`;
 }
 
+const STATUS_OPTIONS = [
+  { value: '', label: 'Vše' },
+  { value: 'ACTIVE', label: 'Aktivní' },
+  { value: 'INACTIVE', label: 'Neaktivní' },
+  { value: 'INVITED', label: 'Čeká na pozvánku' },
+];
+
+const ROLE_OPTIONS = [
+  { value: '', label: 'Vše' },
+  { value: 'PLAYER', label: 'Hráč' },
+  { value: 'COACH', label: 'Trenér' },
+  { value: 'PARENT', label: 'Rodič' },
+  { value: 'ADMIN', label: 'Admin' },
+];
+
+function NativeSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+        aria-label={placeholder}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
+
 export default function MembersPage() {
   const auth = useAuth();
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [teamFilter, setTeamFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const { data: memberCtx } = useMemberContext();
   const canManage = memberCtx ? isAdmin(memberCtx) : false;
@@ -69,17 +118,49 @@ export default function MembersPage() {
     retry: false,
   });
 
+  // Derive unique team options from data
+  const teamOptions = useMemo(() => {
+    if (!data) return [{ value: '', label: 'Vše' }];
+    const names = Array.from(
+      new Set(data.flatMap((m) => m.teamRoles.map((tr) => tr.teamName)))
+    ).sort();
+    return [{ value: '', label: 'Vše' }, ...names.map((n) => ({ value: n, label: n }))];
+  }, [data]);
+
+  const hasActiveFilters = search.trim() || statusFilter || teamFilter || roleFilter;
+
   const filtered = useMemo(() => {
     if (!data) return [];
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(
-      (m) =>
-        m.firstName.toLowerCase().includes(q) ||
-        m.lastName.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    return data.filter((m) => {
+      // Text search
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchesText =
+          m.firstName.toLowerCase().includes(q) ||
+          m.lastName.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q);
+        if (!matchesText) return false;
+      }
+
+      // Status filter
+      if (statusFilter && m.status !== statusFilter) return false;
+
+      // Team filter
+      if (teamFilter && !m.teamRoles.some((tr) => tr.teamName === teamFilter)) return false;
+
+      // Role filter — match against clubRoles or teamRoles
+      if (roleFilter) {
+        const hasClubRole = m.clubRoles.some((r) => r.includes(roleFilter));
+        const hasTeamRole = m.teamRoles.some((tr) => tr.role.includes(roleFilter));
+        const isParent = roleFilter === 'PARENT' && m.guardianOf.length > 0;
+        if (!hasClubRole && !hasTeamRole && !isParent) return false;
+      }
+
+      return true;
+    });
+  }, [data, search, statusFilter, teamFilter, roleFilter]);
+
+  const showData = auth.isAuthenticated && data && data.length > 0;
 
   return (
     <>
@@ -112,16 +193,128 @@ export default function MembersPage() {
         }
       />
 
-      {/* Search */}
-      {auth.isAuthenticated && data && data.length > 0 && (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Hledat podle jména nebo e-mailu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      {/* Filter bar */}
+      {showData && (
+        <div className="space-y-3">
+          {/* Desktop: inline filter bar */}
+          <div className="hidden sm:flex items-center gap-3 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Hledat podle jména nebo e-mailu..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+
+            {/* Status */}
+            <div className="w-44">
+              <NativeSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={STATUS_OPTIONS}
+                placeholder="Stav"
+              />
+            </div>
+
+            {/* Team */}
+            <div className="w-44">
+              <NativeSelect
+                value={teamFilter}
+                onChange={setTeamFilter}
+                options={teamOptions}
+                placeholder="Tým"
+              />
+            </div>
+
+            {/* Role */}
+            <div className="w-36">
+              <NativeSelect
+                value={roleFilter}
+                onChange={setRoleFilter}
+                options={ROLE_OPTIONS}
+                placeholder="Role"
+              />
+            </div>
+
+            {/* Result count + clear */}
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {hasActiveFilters ? (
+                  <><span className="font-semibold text-foreground">{filtered.length}</span> z {data.length} členů</>
+                ) : (
+                  <><span className="font-semibold text-foreground">{data.length}</span> členů</>
+                )}
+              </span>
+              {hasActiveFilters && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => { setSearch(''); setStatusFilter(''); setTeamFilter(''); setRoleFilter(''); }}
+                >
+                  Zrušit filtry
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile: search + collapsible filters */}
+          <div className="sm:hidden space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Hledat..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant={filtersOpen || (statusFilter || teamFilter || roleFilter) ? 'default' : 'outline'}
+                className="h-9 gap-1.5 shrink-0"
+                onClick={() => setFiltersOpen((v) => !v)}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filtry
+                {(statusFilter || teamFilter || roleFilter) && (
+                  <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
+                    {[statusFilter, teamFilter, roleFilter].filter(Boolean).length}
+                  </span>
+                )}
+              </Button>
+            </div>
+
+            {filtersOpen && (
+              <div className="grid grid-cols-1 gap-2 rounded-lg border border-border/50 bg-card/50 p-3">
+                <NativeSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} placeholder="Stav" />
+                <NativeSelect value={teamFilter} onChange={setTeamFilter} options={teamOptions} placeholder="Tým" />
+                <NativeSelect value={roleFilter} onChange={setRoleFilter} options={ROLE_OPTIONS} placeholder="Role" />
+                {hasActiveFilters && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs text-muted-foreground"
+                    onClick={() => { setSearch(''); setStatusFilter(''); setTeamFilter(''); setRoleFilter(''); setFiltersOpen(false); }}
+                  >
+                    Zrušit vše
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="text-xs text-muted-foreground">
+              {hasActiveFilters ? (
+                <><span className="font-semibold text-foreground">{filtered.length}</span> z {data.length} členů</>
+              ) : (
+                <><span className="font-semibold text-foreground">{data.length}</span> členů</>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -158,8 +351,19 @@ export default function MembersPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserCircle}
-          title={search ? 'Žádné výsledky' : 'Žádní členové'}
-          description={search ? `Žádní členové odpovídající "${search}".` : 'V tomto klubu nebyli nalezeni žádní členové.'}
+          title={hasActiveFilters ? 'Žádné výsledky' : 'Žádní členové'}
+          description={
+            hasActiveFilters
+              ? 'Žádní členové neodpovídají zvoleným filtrům.'
+              : 'V tomto klubu nebyli nalezeni žádní členové.'
+          }
+          cta={
+            hasActiveFilters ? (
+              <Button size="sm" variant="outline" onClick={() => { setSearch(''); setStatusFilter(''); setTeamFilter(''); setRoleFilter(''); }}>
+                Zrušit filtry
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <Card className="overflow-hidden ">

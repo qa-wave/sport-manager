@@ -15,6 +15,14 @@ import { Label } from '@/components/ui/label';
 
 const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
 
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  PRACTICE: 'Trénink',
+  MATCH: 'Zápas',
+  TOURNAMENT: 'Turnaj',
+  MEETING: 'Schůzka',
+  SOCIAL: 'Společenská akce',
+};
+
 export default function NewEventPage() {
   const auth = useAuth();
   const router = useRouter();
@@ -119,7 +127,7 @@ export default function NewEventPage() {
                         : 'bg-secondary text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {t}
+                    {EVENT_TYPE_LABEL[t] ?? t}
                   </button>
                 ))}
               </div>

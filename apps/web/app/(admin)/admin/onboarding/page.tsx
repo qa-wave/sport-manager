@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CheckCircle2, ChevronRight, Plus, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { apiFetch, ApiError, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
@@ -123,7 +123,7 @@ function StepWelcome({ clubName, onNext }: { clubName: string; onNext: () => voi
 // ---------------------------------------------------------------------------
 // Step 2 — Invite members
 // ---------------------------------------------------------------------------
-function StepInvite({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+function StepInvite({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: () => void; onPrev: () => void }) {
   const [email, setEmail] = useState('');
   const [emails, setEmails] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -220,6 +220,9 @@ function StepInvite({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
         <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
           Přeskočit
         </Button>
+        <Button variant="ghost" size="sm" onClick={onPrev} className="text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -228,7 +231,7 @@ function StepInvite({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
 // ---------------------------------------------------------------------------
 // Step 3 — Create team
 // ---------------------------------------------------------------------------
-function StepTeam({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+function StepTeam({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: () => void; onPrev: () => void }) {
   const [name, setName] = useState('');
   const [sport, setSport] = useState('fotbal');
   const [ageGroup, setAgeGroup] = useState('');
@@ -306,6 +309,9 @@ function StepTeam({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }
         <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
           Přeskočit
         </Button>
+        <Button variant="ghost" size="sm" onClick={onPrev} className="text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -314,9 +320,12 @@ function StepTeam({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }
 // ---------------------------------------------------------------------------
 // Step 4 — First training
 // ---------------------------------------------------------------------------
-function StepTraining({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
-  const [day, setDay] = useState(3); // Wednesday
-  const [time, setTime] = useState('17:00');
+const TRAINING_DEFAULT_DAY = 3;
+const TRAINING_DEFAULT_TIME = '17:00';
+
+function StepTraining({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: () => void; onPrev: () => void }) {
+  const [day, setDay] = useState(TRAINING_DEFAULT_DAY);
+  const [time, setTime] = useState(TRAINING_DEFAULT_TIME);
   const [location, setLocation] = useState('');
   const auth = useAuth();
 
@@ -339,7 +348,13 @@ function StepTraining({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
     onSuccess: onNext,
   });
 
+  const isDefaultValues = day === TRAINING_DEFAULT_DAY && time === TRAINING_DEFAULT_TIME && !location.trim();
+
   function handleSubmit() {
+    if (isDefaultValues) {
+      onSkip();
+      return;
+    }
     mutation.mutate();
   }
 
@@ -403,10 +418,13 @@ function StepTraining({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
           onClick={handleSubmit}
           disabled={mutation.isPending}
         >
-          {mutation.isPending ? 'Ukládám...' : 'Naplánovat trénink'}
+          {mutation.isPending ? 'Ukládám...' : isDefaultValues ? 'Přeskočit' : 'Naplánovat trénink'}
         </Button>
         <Button variant="ghost" onClick={onSkip} className="text-muted-foreground">
           Přeskočit
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onPrev} className="text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -469,6 +487,7 @@ export default function OnboardingPage() {
   const clubName = me?.members.find((m) => m.clubId === auth.clubId)?.club.name ?? 'Váš klub';
 
   function next() { setStep((s) => Math.min((s + 1) as StepId, 5) as StepId); }
+  function prev() { setStep((s) => Math.max((s - 1) as StepId, 1) as StepId); }
   function skip() { next(); }
 
   return (
@@ -484,9 +503,9 @@ export default function OnboardingPage() {
           {step < 5 && <StepIndicator current={step} />}
 
           {step === 1 && <StepWelcome clubName={clubName} onNext={next} />}
-          {step === 2 && <StepInvite onNext={next} onSkip={skip} />}
-          {step === 3 && <StepTeam onNext={next} onSkip={skip} />}
-          {step === 4 && <StepTraining onNext={next} onSkip={skip} />}
+          {step === 2 && <StepInvite onNext={next} onSkip={skip} onPrev={prev} />}
+          {step === 3 && <StepTeam onNext={next} onSkip={skip} onPrev={prev} />}
+          {step === 4 && <StepTraining onNext={next} onSkip={skip} onPrev={prev} />}
           {step === 5 && <StepDone clubName={clubName} />}
         </CardContent>
       </Card>
