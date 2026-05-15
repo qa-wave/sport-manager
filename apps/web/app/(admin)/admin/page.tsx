@@ -159,7 +159,7 @@ export default function DashboardPage() {
                 <Baby className="h-4 w-4 text-primary" />
                 {t('dashboard.myChildren')}
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 xs:grid-cols-2">
                 {feed.children.map((child) => (
                   <ChildCard key={child.childMemberId} child={child} />
                 ))}
@@ -307,7 +307,7 @@ export default function DashboardPage() {
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               {t('dashboard.quickActions')}
             </h2>
-            <div className={`grid gap-3 ${admin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            <div className={`grid gap-3 ${admin ? 'xs:grid-cols-2 sm:grid-cols-3' : 'xs:grid-cols-2 sm:grid-cols-2'}`}>
               {(admin || coach) && (
                 <QuickAction
                   href="/admin/events/new"

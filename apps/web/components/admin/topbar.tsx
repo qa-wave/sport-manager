@@ -45,7 +45,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
     : '';
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-card/80 backdrop-blur-sm px-5">
+    <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-card/80 backdrop-blur-sm px-5 pt-[env(safe-area-inset-top)]">
       <div className="flex items-center gap-2.5 text-sm">
         <Button
           variant="ghost"

@@ -152,6 +152,15 @@ export const ADMIN_NAV: NavItem[] = [
     group: 'tools',
   },
   {
+    href: '/admin/season-report',
+    label: 'Zpráva o sezoně',
+    labelKey: 'seasonReport',
+    description: 'Souhrnná zpráva za sezonu',
+    icon: FileBarChart2,
+    access: 'admin',
+    group: 'tools',
+  },
+  {
     href: '/admin/federation-sync',
     label: 'Liga sync',
     labelKey: 'federationSync',

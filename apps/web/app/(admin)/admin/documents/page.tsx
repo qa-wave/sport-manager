@@ -17,11 +17,16 @@ type ClubDocumentMeta = {
   id: string;
   title: string;
   mimeType: string;
+  /** Present when Vercel Blob is configured on the server. */
+  blobUrl?: string;
   uploadedByMemberId: string;
   uploadedAt: string;
 };
 
-type ClubDocumentFull = ClubDocumentMeta & { dataUrl: string };
+type ClubDocumentFull = ClubDocumentMeta & {
+  /** Base64 data URL — set only when Blob is not configured (fallback). */
+  dataUrl?: string;
+};
 
 const ALLOWED_MIME: Record<string, string> = {
   'application/pdf': 'PDF',
@@ -60,7 +65,7 @@ export default function DocumentsPage() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (body: { title: string; mimeType: string; dataUrl: string }) =>
+    mutationFn: (body: { title: string; mimeType: string; data: string; filename: string }) =>
       apiFetch('/clubs/documents', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents', auth.clubId] });
@@ -102,27 +107,46 @@ export default function DocumentsPage() {
 
     const reader = new FileReader();
     reader.onload = () => {
+      // reader.result is a data URL like "data:<mime>;base64,<data>"
+      // The API expects only the base64 portion (without the prefix).
       const dataUrl = reader.result as string;
-      uploadMutation.mutate({ title: title.trim(), mimeType: file.type, dataUrl });
+      const base64 = dataUrl.split(',')[1] ?? '';
+      uploadMutation.mutate({
+        title: title.trim(),
+        mimeType: file.type,
+        data: base64,
+        filename: file.name,
+      });
     };
     reader.readAsDataURL(file);
   }
 
   async function handleOpen(doc: ClubDocumentMeta) {
-    // Fetch full doc with dataUrl
     try {
+      // If blobUrl is already on the list item, open it directly — no extra fetch needed.
+      if (doc.blobUrl) {
+        window.open(doc.blobUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // Fallback: fetch full doc to get base64 dataUrl (non-Blob environments).
       const full = await apiFetch<ClubDocumentFull>(`/clubs/documents/${doc.id}`);
-      const a = window.document.createElement('a');
-      a.href = full.dataUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      if (doc.mimeType === 'application/pdf') {
-        // Open PDF in new tab
-        const blob = dataUrlToBlob(full.dataUrl, doc.mimeType);
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-      } else {
-        a.click();
+      if (full.blobUrl) {
+        window.open(full.blobUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (full.dataUrl) {
+        if (doc.mimeType === 'application/pdf') {
+          const blob = dataUrlToBlob(full.dataUrl, doc.mimeType);
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        } else {
+          const a = window.document.createElement('a');
+          a.href = full.dataUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.click();
+        }
       }
     } catch {
       // silently fail
@@ -131,7 +155,8 @@ export default function DocumentsPage() {
 
   function dataUrlToBlob(dataUrl: string, mimeType: string): Blob {
     const arr = dataUrl.split(',');
-    const bstr = atob(arr[1]);
+    const b64 = arr[1] ?? '';
+    const bstr = atob(b64);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
     while (n--) u8arr[n] = bstr.charCodeAt(n);

@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <QueryProvider>
       <AuthGuard>
         <ThemeInjector />
-        <div className="flex min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen bg-background text-foreground pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
           <Sidebar
             collapsed={sidebarCollapsed}
             onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}

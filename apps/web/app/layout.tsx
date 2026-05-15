@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import Script from 'next/script';
@@ -9,6 +9,13 @@ const inter = Inter({
   variable: '--font-sans',
   display: 'swap',
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: { default: 'Sport Manager', template: '%s | Sport Manager' },
@@ -24,6 +31,11 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'Sport Manager',
     description: 'Řízení sportovního klubu — jednoduše.',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Sport Manager',
   },
 };
 

@@ -31,6 +31,8 @@ import { waiversRoutes } from './routes/waivers.routes';
 import { proxyRoutes } from './routes/proxy.routes';
 import { federationRoutes } from './routes/federation.routes';
 import { pushRoutes } from './routes/push.routes';
+import { reportsRoutes } from './routes/reports.routes';
+import { notificationPrefsRoutes } from './routes/notification-prefs.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -110,6 +112,8 @@ app.route('/v1/waivers', waiversRoutes);
 app.route('/v1/proxy', proxyRoutes);
 app.route('/v1/federation', federationRoutes);
 app.route('/v1/push', pushRoutes);
+app.route('/v1/reports', reportsRoutes);
+app.route('/v1/notification-preferences', notificationPrefsRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

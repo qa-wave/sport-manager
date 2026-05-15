@@ -31,8 +31,8 @@ export const FeatureFlags = z
     waivers: z.boolean().default(true),
     /** Club calendar (events UI). */
     calendar: z.boolean().default(true),
-    /** Photo gallery — not shipped yet, default off. */
-    gallery: z.boolean().default(false),
+    /** Photo gallery — default on. */
+    gallery: z.boolean().default(true),
     /** Braník-only demo module for per-club features. */
     springCup: z.boolean().default(false),
   })

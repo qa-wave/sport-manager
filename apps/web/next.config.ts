@@ -5,6 +5,17 @@ const config: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@sport-manager/contracts', '@sport-manager/db'],
   typedRoutes: true,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [480, 640, 768, 1024, 1280, 1536],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+      { protocol: 'https', hostname: '*.pravatar.cc' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
+    ],
+  },
   // Pin workspace root to the monorepo root so Next doesn't walk up to
   // /Users/tm/package-lock.json and misdetect the workspace.
   outputFileTracingRoot: join(__dirname, '../..'),
