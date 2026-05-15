@@ -728,8 +728,13 @@ clubs.get('/usage', requireAuth, async (c) => {
   if (!clubId) {
     return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
   }
-  const usage = await getClubUsage(clubId);
-  return c.json(usage);
+  try {
+    const usage = await getClubUsage(clubId);
+    return c.json(usage);
+  } catch (err) {
+    console.error('[clubs/usage] Error:', err);
+    return c.json({ error: 'Internal error', message: String(err) }, 500);
+  }
 });
 
 export { clubs as clubsRoutes };
