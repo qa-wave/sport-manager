@@ -243,6 +243,28 @@ export type EventSummary = {
   rsvpSummary: RsvpSummary;
 };
 
+// ---------- AI Event Summary ----------
+export type AiEventSummaryStats = {
+  totalMembers: number;
+  attended: number;
+  absent: number;
+  absentWithoutExcuse: number;
+  attendanceRate: number;
+  rsvpYes: number;
+  rsvpNo: number;
+  rsvpMaybe: number;
+  rsvpPending: number;
+  topStreak?: { name: string; count: number };
+  scorers?: Array<{ name: string; goals: number; assists: number }>;
+  score?: { home: number; away: number; status: string };
+};
+
+export type AiEventSummary = {
+  summary: string;
+  highlights: string[];
+  stats: AiEventSummaryStats;
+};
+
 export type EventDetail = EventSummary & {
   description: string | null;
   locationUrl: string | null;

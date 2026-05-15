@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
+import Script from 'next/script';
 import './globals.css';
 
 const inter = Inter({
@@ -38,6 +39,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </ThemeProvider>
+        {/* Service Worker registration — handles push notifications + offline caching */}
+        <Script
+          id="sw-register"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                  console.log('[sw] Registered, scope:', reg.scope);
+                  // Trigger mutation queue replay when back online
+                  window.addEventListener('online', function() {
+                    if (reg.active) {
+                      reg.active.postMessage({ type: 'REPLAY_MUTATIONS' });
+                    }
+                  });
+                }).catch(function(err) {
+                  console.warn('[sw] Registration failed:', err);
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

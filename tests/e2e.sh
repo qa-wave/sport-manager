@@ -300,6 +300,214 @@ if [ -n "$NID" ]; then
 fi
 
 # ═══════════════════════════════════════════════════════
+printf "\n${CYAN}━━━ Flow 9: Badges & Gamification ━━━${NC}\n"
+# ═══════════════════════════════════════════════════════
+
+# Login as admin and get a real member ID from the club
+B_TOKEN=$(curl -s -X POST "$API/auth/login" \
+  -H "content-type: application/json" \
+  -d '{"email":"admin@hvezda.cz","password":"heslo123"}' | jq -r '.accessToken')
+B_ME=$(curl -s "$API/me" -H "authorization: Bearer $B_TOKEN")
+B_CID=$(echo "$B_ME" | jq -r '.members[0].clubId')
+
+# Pick first member from the list (seeded data guarantees at least one)
+B_MEMBER_ID=$(curl -s "$API/members" \
+  -H "authorization: Bearer $B_TOKEN" \
+  -H "x-club-id: $B_CID" | jq -r '.[0].id')
+assert_ok "9.1 Resolve member ID for badge test" "$B_MEMBER_ID"
+
+if [ -n "$B_MEMBER_ID" ] && [ "$B_MEMBER_ID" != "null" ]; then
+  BADGES=$(curl -s "$API/members/$B_MEMBER_ID/badges" \
+    -H "authorization: Bearer $B_TOKEN" \
+    -H "x-club-id: $B_CID")
+
+  # Verify top-level structure
+  assert_ok "9.2 Badges response has currentStreak" \
+    "$(echo "$BADGES" | jq -r '.currentStreak | tostring')"
+  assert_ok "9.3 Badges response has longestStreak" \
+    "$(echo "$BADGES" | jq -r '.longestStreak | tostring')"
+  assert_ok "9.4 Badges response has totalAttended" \
+    "$(echo "$BADGES" | jq -r '.totalAttended | tostring')"
+  assert "9.5 Badges array type is array" "true" \
+    "$(echo "$BADGES" | jq 'if .badges | type == "array" then true else false end')"
+
+  # Each badge in the array (if any) must have id, name, icon, earnedAt
+  BADGE_COUNT=$(echo "$BADGES" | jq '.badges | length')
+  if [ "$BADGE_COUNT" -gt 0 ]; then
+    FIRST_BADGE_ID=$(echo "$BADGES" | jq -r '.badges[0].id')
+    FIRST_BADGE_NAME=$(echo "$BADGES" | jq -r '.badges[0].name')
+    assert_ok "9.6 First badge has id" "$FIRST_BADGE_ID"
+    assert_ok "9.7 First badge has name" "$FIRST_BADGE_NAME"
+    assert_ok "9.8 First badge has earnedAt" "$(echo "$BADGES" | jq -r '.badges[0].earnedAt')"
+  else
+    # No badges yet — just verify the structure is still correct
+    assert "9.6 No badges yet — totalAttended is 0" "0" \
+      "$(echo "$BADGES" | jq '.totalAttended')"
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════
+printf "\n${CYAN}━━━ Flow 10: Gallery ━━━${NC}\n"
+# ═══════════════════════════════════════════════════════
+
+G_TOKEN=$(curl -s -X POST "$API/auth/login" \
+  -H "content-type: application/json" \
+  -d '{"email":"admin@hvezda.cz","password":"heslo123"}' | jq -r '.accessToken')
+G_ME=$(curl -s "$API/me" -H "authorization: Bearer $G_TOKEN")
+G_CID=$(echo "$G_ME" | jq -r '.members[0].clubId')
+
+# List albums (may be empty)
+G_LIST=$(curl -s "$API/gallery" \
+  -H "authorization: Bearer $G_TOKEN" \
+  -H "x-club-id: $G_CID")
+assert "10.1 GET /gallery returns albums array" "true" \
+  "$(echo "$G_LIST" | jq 'if .albums | type == "array" then true else false end')"
+
+# Create album
+G_ALBUM=$(curl -s -X POST "$API/gallery/albums" \
+  -H "authorization: Bearer $G_TOKEN" \
+  -H "x-club-id: $G_CID" \
+  -H "content-type: application/json" \
+  -d '{"title":"E2E Gallery Album"}')
+G_AID=$(echo "$G_ALBUM" | jq -r '.album.id')
+assert_ok "10.2 Create gallery album" "$G_AID"
+assert "10.3 Album title is correct" "E2E Gallery Album" \
+  "$(echo "$G_ALBUM" | jq -r '.album.title')"
+
+# List albums again — should include new album
+if [ -n "$G_AID" ] && [ "$G_AID" != "null" ]; then
+  G_LIST2=$(curl -s "$API/gallery" \
+    -H "authorization: Bearer $G_TOKEN" \
+    -H "x-club-id: $G_CID")
+  assert "10.4 Album appears in list" "true" \
+    "$(echo "$G_LIST2" | jq --arg id "$G_AID" '[.albums[] | select(.id == $id)] | length > 0')"
+
+  # Add a photo to the album
+  G_PHOTO=$(curl -s -X POST "$API/gallery/albums/$G_AID/photos" \
+    -H "authorization: Bearer $G_TOKEN" \
+    -H "x-club-id: $G_CID" \
+    -H "content-type: application/json" \
+    -d '{"url":"https://example.com/e2e-photo.jpg","caption":"E2E test photo"}')
+  G_PID=$(echo "$G_PHOTO" | jq -r '.photo.id')
+  assert_ok "10.5 Add photo to album" "$G_PID"
+  assert "10.6 Photo has correct caption" "E2E test photo" \
+    "$(echo "$G_PHOTO" | jq -r '.photo.caption')"
+
+  # Get album detail — should have 1 photo
+  G_DETAIL=$(curl -s "$API/gallery/albums/$G_AID" \
+    -H "authorization: Bearer $G_TOKEN" \
+    -H "x-club-id: $G_CID")
+  assert "10.7 Album detail has 1 photo" "1" \
+    "$(echo "$G_DETAIL" | jq '.album.photos | length')"
+
+  # Delete photo
+  if [ -n "$G_PID" ] && [ "$G_PID" != "null" ]; then
+    DEL_PH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+      "$API/gallery/albums/$G_AID/photos/$G_PID" \
+      -H "authorization: Bearer $G_TOKEN" \
+      -H "x-club-id: $G_CID")
+    assert "10.8 Delete photo returns 204" "204" "$DEL_PH_STATUS"
+  fi
+
+  # Delete album (cleanup)
+  DEL_ALB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+    "$API/gallery/albums/$G_AID" \
+    -H "authorization: Bearer $G_TOKEN" \
+    -H "x-club-id: $G_CID")
+  assert "10.9 Delete album returns 204" "204" "$DEL_ALB_STATUS"
+
+  # Deleted album returns 404
+  GONE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+    "$API/gallery/albums/$G_AID" \
+    -H "authorization: Bearer $G_TOKEN" \
+    -H "x-club-id: $G_CID")
+  assert "10.10 Deleted album returns 404" "404" "$GONE_STATUS"
+fi
+
+# ═══════════════════════════════════════════════════════
+printf "\n${CYAN}━━━ Flow 11: Polls ━━━${NC}\n"
+# ═══════════════════════════════════════════════════════
+
+P_TOKEN=$(curl -s -X POST "$API/auth/login" \
+  -H "content-type: application/json" \
+  -d '{"email":"admin@hvezda.cz","password":"heslo123"}' | jq -r '.accessToken')
+P_ME=$(curl -s "$API/me" -H "authorization: Bearer $P_TOKEN")
+P_CID=$(echo "$P_ME" | jq -r '.members[0].clubId')
+
+# List polls
+P_LIST=$(curl -s "$API/polls" \
+  -H "authorization: Bearer $P_TOKEN" \
+  -H "x-club-id: $P_CID")
+assert "11.1 GET /polls returns array" "true" \
+  "$(echo "$P_LIST" | jq 'if type == "array" then true else false end')"
+
+# Create poll
+P_CREATE=$(curl -s -X POST "$API/polls" \
+  -H "authorization: Bearer $P_TOKEN" \
+  -H "x-club-id: $P_CID" \
+  -H "content-type: application/json" \
+  -d '{"question":"Který termín tréninku vám vyhovuje?","options":["Pondělí 17:00","Středa 18:00","Pátek 16:00"]}')
+P_ID=$(echo "$P_CREATE" | jq -r '.id')
+assert_ok "11.2 Create poll" "$P_ID"
+assert "11.3 Poll question correct" "Který termín tréninku vám vyhovuje?" \
+  "$(echo "$P_CREATE" | jq -r '.question')"
+assert "11.4 Poll has 3 options" "3" \
+  "$(echo "$P_CREATE" | jq '.options | length')"
+assert "11.5 Poll is active" "true" \
+  "$(echo "$P_CREATE" | jq '.active')"
+assert "11.6 All options start with 0 votes" "0" \
+  "$(echo "$P_CREATE" | jq '[.options[].votes | length] | max')"
+
+if [ -n "$P_ID" ] && [ "$P_ID" != "null" ]; then
+  # Vote for option 1 (index 1)
+  P_VOTE=$(curl -s -X POST "$API/polls/$P_ID/vote" \
+    -H "authorization: Bearer $P_TOKEN" \
+    -H "x-club-id: $P_CID" \
+    -H "content-type: application/json" \
+    -d '{"optionIndex":1}')
+  assert_ok "11.7 Vote returns updated poll" "$(echo "$P_VOTE" | jq -r '.id')"
+  assert "11.8 Option 1 has 1 vote after voting" "1" \
+    "$(echo "$P_VOTE" | jq '.options[1].votes | length')"
+  assert "11.9 Other options have 0 votes" "0" \
+    "$(echo "$P_VOTE" | jq '.options[0].votes | length')"
+
+  # Poll should now appear in active list
+  P_LIST2=$(curl -s "$API/polls" \
+    -H "authorization: Bearer $P_TOKEN" \
+    -H "x-club-id: $P_CID")
+  assert "11.10 Poll appears in active list" "true" \
+    "$(echo "$P_LIST2" | jq --arg id "$P_ID" '[.[] | select(.id == $id)] | length > 0')"
+
+  # Get results — option 1 should have 1 vote
+  P_RESULTS=$(echo "$P_LIST2" | jq --arg id "$P_ID" '.[] | select(.id == $id)')
+  assert "11.11 Poll results show 1 vote on option 1" "1" \
+    "$(echo "$P_RESULTS" | jq '.options[1].votes | length')"
+
+  # Toggle vote (vote again → removes vote)
+  P_TOGGLE=$(curl -s -X POST "$API/polls/$P_ID/vote" \
+    -H "authorization: Bearer $P_TOKEN" \
+    -H "x-club-id: $P_CID" \
+    -H "content-type: application/json" \
+    -d '{"optionIndex":1}')
+  assert "11.12 Toggle vote removes vote from option 1" "0" \
+    "$(echo "$P_TOGGLE" | jq '.options[1].votes | length')"
+
+  # Delete poll (soft delete)
+  P_DEL=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+    "$API/polls/$P_ID" \
+    -H "authorization: Bearer $P_TOKEN" \
+    -H "x-club-id: $P_CID")
+  assert "11.13 DELETE poll returns 204" "204" "$P_DEL"
+
+  # Deleted poll should not appear in active list
+  P_LIST3=$(curl -s "$API/polls" \
+    -H "authorization: Bearer $P_TOKEN" \
+    -H "x-club-id: $P_CID")
+  assert "11.14 Deleted poll not in active list" "false" \
+    "$(echo "$P_LIST3" | jq --arg id "$P_ID" '[.[] | select(.id == $id)] | length > 0')"
+fi
+
+# ═══════════════════════════════════════════════════════
 echo ""
 echo "══════════════════════════════════════════════════"
 printf "  Results: ${GREEN}%d passed${NC}, ${RED}%d failed${NC}, %d total\n" "$PASS" "$FAIL" "$TOTAL"

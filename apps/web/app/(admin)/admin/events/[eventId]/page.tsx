@@ -4,12 +4,12 @@ import { useState, useMemo, useEffect, useRef, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Calendar, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, Lock, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
+import { BookOpen, Calendar, Car, Check, CheckCheck, ChevronLeft, Clock, Copy, Lock, MapPin, MessageSquare, Pencil, Plus, QrCode, Search, Sparkles, SquareActivity, Trash2, User, ExternalLink, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { googleCalendarUrl, outlookCalendarUrl, downloadICal } from '@/lib/ical';
 import { PageHeader } from '@/components/admin/page-header';
 import { RsvpBar } from '@/components/admin/rsvp-bar';
-import { apiFetch, ApiError, type EventDetail, type TeamSummary } from '@/lib/api';
+import { apiFetch, ApiError, type EventDetail, type TeamSummary, type AiEventSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
@@ -866,6 +866,128 @@ function LineupBuilderCard({
   );
 }
 
+// ─── AI Summary Card ───
+
+interface AiSummaryCardProps {
+  eventId: string;
+  isVisible: boolean;
+}
+
+function AiSummaryCard({ eventId, isVisible }: AiSummaryCardProps) {
+  const auth = useAuth();
+
+  const { data, isLoading, isError } = useQuery<AiEventSummary>({
+    queryKey: ['event-summary', eventId, auth.clubId],
+    queryFn: () => apiFetch<AiEventSummary>(`/events/${eventId}/summary`),
+    enabled: isVisible && auth.isAuthenticated && !!auth.clubId && !!eventId,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="overflow-hidden border-primary/20">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">AI shrnutí</span>
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError || !data) return null;
+
+  const { summary, highlights, stats } = data;
+
+  return (
+    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.03] via-transparent to-cyan-500/[0.02]">
+      <CardContent className="p-5">
+        {/* Header */}
+        <div className="mb-4 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 shadow-sm">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">AI shrnutí</div>
+            <div className="text-[11px] text-muted-foreground">Automaticky vygenerováno z dat události</div>
+          </div>
+        </div>
+
+        {/* Summary text */}
+        <p className="mb-4 text-sm leading-relaxed text-foreground/80">{summary}</p>
+
+        {/* Mini stats grid */}
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-center">
+            <div className="text-xl font-bold text-emerald-500">{stats.attended}</div>
+            <div className="text-[10px] text-muted-foreground">Přítomno</div>
+          </div>
+          <div className="rounded-lg bg-red-500/10 px-3 py-2 text-center">
+            <div className="text-xl font-bold text-red-500">{stats.absent}</div>
+            <div className="text-[10px] text-muted-foreground">Nepřítomno</div>
+          </div>
+          <div className="rounded-lg bg-primary/10 px-3 py-2 text-center">
+            <div className="text-xl font-bold text-primary">{stats.attendanceRate} %</div>
+            <div className="text-[10px] text-muted-foreground">Docházka</div>
+          </div>
+          {stats.absentWithoutExcuse > 0 ? (
+            <div className="rounded-lg bg-amber-500/10 px-3 py-2 text-center">
+              <div className="text-xl font-bold text-amber-500">{stats.absentWithoutExcuse}</div>
+              <div className="text-[10px] text-muted-foreground">Neomluveno</div>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-secondary/50 px-3 py-2 text-center">
+              <div className="text-xl font-bold text-muted-foreground">{stats.rsvpYes}</div>
+              <div className="text-[10px] text-muted-foreground">RSVP Ano</div>
+            </div>
+          )}
+        </div>
+
+        {/* Highlight chips */}
+        {highlights.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {highlights.map((h, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary"
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Scorers list */}
+        {stats.scorers && stats.scorers.length > 0 && (
+          <div className="mt-3 space-y-1">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Střelci</div>
+            {stats.scorers.map((s, i) => (
+              <div key={i} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-1.5 text-xs">
+                <span className="font-medium">{s.name}</span>
+                <span className="text-muted-foreground">
+                  {s.goals > 0 && `${s.goals} gól${s.goals > 1 ? 'y' : ''}`}
+                  {s.goals > 0 && s.assists > 0 && ', '}
+                  {s.assists > 0 && `${s.assists} asistence`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function toLocalDatetimeValue(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -1551,6 +1673,14 @@ export default function EventDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* AI shrnutí — zobrazí se jen pro minulé eventy */}
+          {past && (
+            <AiSummaryCard
+              eventId={eventId}
+              isVisible={activeTab === 'overview'}
+            />
+          )}
 
           {/* Per-event fee */}
           <EventFeeSection

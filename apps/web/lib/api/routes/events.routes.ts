@@ -16,6 +16,7 @@ import {
 } from '../middleware/rbac.middleware';
 import { sendEmail, rsvpReminderEmail } from '../services/email.service';
 import { sendPushToUser } from '../services/push.service';
+import { generateEventSummary } from '../services/ai-summary.service';
 import type { HonoEnv } from '../../types/hono';
 import type { MemberContext } from '../../types/hono';
 
@@ -978,5 +979,28 @@ async function sendPushNotificationsForEvent(opts: {
     console.error('[push] Failed to send event push notifications:', err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// GET /v1/events/:eventId/summary
+// Template-based AI summary — generated on-demand after event + attendance.
+// ---------------------------------------------------------------------------
+events.get('/:eventId/summary', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+  const eventId = c.req.param('eventId');
+
+  const summary = await generateEventSummary(eventId, clubId);
+
+  if (!summary) {
+    return c.json(
+      { error: 'Not Found', message: 'Event not found or no attendance data yet' },
+      404,
+    );
+  }
+
+  return c.json(summary);
+});
 
 export { events as eventsRoutes };

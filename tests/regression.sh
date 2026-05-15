@@ -464,6 +464,221 @@ assert "Missing password returns 400" "400" "$MISSING_FIELDS"
 
 # ═══════════════════════════════════════════════════════
 echo ""
+echo "━━━ 21. Pricing & Plans (/clubs/usage) ━━━"
+# ═══════════════════════════════════════════════════════
+
+USAGE=$(api_get "/clubs/usage" "$ADMIN_TOKEN" "$CLUB_ID")
+assert_not_empty "Usage endpoint returns tier" "$(echo "$USAGE" | jq -r '.tier')"
+assert_not_empty "Usage returns members.current" "$(echo "$USAGE" | jq -r '.members.current')"
+assert_not_empty "Usage returns members.max" "$(echo "$USAGE" | jq -r '.members.max')"
+assert_not_empty "Usage returns teams.current" "$(echo "$USAGE" | jq -r '.teams.current')"
+assert_gte "Usage members.current >= 1" 1 "$(echo "$USAGE" | jq '.members.current')"
+assert_gte "Usage teams.current >= 1" 1 "$(echo "$USAGE" | jq '.teams.current')"
+
+# Unauthenticated usage → 401
+USAGE_UNAUTH=$(api_status "/clubs/usage" "" "$CLUB_ID")
+assert "Unauthenticated /clubs/usage returns 401" "401" "$USAGE_UNAUTH"
+
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "━━━ 22. Push Notifications ━━━"
+# ═══════════════════════════════════════════════════════
+
+# GET /push/vapid-key — public endpoint, returns key or 503 if VAPID not configured
+VAPID_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API/push/vapid-key")
+assert "GET /push/vapid-key returns 200 or 503" "true" \
+  "$([ "$VAPID_STATUS" = "200" ] || [ "$VAPID_STATUS" = "503" ] && echo true || echo false)"
+
+VAPID_RES=$(curl -s "$API/push/vapid-key")
+# If configured, publicKey should be present; if not, error should be present
+assert_not_empty "VAPID response has publicKey or error field" \
+  "$(echo "$VAPID_RES" | jq -r '.publicKey // .error // empty')"
+
+# POST /push/subscribe — requires valid endpoint URL and keys
+PUSH_SUB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/push/subscribe" \
+  -H "authorization: Bearer $ADMIN_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"endpoint":"https://fcm.googleapis.com/fcm/send/regression-test-endpoint","keys":{"p256dh":"BPQM0nGKXLDPtl6zFdVFO7E3_6MZ9XwNK1a2bC3dE4fG5hI6j","auth":"abcdefghijklmnop"}}')
+assert "POST /push/subscribe returns 200" "200" "$PUSH_SUB_STATUS"
+
+# POST /push/unsubscribe — removes the subscription
+PUSH_UNSUB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/push/unsubscribe" \
+  -H "authorization: Bearer $ADMIN_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"endpoint":"https://fcm.googleapis.com/fcm/send/regression-test-endpoint"}')
+assert "POST /push/unsubscribe returns 200" "200" "$PUSH_UNSUB_STATUS"
+
+# POST /push/subscribe without auth → 401
+PUSH_UNAUTH=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/push/subscribe" \
+  -H "content-type: application/json" \
+  -d '{"endpoint":"https://fcm.googleapis.com/fcm/send/x","keys":{"p256dh":"x","auth":"y"}}')
+assert "POST /push/subscribe without auth returns 401" "401" "$PUSH_UNAUTH"
+
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "━━━ 23. Badges & Gamification ━━━"
+# ═══════════════════════════════════════════════════════
+
+# Get first member ID from the club
+FIRST_MEMBER_ID=$(api_get "/members" "$ADMIN_TOKEN" "$CLUB_ID" | jq -r '.[0].id')
+assert_not_empty "Can resolve a member ID for badge test" "$FIRST_MEMBER_ID"
+
+if [ -n "$FIRST_MEMBER_ID" ] && [ "$FIRST_MEMBER_ID" != "null" ]; then
+  BADGES=$(api_get "/members/$FIRST_MEMBER_ID/badges" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert_not_empty "Badges endpoint returns currentStreak" "$(echo "$BADGES" | jq -r '.currentStreak | tostring')"
+  assert_not_empty "Badges endpoint returns badges array" "$(echo "$BADGES" | jq -r '.badges')"
+  assert "Badges array is an array" "true" \
+    "$(echo "$BADGES" | jq 'if .badges | type == "array" then true else false end')"
+  assert_gte "Badges.currentStreak >= 0" 0 "$(echo "$BADGES" | jq '.currentStreak')"
+fi
+
+# Badges for nonexistent member → 404
+BADGES_404=$(api_status "/members/00000000-0000-0000-0000-000000000000/badges" "$ADMIN_TOKEN" "$CLUB_ID")
+assert "Badges for nonexistent member returns 404" "404" "$BADGES_404"
+
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "━━━ 24. Gallery ━━━"
+# ═══════════════════════════════════════════════════════
+
+# GET /gallery — returns albums array (may be empty)
+GALLERY=$(api_get "/gallery" "$ADMIN_TOKEN" "$CLUB_ID")
+assert "GET /gallery returns albums key" "true" \
+  "$(echo "$GALLERY" | jq 'if .albums | type == "array" then true else false end')"
+
+# POST /gallery/albums — create album
+ALBUM_RES=$(api_post "/gallery/albums" "$ADMIN_TOKEN" "$CLUB_ID" \
+  '{"title":"Regression Test Album"}')
+ALBUM_ID=$(echo "$ALBUM_RES" | jq -r '.album.id')
+assert_not_empty "POST /gallery/albums returns album ID" "$ALBUM_ID"
+assert "New album has correct title" "Regression Test Album" \
+  "$(echo "$ALBUM_RES" | jq -r '.album.title')"
+assert "New album starts with 0 photos" "0" \
+  "$(echo "$ALBUM_RES" | jq -r '.album.photoCount')"
+
+# GET /gallery/albums/:albumId — read specific album
+if [ -n "$ALBUM_ID" ] && [ "$ALBUM_ID" != "null" ]; then
+  ALBUM_DETAIL=$(api_get "/gallery/albums/$ALBUM_ID" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert "GET album by ID returns correct title" "Regression Test Album" \
+    "$(echo "$ALBUM_DETAIL" | jq -r '.album.title')"
+
+  # POST /gallery/albums/:albumId/photos — add photo
+  PHOTO_RES=$(api_post "/gallery/albums/$ALBUM_ID/photos" "$ADMIN_TOKEN" "$CLUB_ID" \
+    '{"url":"https://example.com/regression-photo.jpg","caption":"Test photo"}')
+  PHOTO_ID=$(echo "$PHOTO_RES" | jq -r '.photo.id')
+  assert_not_empty "POST photo to album returns photo ID" "$PHOTO_ID"
+
+  # DELETE photo
+  if [ -n "$PHOTO_ID" ] && [ "$PHOTO_ID" != "null" ]; then
+    DEL_PHOTO=$(api_delete "/gallery/albums/$ALBUM_ID/photos/$PHOTO_ID" "$ADMIN_TOKEN" "$CLUB_ID")
+    assert "DELETE photo from album returns 204" "204" "$DEL_PHOTO"
+  fi
+
+  # DELETE album (cleanup)
+  DEL_ALBUM=$(api_delete "/gallery/albums/$ALBUM_ID" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert "DELETE album returns 204" "204" "$DEL_ALBUM"
+
+  # Verify deleted album returns 404
+  GONE_ALBUM=$(api_status "/gallery/albums/$ALBUM_ID" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert "Deleted album returns 404" "404" "$GONE_ALBUM"
+fi
+
+# Gallery unauthenticated → 401
+GALLERY_UNAUTH=$(api_status "/gallery" "" "")
+assert "Unauthenticated /gallery returns 401" "401" "$GALLERY_UNAUTH"
+
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "━━━ 25. Polls ━━━"
+# ═══════════════════════════════════════════════════════
+
+# GET /polls — returns active polls (may be empty on fresh seed)
+POLLS=$(api_get "/polls" "$ADMIN_TOKEN" "$CLUB_ID")
+assert "GET /polls returns an array" "true" \
+  "$(echo "$POLLS" | jq 'if type == "array" then true else false end')"
+
+# POST /polls — create a poll
+NEW_POLL=$(api_post "/polls" "$ADMIN_TOKEN" "$CLUB_ID" \
+  '{"question":"Preferujete trénink v pondělí nebo středu?","options":["Pondělí","Středu","Je mi to jedno"]}')
+POLL_ID=$(echo "$NEW_POLL" | jq -r '.id')
+assert_not_empty "POST /polls returns poll ID" "$POLL_ID"
+assert "New poll has correct question" "Preferujete trénink v pondělí nebo středu?" \
+  "$(echo "$NEW_POLL" | jq -r '.question')"
+assert "New poll has 3 options" "3" \
+  "$(echo "$NEW_POLL" | jq '.options | length')"
+assert "New poll is active" "true" \
+  "$(echo "$NEW_POLL" | jq '.active')"
+
+# POST /polls/:pollId/vote — vote on option 0
+if [ -n "$POLL_ID" ] && [ "$POLL_ID" != "null" ]; then
+  VOTE_RES=$(api_post "/polls/$POLL_ID/vote" "$ADMIN_TOKEN" "$CLUB_ID" \
+    '{"optionIndex":0}')
+  assert_not_empty "POST /polls/:id/vote returns updated poll" \
+    "$(echo "$VOTE_RES" | jq -r '.id')"
+  assert "Vote registers on option 0" "1" \
+    "$(echo "$VOTE_RES" | jq '.options[0].votes | length')"
+
+  # Toggle vote (vote again on same option → removes vote)
+  VOTE_TOGGLE=$(api_post "/polls/$POLL_ID/vote" "$ADMIN_TOKEN" "$CLUB_ID" \
+    '{"optionIndex":0}')
+  assert "Toggle vote removes vote from option 0" "0" \
+    "$(echo "$VOTE_TOGGLE" | jq '.options[0].votes | length')"
+
+  # Vote on nonexistent poll → 404
+  VOTE_404=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/polls/00000000-0000-0000-0000-000000000000/vote" \
+    -H "authorization: Bearer $ADMIN_TOKEN" \
+    -H "x-club-id: $CLUB_ID" \
+    -H "content-type: application/json" \
+    -d '{"optionIndex":0}')
+  assert "Vote on nonexistent poll returns 404" "404" "$VOTE_404"
+
+  # DELETE /polls/:pollId — soft-delete (marks inactive)
+  DEL_POLL=$(api_delete "/polls/$POLL_ID" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert "DELETE poll returns 204" "204" "$DEL_POLL"
+
+  # After delete, poll should not appear in active list
+  POLLS_AFTER=$(api_get "/polls" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert "Deleted poll not in active list" "false" \
+    "$(echo "$POLLS_AFTER" | jq --arg id "$POLL_ID" '[.[] | select(.id == $id)] | length > 0')"
+fi
+
+# Coach can't create poll (403)
+POLL_COACH=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/polls" \
+  -H "authorization: Bearer $COACH_TOKEN" \
+  -H "x-club-id: $CLUB_ID" \
+  -H "content-type: application/json" \
+  -d '{"question":"Smím vytvořit anketu?","options":["Ano","Ne"]}')
+# HEAD_COACH is allowed per requireRole — coach@hvezda.cz is HEAD_COACH so 201 expected
+assert "HEAD_COACH can create poll (201)" "201" "$POLL_COACH"
+
+# ═══════════════════════════════════════════════════════
+echo ""
+echo "━━━ 26. Event RSVP Summary ━━━"
+# ═══════════════════════════════════════════════════════
+
+# Create a past event with a team so attendances exist
+PAST_EVENT=$(api_post "/events" "$ADMIN_TOKEN" "$CLUB_ID" \
+  '{"type":"PRACTICE","title":"Regression Past Event","startsAt":"2025-01-10T10:00:00Z","endsAt":"2025-01-10T11:00:00Z"}')
+PAST_EID=$(echo "$PAST_EVENT" | jq -r '.id')
+assert_not_empty "Create past event for summary test" "$PAST_EID"
+
+if [ -n "$PAST_EID" ] && [ "$PAST_EID" != "null" ]; then
+  # Event detail includes rsvpSummary inline
+  PAST_DETAIL=$(api_get "/events/$PAST_EID" "$ADMIN_TOKEN" "$CLUB_ID")
+  assert_not_empty "Past event detail has rsvpSummary" \
+    "$(echo "$PAST_DETAIL" | jq -r '.rsvpSummary // empty')"
+  assert_not_empty "rsvpSummary has total field" \
+    "$(echo "$PAST_DETAIL" | jq -r '.rsvpSummary.total | tostring')"
+  assert_not_empty "rsvpSummary has yes field" \
+    "$(echo "$PAST_DETAIL" | jq -r '.rsvpSummary.yes | tostring')"
+  assert_gte "rsvpSummary.total >= 0" 0 "$(echo "$PAST_DETAIL" | jq '.rsvpSummary.total')"
+
+  # Cleanup
+  api_delete "/events/$PAST_EID" "$ADMIN_TOKEN" "$CLUB_ID" > /dev/null
+fi
+
+# ═══════════════════════════════════════════════════════
+echo ""
 echo "══════════════════════════════════════════════════"
 printf "  Results: ${GREEN}%d passed${NC}, ${RED}%d failed${NC}, %d total\n" "$PASS" "$FAIL" "$TOTAL"
 echo "══════════════════════════════════════════════════"
