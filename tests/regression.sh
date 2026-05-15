@@ -480,7 +480,7 @@ if [ "$USAGE_STATUS" = "200" ] && [ -n "$(echo "$USAGE" | jq -r '.tier // empty'
   assert_gte "Usage teams.current >= 1" 1 "$(echo "$USAGE" | jq '.teams.current')"
 else
   # Usage endpoint may return empty body if config is not fully set up
-  assert_ok "Usage endpoint responds (status $USAGE_STATUS)" "ok"
+  assert_not_empty "Usage endpoint responds (status $USAGE_STATUS)" "ok"
 fi
 
 # Unauthenticated usage → 401
@@ -496,7 +496,7 @@ echo "━━━ 22. Push Notifications ━━━"
 VAPID_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API/push/vapid-key")
 assert "GET /push/vapid-key returns HTTP response" "true" \
   "$([ "$VAPID_STATUS" -ge 200 ] && [ "$VAPID_STATUS" -lt 600 ] && echo true || echo false)"
-assert_ok "Push vapid-key endpoint reachable (status $VAPID_STATUS)" "ok"
+assert_not_empty "Push vapid-key endpoint reachable (status $VAPID_STATUS)" "ok"
 
 # POST /push/subscribe — may fail if DB table not migrated or VAPID not set
 PUSH_SUB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/push/subscribe" \
