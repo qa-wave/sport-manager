@@ -124,7 +124,7 @@ export interface LineupData {
 
 export function parseLineup(description: string): LineupData | null {
   const match = LINEUP_MARKER_RE.exec(description);
-  if (!match) return null;
+  if (!match || !match[1]) return null;
   try {
     return JSON.parse(match[1]) as LineupData;
   } catch {

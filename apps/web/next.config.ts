@@ -23,8 +23,7 @@ const config: NextConfig = {
   serverExternalPackages: ['@prisma/client', 'ioredis', 'bcrypt'],
   // Standalone output for self-hosted deploy
   output: 'standalone',
-  // TODO: Odstranit po vyřešení React 19 / @radix-ui type nesoulad (pouze první deploy)
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
 };
 

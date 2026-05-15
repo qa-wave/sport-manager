@@ -145,10 +145,8 @@ function WeekView({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   // Range label for header: "5. – 11. května 2026" etc.
-  const weekEnd = days[6];
+  const weekEnd = days[6]!;
   const rangeLabel = (() => {
-    const startDay = weekStart.getDate();
-    const endDay = weekEnd.getDate();
     const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
     const startStr = weekStart.toLocaleDateString('cs-CZ', { day: 'numeric', month: sameMonth ? undefined : 'long' });
     const endStr = weekEnd.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -264,7 +262,7 @@ function WeekView({
             {/* Day columns */}
             {days.map((day, colIdx) => {
               const todayCol = isSameDay(day, today);
-              const colEvents = eventsByDay[colIdx];
+              const colEvents = eventsByDay[colIdx] ?? [];
               return (
                 <div
                   key={colIdx}
@@ -326,7 +324,7 @@ function WeekView({
       <div className="flex flex-col gap-4 md:hidden">
         {days.map((day, i) => {
           const todayCol = isSameDay(day, today);
-          const colEvents = eventsByDay[i];
+          const colEvents = eventsByDay[i] ?? [];
           return (
             <div key={i} className="rounded-xl border border-border/50 bg-card overflow-hidden">
               {/* Day header */}

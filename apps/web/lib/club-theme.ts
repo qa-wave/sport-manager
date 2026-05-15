@@ -59,7 +59,7 @@ export function hexToHsl(hex: string): string {
 /** Adjust HSL lightness and saturation for dark mode variant. */
 function adjustForDark(hsl: string): string {
   const parts = hsl.match(/^(\d+)\s+(\d+)%\s+(\d+)%$/);
-  if (!parts) return hsl;
+  if (!parts || !parts[1] || !parts[2] || !parts[3]) return hsl;
   const h = parseInt(parts[1]);
   const s = Math.min(100, parseInt(parts[2]) + 8);
   const l = Math.min(95, parseInt(parts[3]) + 3);
@@ -77,7 +77,7 @@ export type ClubThemeInput = {
 
 /** Generate CSS custom property overrides for light mode. */
 export function generateThemeVars(theme: ClubThemeInput): Record<string, string> {
-  const style = STYLE_CATALOG.find(s => s.id === theme.styleId) ?? STYLE_CATALOG[0];
+  const style = STYLE_CATALOG.find(s => s.id === theme.styleId) ?? STYLE_CATALOG[0]!;
   const primaryHsl = hexToHsl(theme.primary);
 
   return {
@@ -91,7 +91,7 @@ export function generateThemeVars(theme: ClubThemeInput): Record<string, string>
 
 /** Generate CSS custom property overrides for dark mode. */
 export function generateDarkThemeVars(theme: ClubThemeInput): Record<string, string> {
-  const style = STYLE_CATALOG.find(s => s.id === theme.styleId) ?? STYLE_CATALOG[0];
+  const style = STYLE_CATALOG.find(s => s.id === theme.styleId) ?? STYLE_CATALOG[0]!;
   const primaryHsl = hexToHsl(theme.primary);
   const darkPrimaryHsl = adjustForDark(primaryHsl);
 

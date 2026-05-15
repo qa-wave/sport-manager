@@ -19,12 +19,13 @@ import { useCallback, useEffect, useState } from 'react';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 const SW_PATH = '/sw.js';
 
-// Convert base64url VAPID public key to Uint8Array for PushManager.subscribe()
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+// Convert base64url VAPID public key to ArrayBuffer for PushManager.subscribe()
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
-  return Uint8Array.from(rawData, (char) => char.charCodeAt(0));
+  const uint8 = Uint8Array.from(rawData, (char) => char.charCodeAt(0));
+  return uint8.buffer.slice(0) as ArrayBuffer;
 }
 
 async function fetchVapidKey(): Promise<string | null> {

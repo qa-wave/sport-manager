@@ -116,6 +116,69 @@ export async function createCheckoutSession(opts: {
 }
 
 /**
+ * Create a Stripe Checkout session for a subscription plan.
+ * Returns the hosted Checkout URL.
+ *
+ * `plan` maps to STRIPE_PRO_PRICE_ID or STRIPE_CLUB_PRICE_ID env vars.
+ */
+export async function createSubscriptionCheckoutSession(opts: {
+  plan: 'pro' | 'club';
+  customerId?: string;
+  customerEmail?: string;
+  clubId: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string> {
+  const stripe = getStripe();
+
+  const priceId =
+    opts.plan === 'pro'
+      ? process.env.STRIPE_PRO_PRICE_ID
+      : process.env.STRIPE_CLUB_PRICE_ID;
+
+  if (!priceId) {
+    throw Object.assign(
+      new Error(`STRIPE_${opts.plan.toUpperCase()}_PRICE_ID is not set.`),
+      { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' },
+    );
+  }
+
+  const sessionParams: import('stripe').default.Checkout.SessionCreateParams = {
+    mode: 'subscription',
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: opts.successUrl,
+    cancel_url: opts.cancelUrl,
+    metadata: { clubId: opts.clubId, plan: opts.plan },
+    subscription_data: { metadata: { clubId: opts.clubId, plan: opts.plan } },
+  };
+
+  if (opts.customerId) {
+    sessionParams.customer = opts.customerId;
+  } else if (opts.customerEmail) {
+    sessionParams.customer_email = opts.customerEmail;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+  return session.url!;
+}
+
+/**
+ * Create a Stripe Customer Portal session for managing subscriptions.
+ * Returns the portal URL.
+ */
+export async function createCustomerPortalSession(opts: {
+  customerId: string;
+  returnUrl: string;
+}): Promise<string> {
+  const stripe = getStripe();
+  const session = await stripe.billingPortal.sessions.create({
+    customer: opts.customerId,
+    return_url: opts.returnUrl,
+  });
+  return session.url;
+}
+
+/**
  * Verify a Stripe webhook signature and return the parsed event.
  * Throws if the signature is invalid.
  */

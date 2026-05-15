@@ -3,38 +3,45 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, TrendingDown, TrendingUp, Minus, Flame, Award } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
-import { apiFetch, ApiError, type MemberDetail, type MemberStats, type MemberBadgesResponse } from '@/lib/api';
+import {
+  apiFetch,
+  ApiError,
+  type MemberDetail,
+  type MemberStats,
+  type MemberBadgesResponse,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext, isAdmin } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ROLE_VARIANT, PAYMENT_VARIANT, STATUS_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { PAYMENT_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
 import { formatDate } from '@/lib/date-utils';
+import { MemberHeader } from '@/components/admin/member/member-header';
+import { MemberStatsTab } from '@/components/admin/member/member-stats-tab';
+import { MemberBadgesTab } from '@/components/admin/member/member-badges-tab';
+import { MemberTeamsTab } from '@/components/admin/member/member-teams-tab';
 
 type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED';
 
-const STATUS_OPTIONS: Array<{ value: MemberStatus; label: string }> = [
-  { value: 'ACTIVE', label: 'Aktivní' },
-  { value: 'INACTIVE', label: 'Neaktivní' },
-  { value: 'SUSPENDED', label: 'Pozastavený' },
-  { value: 'ARCHIVED', label: 'Archivovaný' },
-];
-
-
 function formatCurrency(cents: number, currency: string): string {
-  return new Intl.NumberFormat('en', { style: 'currency', currency, minimumFractionDigits: 0 }).format(cents / 100);
-}
-
-function memberAge(dob: string | null): string | null {
-  if (!dob) return null;
-  return `${new Date().getFullYear() - new Date(dob).getFullYear()}`;
+  return new Intl.NumberFormat('en', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+  }).format(cents / 100);
 }
 
 export default function MemberProfilePage() {
@@ -44,7 +51,11 @@ export default function MemberProfilePage() {
   const { data: memberCtx } = useMemberContext();
   const canManage = memberCtx ? isAdmin(memberCtx) : false;
 
-  const { data: m, isLoading, isError } = useQuery<MemberDetail, ApiError>({
+  const {
+    data: m,
+    isLoading,
+    isError,
+  } = useQuery<MemberDetail, ApiError>({
     queryKey: ['member', memberId, auth.clubId],
     queryFn: () => apiFetch<MemberDetail>(`/members/${memberId}`),
     enabled: auth.isAuthenticated && !!auth.clubId && !!memberId,
@@ -107,7 +118,10 @@ export default function MemberProfilePage() {
           title="Member"
           actions={
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Zpět</Link>
+              <Link href="/admin/members">
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Zpět
+              </Link>
             </Button>
           }
         />
@@ -120,8 +134,6 @@ export default function MemberProfilePage() {
     );
   }
 
-  const ageStr = memberAge(m.dateOfBirth);
-
   return (
     <>
       <PageHeader
@@ -129,86 +141,22 @@ export default function MemberProfilePage() {
         subtitle={m.isMinor ? 'Nezletilý' : 'Dospělý člen'}
         actions={
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/members"><ChevronLeft className="mr-1 h-4 w-4" />Zpět na členy</Link>
+            <Link href="/admin/members">
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Zpět na členy
+            </Link>
           </Button>
         }
       />
 
-      {/* Hero card */}
-      <Card className="relative overflow-hidden ">
-        {/* Sport accent gradient */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-500/[0.02]" />
-        <CardContent className="relative p-6">
-          <div className="flex items-start gap-5">
-            <div className="relative">
-              <Avatar className="h-16 w-16 ring-2 ring-primary/20 ring-offset-2 ring-offset-card">
-                <AvatarFallback className="bg-primary/15 text-lg font-bold text-primary">
-                  {m.firstName[0]}{m.lastName[0]}
-                </AvatarFallback>
-              </Avatar>
-              {m.jerseyNumber != null && (
-                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm">
-                  {m.jerseyNumber}
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-lg font-bold tracking-tight">{m.firstName} {m.lastName}</h2>
-                {canManage ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Stav:</span>
-                    <select
-                      value={m.status}
-                      disabled={statusMutation.isPending}
-                      onChange={(e) => statusMutation.mutate(e.target.value as MemberStatus)}
-                      className="h-7 rounded-md border border-input bg-transparent px-2 py-0 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                    >
-                      {STATUS_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                    {statusMutation.isPending && (
-                      <span className="text-[11px] text-muted-foreground">Ukládám...</span>
-                    )}
-                    {statusMutation.isError && (
-                      <span className="text-[11px] text-destructive">Chyba</span>
-                    )}
-                  </div>
-                ) : (
-                  <Badge variant={STATUS_VARIANT[m.status] ?? 'default'}>{m.status}</Badge>
-                )}
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>{m.email}</span>
-                {m.phone && <span>{m.phone}</span>}
-                {ageStr && <span className="font-medium text-foreground/70">{ageStr} let</span>}
-                {m.dateOfBirth && <span>Narozen {formatDate(m.dateOfBirth)}</span>}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {m.position && (
-                  <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
-                    {m.position}
-                  </Badge>
-                )}
-                {m.clubRoles.map((r) => (
-                  <Badge key={r} variant={ROLE_VARIANT[r] ?? 'default'}>{r}</Badge>
-                ))}
-              </div>
-            </div>
-            <div className="hidden text-right text-xs text-muted-foreground sm:block">
-              <div className="rounded-md bg-secondary/50 px-2.5 py-1.5">
-                <div className="font-medium text-foreground/80">Přidal se {formatDate(m.joinedAt)}</div>
-                <div className="mt-0.5 text-[11px] uppercase tracking-wide">{m.locale}</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <MemberHeader
+        member={m}
+        canManage={canManage}
+        statusIsPending={statusMutation.isPending}
+        statusIsError={statusMutation.isError}
+        onStatusChange={(status) => statusMutation.mutate(status)}
+      />
 
-      {/* Tabbed content */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Přehled</TabsTrigger>
@@ -219,117 +167,15 @@ export default function MemberProfilePage() {
           <TabsTrigger value="waivers">Souhlasy</TabsTrigger>
         </TabsList>
 
-        {/* Overview */}
+        {/* Overview — teams, guardians */}
         <TabsContent value="overview">
-          <div className="grid gap-3 lg:grid-cols-2">
-            {/* Teams */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Týmy a role</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {m.teamRoles.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Žádná přiřazení k týmu</p>
-                ) : (
-                  <div className="space-y-2">
-                    {m.teamRoles.map((tr) => (
-                      <div key={`${tr.teamId}-${tr.role}`} className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-medium">{tr.teamName}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {(tr as any).sport} · {(tr as any).season}{tr.ageGroup ? ` · ${tr.ageGroup}` : ''}
-                          </div>
-                        </div>
-                        <Badge variant={ROLE_VARIANT[tr.role] ?? 'default'}>
-                          {tr.role.replace(/_/g, ' ')}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Guardians */}
-            {m.guardians.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>Zákonní zástupci</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {(m.guardians as any[]).map((g: any) => (
-                    <div key={g.memberId}>
-                      <div className="flex items-center justify-between">
-                        <Link href={`/admin/members/${g.memberId}` as any} className="text-sm font-medium hover:text-primary">
-                          {g.name}
-                        </Link>
-                        <div className="flex gap-1">
-                          {g.isPrimary && <Badge variant="success">PRIMÁRNÍ</Badge>}
-                          <Badge variant="outline">{g.relationship}</Badge>
-                        </div>
-                      </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{g.email}{g.phone ? ` · ${g.phone}` : ''}</div>
-                      <div className="mt-1 flex gap-2 text-xs">
-                        <PermBadge label="Platby (zobrazit)" on={g.canViewPayments} />
-                        <PermBadge label="Platby (provést)" on={g.canMakePayments} />
-                        <PermBadge label="Zdravotní" on={g.canViewMedical} />
-                        <PermBadge label="Souhlasy" on={g.canSignWaivers} />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Guardian of */}
-            {m.guardianOf.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>Zákonný zástupce ({m.guardianOf.length})</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {(m.guardianOf as any[]).map((c: any) => (
-                    <div key={c.memberId}>
-                      <div className="flex items-center justify-between">
-                        <Link href={`/admin/members/${c.memberId}` as any} className="text-sm font-medium hover:text-primary">
-                          {c.name}
-                        </Link>
-                        {c.jerseyNumber != null && (
-                          <Badge variant="outline" className="font-mono">#{c.jerseyNumber}</Badge>
-                        )}
-                      </div>
-                      {c.teams?.length > 0 && (
-                        <div className="mt-0.5 text-xs text-muted-foreground">{c.teams.join(' · ')}</div>
-                      )}
-                      <div className="mt-1 flex gap-2 text-xs">
-                        <PermBadge label="Platby" on={c.canViewPayments} />
-                        <PermBadge label="Zdravotní" on={c.canViewMedical} />
-                        <PermBadge label="Souhlasy" on={c.canSignWaivers} />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Medical notes */}
-            {m.medicalNotes && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>Zdravotní poznámky</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{m.medicalNotes}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          <MemberTeamsTab member={m} />
         </TabsContent>
 
         {/* Statistiky */}
         <TabsContent value="statistiky">
           {stats ? (
-            <MemberStatsPanel stats={stats} />
+            <MemberStatsTab stats={stats} />
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-xs text-muted-foreground">
@@ -367,7 +213,9 @@ export default function MemberProfilePage() {
                       <TableCell>
                         <Badge variant="outline">{a.eventType}</Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDate(a.eventDate)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDate(a.eventDate)}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={RSVP_VARIANT[a.status] ?? 'default'}>{a.status}</Badge>
                       </TableCell>
@@ -388,10 +236,10 @@ export default function MemberProfilePage() {
           </Card>
         </TabsContent>
 
-        {/* Badges / Gamification */}
+        {/* Badges */}
         <TabsContent value="badges">
           {badges ? (
-            <BadgesPanel badges={badges} />
+            <MemberBadgesTab badges={badges} />
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-xs text-muted-foreground">
@@ -422,10 +270,16 @@ export default function MemberProfilePage() {
                     {m.paymentsMade.map((p, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-medium">{p.feeName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {formatCurrency(p.amountCents, p.currency)}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
+                          <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>
+                            {p.status}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -454,10 +308,16 @@ export default function MemberProfilePage() {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{p.feeName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.paidBy}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{formatCurrency(p.amountCents, p.currency)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {p.paidAt ? formatDate(p.paidAt) : 'Nezaplaceno'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {formatCurrency(p.amountCents, p.currency)}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>{p.status}</Badge>
+                          <Badge variant={PAYMENT_VARIANT[p.status] ?? 'default'}>
+                            {p.status}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -501,7 +361,9 @@ export default function MemberProfilePage() {
                         <Badge variant="outline">{w.type}</Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{w.signedBy}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDate(w.signedAt)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDate(w.signedAt)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -514,7 +376,7 @@ export default function MemberProfilePage() {
   );
 }
 
-// ---------- Attendance statistics ----------
+// ── Attendance stats (inline — pod 50 řádků) ──
 
 type AttendanceRecord = {
   eventTitle: string;
@@ -532,46 +394,38 @@ function attendanceColor(pct: number): string {
 
 function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
   const total = attendance.length;
-
-  // Percentage attended (where attended is not null)
   const withRecord = attendance.filter((a) => a.attended !== null);
   const attendedCount = withRecord.filter((a) => a.attended === true).length;
-  const attendancePct = withRecord.length > 0 ? Math.round((attendedCount / withRecord.length) * 100) : null;
+  const attendancePct =
+    withRecord.length > 0 ? Math.round((attendedCount / withRecord.length) * 100) : null;
 
-  // RSVP reliability: RSVP matched actual outcome
-  // YES + attended=true, NO + attended=false, MAYBE/PENDING excluded (unclear intent)
   const rsvpComparable = attendance.filter(
     (a) => a.attended !== null && (a.status === 'YES' || a.status === 'NO'),
   );
   const rsvpMatched = rsvpComparable.filter(
-    (a) => (a.status === 'YES' && a.attended === true) || (a.status === 'NO' && a.attended === false),
+    (a) =>
+      (a.status === 'YES' && a.attended === true) || (a.status === 'NO' && a.attended === false),
   ).length;
   const rsvpPct =
-    rsvpComparable.length > 0 ? Math.round((rsvpMatched / rsvpComparable.length) * 100) : null;
+    rsvpComparable.length > 0
+      ? Math.round((rsvpMatched / rsvpComparable.length) * 100)
+      : null;
 
-  // Current consecutive streak (most-recent first — assume array is newest first)
-  // Sort defensively by date desc
   const sorted = [...attendance].sort(
     (a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime(),
   );
   let streak = 0;
   for (const a of sorted) {
-    if (a.attended === true) {
-      streak++;
-    } else if (a.attended === false) {
-      break;
-    }
-    // attended === null → skip (no record), don't break streak
+    if (a.attended === true) streak++;
+    else if (a.attended === false) break;
   }
 
-  // Last 10 events for mini bar chart (chronological order, oldest first)
   const last10 = [...attendance]
     .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
     .slice(-10);
 
   return (
     <div className="mb-3 space-y-3">
-      {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
@@ -579,14 +433,15 @@ function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
             <div className="mt-1 text-2xl font-bold tabular-nums">{total}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground">Účast</div>
             {attendancePct !== null ? (
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-bold tabular-nums">{attendancePct}%</span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(attendancePct)}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(attendancePct)}`}
+                >
                   {attendancePct >= 80 ? 'Výborná' : attendancePct >= 50 ? 'Průměrná' : 'Nízká'}
                 </span>
               </div>
@@ -595,14 +450,15 @@ function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
             )}
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground">RSVP spolehlivost</div>
             {rsvpPct !== null ? (
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-bold tabular-nums">{rsvpPct}%</span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(rsvpPct)}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${attendanceColor(rsvpPct)}`}
+                >
                   {rsvpComparable.length} zázn.
                 </span>
               </div>
@@ -613,26 +469,27 @@ function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
         </Card>
       </div>
 
-      {/* Streak + mini bar chart */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-4">
-            {/* Streak */}
             <div className="shrink-0">
               <div className="text-xs text-muted-foreground">Aktuální série</div>
               <div className="mt-1 text-base font-semibold">
                 {streak > 0 ? (
-                  <span className="text-green-600 dark:text-green-400">{streak} {streak === 1 ? 'trénink' : streak < 5 ? 'tréninky' : 'tréninků'} v řadě</span>
+                  <span className="text-green-600 dark:text-green-400">
+                    {streak}{' '}
+                    {streak === 1 ? 'trénink' : streak < 5 ? 'tréninky' : 'tréninků'} v řadě
+                  </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
               </div>
             </div>
-
-            {/* Mini bar chart — last 10 events */}
             {last10.length > 0 && (
               <div className="flex-1">
-                <div className="mb-1 text-xs text-muted-foreground">Posledních {last10.length} událostí</div>
+                <div className="mb-1 text-xs text-muted-foreground">
+                  Posledních {last10.length} událostí
+                </div>
                 <div className="flex items-end gap-1 h-10">
                   {last10.map((a, i) => {
                     const colorClass =
@@ -647,7 +504,10 @@ function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
                         key={i}
                         title={title}
                         className={`flex-1 rounded-sm ${colorClass} transition-opacity hover:opacity-75`}
-                        style={{ height: a.attended === true ? '100%' : a.attended === false ? '60%' : '25%' }}
+                        style={{
+                          height:
+                            a.attended === true ? '100%' : a.attended === false ? '60%' : '25%',
+                        }}
                       />
                     );
                   })}
@@ -661,287 +521,6 @@ function AttendanceStats({ attendance }: { attendance: AttendanceRecord[] }) {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-// ---------- Badges panel ----------
-
-function BadgesPanel({ badges }: { badges: MemberBadgesResponse }) {
-  const earnedCount = badges.badges.filter((b) => b.earned).length;
-
-  return (
-    <div className="space-y-4">
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex justify-center mb-1">
-              <Flame className="h-5 w-5 text-orange-500" />
-            </div>
-            <div className={`text-2xl font-bold tabular-nums ${badges.currentStreak > 0 ? 'text-orange-500' : 'text-muted-foreground'}`}>
-              {badges.currentStreak}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Aktuální série</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex justify-center mb-1">
-              <Flame className="h-5 w-5 text-primary/60" />
-            </div>
-            <div className="text-2xl font-bold tabular-nums">{badges.longestStreak}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Nejdelší série</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="flex justify-center mb-1">
-              <Award className="h-5 w-5 text-primary" />
-            </div>
-            <div className="text-2xl font-bold tabular-nums">{badges.totalAttended}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Účastí celkem</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className={`text-2xl font-bold tabular-nums mt-5 ${
-              badges.attendanceRate >= 80 ? 'text-green-600 dark:text-green-400' :
-              badges.attendanceRate >= 50 ? 'text-amber-600 dark:text-amber-400' :
-              'text-red-600 dark:text-red-400'
-            }`}>
-              {badges.attendanceRate}%
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Míra účasti</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Badge grid */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Award className="h-4 w-4 text-primary" />
-            Odznaky
-            <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-              {earnedCount}/{badges.badges.length}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {badges.badges.map((badge) => (
-              <div
-                key={badge.id}
-                className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
-                  badge.earned
-                    ? 'border-primary/20 bg-primary/[0.03] shadow-sm'
-                    : 'border-border/40 bg-muted/20 opacity-50 grayscale'
-                }`}
-              >
-                <div className={`text-3xl ${badge.earned ? '' : 'opacity-40'}`}>
-                  {badge.icon}
-                </div>
-                <div>
-                  <div className={`text-xs font-semibold ${badge.earned ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {badge.name}
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
-                    {badge.description}
-                  </div>
-                  {badge.earned && badge.earnedAt && (
-                    <div className="mt-1.5 text-[10px] font-medium text-primary">
-                      {new Date(badge.earnedAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                  )}
-                  {!badge.earned && (
-                    <div className="mt-1.5 text-[10px] text-muted-foreground/60">
-                      Nezískaný
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function PermBadge({ label, on }: { label: string; on: boolean }) {
-  return (
-    <span className={on ? 'text-accent-foreground' : 'text-muted-foreground line-through opacity-50'}>
-      {label}
-    </span>
-  );
-}
-
-// ---------- Member statistics panel ----------
-
-function rateColor(rate: number): string {
-  if (rate >= 80) return 'text-green-600 dark:text-green-400';
-  if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
-}
-
-function rateBg(rate: number): string {
-  if (rate >= 80) return 'bg-green-500/15 text-green-700 dark:text-green-400';
-  if (rate >= 50) return 'bg-amber-500/15 text-amber-700 dark:text-amber-400';
-  return 'bg-red-500/15 text-red-700 dark:text-red-400';
-}
-
-function TrendIcon({ trend }: { trend: 'up' | 'down' | 'stable' }) {
-  if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
-  if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
-  return <Minus className="h-4 w-4 text-muted-foreground" />;
-}
-
-function ProgressBar({ value, max = 100, className = '' }: { value: number; max?: number; className?: string }) {
-  const pct = Math.min(Math.round((value / max) * 100), 100);
-  const colorClass = value >= 80 ? 'bg-green-500' : value >= 50 ? 'bg-amber-500' : 'bg-red-500';
-  return (
-    <div className={`h-2 w-full rounded-full bg-secondary ${className}`}>
-      <div className={`h-2 rounded-full transition-all ${colorClass}`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
-function MemberStatsPanel({ stats }: { stats: MemberStats }) {
-  const { attendance, rsvp, recentForm, streak } = stats;
-
-  return (
-    <div className="space-y-4">
-      {/* Top stat cards */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {/* Attendance rate */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Účast</div>
-            <div className="mt-2 flex items-end gap-2">
-              <span className={`text-3xl font-bold tabular-nums ${rateColor(attendance.rate)}`}>
-                {attendance.rate}%
-              </span>
-              <TrendIcon trend={attendance.trend} />
-            </div>
-            <div className="mt-2">
-              <ProgressBar value={attendance.rate} />
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {attendance.attended} / {attendance.total} událostí
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* RSVP reliability */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">RSVP spolehlivost</div>
-            <div className="mt-2">
-              <span className={`text-3xl font-bold tabular-nums ${rateColor(rsvp.reliability)}`}>
-                {rsvp.reliability}%
-              </span>
-            </div>
-            <div className="mt-2">
-              <ProgressBar value={rsvp.reliability} />
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Včas: {rsvp.onTime} / {rsvp.total}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Streak */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Aktuální série</div>
-            <div className="mt-2">
-              <span className={`text-3xl font-bold tabular-nums ${streak > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-                {streak}
-              </span>
-              <span className="ml-1 text-sm text-muted-foreground">
-                {streak === 1 ? 'trénink' : streak < 5 ? 'tréninky' : 'tréninků'} v řadě
-              </span>
-            </div>
-            {streak >= 5 && (
-              <div className="mt-2 inline-flex items-center rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                Skvělá forma!
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Team comparison */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Porovnání s týmem</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="font-medium">Tento hráč</span>
-              <span className={`font-bold ${rateColor(attendance.rate)}`}>{attendance.rate}%</span>
-            </div>
-            <ProgressBar value={attendance.rate} />
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Průměr týmu</span>
-              <span className={`font-medium ${rateColor(attendance.teamAverage)}`}>{attendance.teamAverage}%</span>
-            </div>
-            <ProgressBar value={attendance.teamAverage} />
-          </div>
-          {attendance.rate !== attendance.teamAverage && (
-            <p className="text-xs text-muted-foreground">
-              {attendance.rate > attendance.teamAverage
-                ? `O ${attendance.rate - attendance.teamAverage} % nad průměrem týmu`
-                : `O ${attendance.teamAverage - attendance.rate} % pod průměrem týmu`}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent form — last 10 events as colored dots */}
-      {recentForm.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Poslední forma ({recentForm.length} událostí)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {[...recentForm].reverse().map((item, i) => {
-                const dotColor =
-                  item.attended === true
-                    ? 'bg-green-500 ring-green-500/30'
-                    : item.attended === false
-                      ? 'bg-red-400 ring-red-400/30'
-                      : 'bg-muted-foreground/30 ring-muted-foreground/10';
-                const rsvpLabel =
-                  item.rsvpStatus === 'YES' ? 'ANO' : item.rsvpStatus === 'NO' ? 'NE' : item.rsvpStatus === 'MAYBE' ? 'MOŽNÁ' : 'ČEKÁ';
-                const attendedLabel =
-                  item.attended === true ? 'Přítomen' : item.attended === false ? 'Nepřítomen' : 'Bez záznamu';
-                const dateStr = new Date(item.date).toLocaleDateString('cs-CZ', {
-                  day: 'numeric', month: 'numeric',
-                });
-                return (
-                  <div
-                    key={i}
-                    title={`${item.eventTitle} (${dateStr}) — RSVP: ${rsvpLabel}, Docházka: ${attendedLabel}`}
-                    className={`h-5 w-5 rounded-full ring-2 ${dotColor} transition-transform hover:scale-125 cursor-help`}
-                  />
-                );
-              })}
-            </div>
-            <div className="mt-3 flex gap-4 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block" /> Přítomen</span>
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-400 inline-block" /> Nepřítomen</span>
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30 inline-block" /> Bez záznamu</span>
-            </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">Nejstarší vlevo, nejnovější vpravo</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -20,7 +20,7 @@ export function useClubThemeInjection() {
 
   useEffect(() => {
     const me = queryClient.getQueryData<MeResponse>(['me', auth.accessToken]);
-    const club = me?.members.find(m => m.clubId === auth.clubId);
+    const club = me?.members.find(m => m.clubId === (auth.clubId ?? null));
     const theme = club?.club.config.theme;
     if (!theme) return;
 
@@ -31,7 +31,7 @@ export function useClubThemeInjection() {
 
     const el = document.documentElement;
     const keys = Object.keys(vars);
-    keys.forEach(k => el.style.setProperty(k, vars[k]));
+    keys.forEach(k => el.style.setProperty(k, vars[k] ?? ''));
 
     return () => {
       keys.forEach(k => el.style.removeProperty(k));

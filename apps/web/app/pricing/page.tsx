@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Check, ChevronDown, Minus, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { AuthRedirect } from '@/components/auth-redirect';
+import { useAuth } from '@/lib/auth-store';
+import { apiFetch } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Tier data
@@ -175,6 +178,27 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // Page
 // ---------------------------------------------------------------------------
 export default function PricingPage() {
+  const auth = useAuth();
+  const router = useRouter();
+  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'club' | null>(null);
+
+  async function handleSubscribe(plan: 'pro' | 'club') {
+    if (!auth.isAuthenticated) {
+      router.push(`/signup?plan=${plan}`);
+      return;
+    }
+    setLoadingPlan(plan);
+    try {
+      const { url } = await apiFetch<{ url: string }>('/stripe/create-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ plan }),
+      });
+      window.location.href = url;
+    } catch {
+      setLoadingPlan(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <AuthRedirect />
@@ -277,11 +301,19 @@ export default function PricingPage() {
                     >
                       {tier.cta}
                     </a>
+                  ) : tier.id === 'pro' ? (
+                    <Button
+                      onClick={() => handleSubscribe('pro')}
+                      disabled={loadingPlan === 'pro'}
+                      className="w-full bg-gradient-brand text-white border-0 hover:brightness-110 hover:shadow-lg"
+                    >
+                      {loadingPlan === 'pro' ? 'Přesměrování...' : tier.cta}
+                    </Button>
                   ) : (
                     <Button
                       asChild
                       variant={tier.ctaVariant}
-                      className={`w-full ${tier.recommended ? 'bg-gradient-brand text-white border-0 hover:brightness-110 hover:shadow-lg' : ''}`}
+                      className="w-full"
                     >
                       <Link href={tier.ctaHref}>{tier.cta}</Link>
                     </Button>

@@ -28,6 +28,7 @@ function formatDate(dateStr: string): string {
 
 export default function BlogIndexPage() {
   const [featured, ...rest] = BLOG_POSTS;
+  if (!featured) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
