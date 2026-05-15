@@ -147,6 +147,9 @@ export default function LandingPage() {
             <span className="text-sm font-semibold tracking-tight">Sport Manager</span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/pricing" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Ceník
+            </Link>
             <Link href="/k/fc-hvezda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">
               Demo
             </Link>
@@ -481,6 +484,7 @@ export default function LandingPage() {
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 <li><Link href="#features" className="hover:text-foreground transition-colors">Funkce</Link></li>
                 <li><Link href="#how" className="hover:text-foreground transition-colors">Jak to funguje</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Ceník</Link></li>
                 <li><Link href="/k/fc-hvezda" className="hover:text-foreground transition-colors">Demo</Link></li>
                 <li><Link href="/signup" className="hover:text-foreground transition-colors">Registrace zdarma</Link></li>
                 <li><Link href="/login" className="hover:text-foreground transition-colors">Přihlášení</Link></li>
@@ -519,6 +523,7 @@ export default function LandingPage() {
             <span>© 2026 Sport Manager</span>
             <div className="flex gap-4">
               <Link href="/sporty" className="hover:text-foreground transition-colors">Sporty</Link>
+              <Link href="/pricing" className="hover:text-foreground transition-colors">Ceník</Link>
               <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
               <Link href="/signup" className="hover:text-foreground transition-colors">Registrace</Link>
             </div>

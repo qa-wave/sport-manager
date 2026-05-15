@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EventMap } from '@/components/admin/event-map';
 
 const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
 
@@ -40,6 +41,12 @@ export default function NewEventPage() {
   const [feeEnabled, setFeeEnabled] = useState(false);
   const [feeAmount, setFeeAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [debouncedLocation, setDebouncedLocation] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedLocation(location), 500);
+    return () => clearTimeout(timer);
+  }, [location]);
 
   const teams = useQuery<TeamSummary[], ApiError>({
     queryKey: ['teams', auth.clubId],
@@ -201,6 +208,9 @@ export default function NewEventPage() {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
+              {debouncedLocation.trim() && (
+                <EventMap location={debouncedLocation} height={150} />
+              )}
             </div>
 
             {/* Opponent (conditional) */}

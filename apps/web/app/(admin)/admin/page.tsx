@@ -18,6 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
+import { UpgradeBanner } from '@/components/admin/upgrade-banner';
 import { apiFetch, ApiError, type ChildDashboardEntry, type DashboardFeed, type EventSummary, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useTranslation } from '@/lib/i18n';
@@ -148,6 +149,9 @@ export default function DashboardPage() {
         </div>
       ) : !feed ? null : (
         <div className="space-y-8 animate-fade-up">
+          {/* Upgrade banner — shown to admins/owners on FREE plan near limit */}
+          {admin && <UpgradeBanner />}
+
           {/* Moje děti — only for pure guardians (not admin or coach) */}
           {guardian && !admin && !coach && feed.children && feed.children.length > 0 && (
             <section>

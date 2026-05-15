@@ -98,10 +98,16 @@ export type MeClubTheme = {
 };
 
 export type MeClubConfig = {
-  tier: 'basic' | 'pro' | 'enterprise';
+  tier: 'free' | 'basic' | 'pro' | 'club' | 'enterprise';
   limits: { maxMembers: number; maxTeams: number };
   theme: MeClubTheme;
   [key: string]: unknown;
+};
+
+export type ClubUsageResponse = {
+  tier: 'free' | 'basic' | 'pro' | 'club' | 'enterprise';
+  members: { current: number; max: number };
+  teams: { current: number; max: number };
 };
 
 export type MeResponse = {

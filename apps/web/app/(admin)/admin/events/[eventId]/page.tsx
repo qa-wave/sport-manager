@@ -34,6 +34,7 @@ import {
   type Drill,
 } from '@/lib/training-library';
 import { LineupBuilder } from '@/components/admin/lineup-builder';
+import { EventMap } from '@/components/admin/event-map';
 
 const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
 
@@ -1276,6 +1277,9 @@ export default function EventDetailPage() {
                       </a>
                     )}
                   </div>
+                )}
+                {event.location && (
+                  <EventMap location={event.location} height={200} className="mt-2" />
                 )}
                 {event.opponent && (
                   <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import { CreateConversationInput, SendMessageInput } from '@sport-manager/contracts';
 import { prisma } from '../prisma';
 import { requireAuth } from '../middleware/rbac.middleware';
+import { sendPushToUser } from '../services/push.service';
 import type { HonoEnv } from '../../types/hono';
 
 /**
@@ -391,6 +392,15 @@ conversations.post(
       // Broadcast to all SSE subscribers for this conversation
       messageEmitter.emit(`conversation:${conversationId}`, newMessage);
 
+      // Push notification to other participants (fire-and-forget)
+      void sendMessagePushNotifications({
+        conversationId,
+        senderMemberId: member.memberId,
+        senderName: newMessage.senderName,
+        body,
+        clubId: member.clubId,
+      });
+
       return newMessage;
     });
 
@@ -493,5 +503,43 @@ conversations.get('/:conversationId/stream', async (c) => {
     },
   });
 });
+
+// ---------------------------------------------------------------------------
+// Internal helper — push "new message" notification to all participants
+// except the sender.
+// ---------------------------------------------------------------------------
+async function sendMessagePushNotifications(opts: {
+  conversationId: string;
+  senderMemberId: string;
+  senderName: string;
+  body: string;
+  clubId: string;
+}): Promise<void> {
+  try {
+    const participants = await prisma.conversationParticipant.findMany({
+      where: {
+        conversationId: opts.conversationId,
+        memberId: { not: opts.senderMemberId },
+        muted: false,
+      },
+      select: { member: { select: { userId: true } } },
+    });
+
+    const preview = opts.body.length > 80 ? `${opts.body.slice(0, 80)}...` : opts.body;
+
+    await Promise.all(
+      participants.map(({ member }) =>
+        sendPushToUser(member.userId, {
+          title: opts.senderName,
+          body: preview,
+          url: `/admin/messages`,
+          tag: `conversation-${opts.conversationId}`,
+        }),
+      ),
+    );
+  } catch (err) {
+    console.error('[push] Failed to send message push notifications:', err);
+  }
+}
 
 export { conversations as conversationsRoutes };

@@ -15,6 +15,7 @@ import {
   canActOnBehalfOf,
 } from '../middleware/rbac.middleware';
 import { sendEmail, rsvpReminderEmail } from '../services/email.service';
+import { sendPushToUser } from '../services/push.service';
 import type { HonoEnv } from '../../types/hono';
 import type { MemberContext } from '../../types/hono';
 
@@ -264,6 +265,14 @@ events.post(
           month: 'long',
           year: 'numeric',
         }),
+      });
+
+      // Push notification to all team members (fire-and-forget)
+      void sendPushNotificationsForEvent({
+        eventId: result.id,
+        teamId: result.teamId,
+        eventTitle: input.title,
+        startsAt: new Date(input.startsAt),
       });
     }
 
@@ -929,5 +938,45 @@ events.post('/:eventId/comments', requireAuth(), zValidator('json', CommentInput
 
   return c.json(result, 201);
 });
+
+// ---------------------------------------------------------------------------
+// Internal helper — send push notifications to team members after event creation.
+// ---------------------------------------------------------------------------
+async function sendPushNotificationsForEvent(opts: {
+  eventId: string;
+  teamId: string;
+  eventTitle: string;
+  startsAt: Date;
+}): Promise<void> {
+  try {
+    const memberships = await prisma.teamMembership.findMany({
+      where: { teamId: opts.teamId, leftAt: null },
+      select: { member: { select: { userId: true } } },
+    });
+
+    const timeStr = opts.startsAt.toLocaleTimeString('cs-CZ', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const dateStr = opts.startsAt.toLocaleDateString('cs-CZ', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+    });
+
+    await Promise.all(
+      memberships.map(({ member }) =>
+        sendPushToUser(member.userId, {
+          title: 'Nova udalost',
+          body: `${opts.eventTitle} — ${dateStr} v ${timeStr}`,
+          url: `/admin/events/${opts.eventId}`,
+          tag: `event-${opts.eventId}`,
+        }),
+      ),
+    );
+  } catch (err) {
+    console.error('[push] Failed to send event push notifications:', err);
+  }
+}
 
 export { events as eventsRoutes };

@@ -8,6 +8,7 @@ import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/rbac.middleware';
 import { invalidateFeatureCache } from '../middleware/feature-flag.middleware';
 import { sendEmail } from '../services/email.service';
+import { getClubUsage } from '../services/limits.service';
 import type { HonoEnv } from '../../types/hono';
 
 /**
@@ -717,5 +718,18 @@ clubs.patch(
     return c.json({ open });
   },
 );
+
+// ---------------------------------------------------------------------------
+// GET /v1/clubs/usage
+// Returns current plan + member/team usage counts for the upgrade banner.
+// ---------------------------------------------------------------------------
+clubs.get('/usage', requireAuth, async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+  const usage = await getClubUsage(clubId);
+  return c.json(usage);
+});
 
 export { clubs as clubsRoutes };

@@ -43,13 +43,31 @@ export type FeatureFlags = z.infer<typeof FeatureFlags>;
 export type FeatureKey = keyof z.infer<typeof FeatureFlags>;
 
 // ---------- Tenant config (Level 2, minimal MVP) ----------
-export const ClubTier = z.enum(['free', 'basic', 'pro', 'enterprise']);
+/**
+ * Pricing tiers for billing / feature gating.
+ *   free     — up to 25 members, 2 teams, core features
+ *   pro      — unlimited members + teams, push, Stripe, gallery, CSV, waivers
+ *   club     — everything in pro + multi-club, custom branding, FAČR sync, API
+ *
+ * Legacy values ('basic', 'enterprise') are kept for backwards-compatibility
+ * with existing DB rows. They map to 'pro' semantics in the limits service.
+ */
+export const ClubTier = z.enum(['free', 'basic', 'pro', 'club', 'enterprise']);
 export type ClubTier = z.infer<typeof ClubTier>;
+
+/** Plan-specific hard limits. Returned by getLimitsForPlan(). */
+export const PLAN_LIMITS: Record<ClubTier, { maxMembers: number; maxTeams: number }> = {
+  free: { maxMembers: 25, maxTeams: 2 },
+  basic: { maxMembers: 999_999, maxTeams: 999_999 }, // legacy → unlimited
+  pro: { maxMembers: 999_999, maxTeams: 999_999 },
+  club: { maxMembers: 999_999, maxTeams: 999_999 },
+  enterprise: { maxMembers: 999_999, maxTeams: 999_999 }, // legacy → unlimited
+};
 
 export const ClubLimits = z
   .object({
-    maxMembers: z.number().int().positive().default(200),
-    maxTeams: z.number().int().positive().default(10),
+    maxMembers: z.number().int().positive().default(999_999),
+    maxTeams: z.number().int().positive().default(999_999),
   })
   .default({});
 export type ClubLimits = z.infer<typeof ClubLimits>;
@@ -65,7 +83,8 @@ export type ClubTheme = z.infer<typeof ClubTheme>;
 
 export const ClubConfig = z
   .object({
-    tier: ClubTier.default('basic'),
+    /** Pricing tier — drives limits and feature gating. New clubs default to 'free'. */
+    tier: ClubTier.default('free'),
     limits: ClubLimits,
     theme: ClubTheme.default({}),
   })

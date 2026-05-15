@@ -75,10 +75,11 @@ model User {
   // This is NOT a club-level OWNER; a club owner cannot grant this.
   isPlatformAdmin Boolean @default(false)
 
-  members         Member[]
-  sessions        Session[]
-  pushTokens      PushToken[]
-  featureAuditLog ClubFeatureAudit[] @relation("AuditChangedBy")
+  members           Member[]
+  sessions          Session[]
+  pushTokens        PushToken[]
+  pushSubscriptions PushSubscription[]
+  featureAuditLog   ClubFeatureAudit[] @relation("AuditChangedBy")
 }
 
 model Session {
@@ -103,6 +104,21 @@ model PushToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Web push subscription (VAPID). Each browser/device gets its own endpoint.
+// Stored per-user so we can fan out to all devices at once.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String   // DH public key (base64url)
+  auth      String   // auth secret (base64url)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ============================================================================
