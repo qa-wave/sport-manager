@@ -755,4 +755,225 @@ members.post(
   },
 );
 
+// ---------------------------------------------------------------------------
+// GET /v1/members/:memberId/badges
+// Returns attendance gamification data: streaks, badge list, stats.
+// Same access rules as /stats.
+// ---------------------------------------------------------------------------
+
+interface BadgeDefinition {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  check: (opts: { totalAttended: number; currentStreak: number; longestStreak: number; fullMonths: number }) => boolean;
+}
+
+const BADGE_DEFINITIONS: BadgeDefinition[] = [
+  {
+    id: 'first_training',
+    name: 'První trénink',
+    icon: '🎯',
+    description: 'Zúčastnil ses prvního tréninku',
+    check: ({ totalAttended }) => totalAttended >= 1,
+  },
+  {
+    id: 'regular',
+    name: 'Pravidelný',
+    icon: '⭐',
+    description: '5 a více účastí',
+    check: ({ totalAttended }) => totalAttended >= 5,
+  },
+  {
+    id: 'reliable',
+    name: 'Spolehlivý',
+    icon: '🏅',
+    description: '10 a více účastí',
+    check: ({ totalAttended }) => totalAttended >= 10,
+  },
+  {
+    id: 'iron_man',
+    name: 'Železný muž',
+    icon: '💪',
+    description: '25 a více účastí',
+    check: ({ totalAttended }) => totalAttended >= 25,
+  },
+  {
+    id: 'legend',
+    name: 'Legenda',
+    icon: '🏆',
+    description: '50 a více účastí',
+    check: ({ totalAttended }) => totalAttended >= 50,
+  },
+  {
+    id: 'streak_3',
+    name: 'Série 3',
+    icon: '🔥',
+    description: '3 po sobě jdoucí účasti',
+    check: ({ longestStreak }) => longestStreak >= 3,
+  },
+  {
+    id: 'streak_10',
+    name: 'Série 10',
+    icon: '🔥🔥',
+    description: '10 po sobě jdoucích účastí',
+    check: ({ longestStreak }) => longestStreak >= 10,
+  },
+  {
+    id: 'full_month',
+    name: '100% měsíc',
+    icon: '⭐',
+    description: 'Celý měsíc bez absence',
+    check: ({ fullMonths }) => fullMonths >= 1,
+  },
+];
+
+members.get('/:memberId/badges', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+  const memberId = c.req.param('memberId');
+  const requestingMember = c.get('member');
+
+  // Same authorization as /stats
+  if (requestingMember) {
+    const isSelf = requestingMember.memberId === memberId;
+    const isAdminOrOwner =
+      requestingMember.clubRoles.includes('ADMIN') ||
+      requestingMember.clubRoles.includes('OWNER');
+    const isGuardian = requestingMember.guardianOf.some((g) => g.childMemberId === memberId);
+    if (!isSelf && !isAdminOrOwner && !isGuardian) {
+      return c.json({ error: 'Forbidden', message: 'Access denied' }, 403);
+    }
+  }
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const member = await tx.member.findUnique({
+      where: { id: memberId },
+      select: { id: true },
+    });
+    if (!member) return null;
+
+    const now = new Date();
+    const allAttendances = await tx.eventAttendance.findMany({
+      where: {
+        memberId,
+        event: { startsAt: { lte: now } },
+        attended: true,
+      },
+      include: {
+        event: { select: { id: true, startsAt: true } },
+      },
+      orderBy: { event: { startsAt: 'asc' } },
+    });
+
+    const totalAttended = allAttendances.length;
+
+    // Compute current streak (most recent first)
+    const allForStreak = await tx.eventAttendance.findMany({
+      where: {
+        memberId,
+        event: { startsAt: { lte: now } },
+      },
+      include: {
+        event: { select: { startsAt: true } },
+      },
+      orderBy: { event: { startsAt: 'desc' } },
+    });
+
+    let currentStreak = 0;
+    for (const a of allForStreak) {
+      if (a.attended === true) {
+        currentStreak++;
+      } else if (a.attended === false) {
+        break;
+      }
+      // attended === null → skip (no record yet)
+    }
+
+    // Longest streak
+    let longestStreak = 0;
+    let runningStreak = 0;
+    for (const a of allForStreak.slice().reverse()) {
+      if (a.attended === true) {
+        runningStreak++;
+        longestStreak = Math.max(longestStreak, runningStreak);
+      } else if (a.attended === false) {
+        runningStreak = 0;
+      }
+    }
+
+    // Attendance rate (total events vs attended)
+    const totalEvents = await tx.eventAttendance.count({
+      where: { memberId, event: { startsAt: { lte: now } } },
+    });
+    const attendanceRate = totalEvents > 0 ? Math.round((totalAttended / totalEvents) * 100) : 0;
+
+    // Full months: months where all events with attendance records were attended
+    const attendanceByMonth = new Map<string, { attended: number; total: number }>();
+    const allMonthlyAttendances = await tx.eventAttendance.findMany({
+      where: {
+        memberId,
+        event: { startsAt: { lte: now } },
+        attended: { not: null },
+      },
+      include: {
+        event: { select: { startsAt: true } },
+      },
+    });
+    for (const a of allMonthlyAttendances) {
+      const d = new Date(a.event.startsAt);
+      // Don't count current (incomplete) month
+      if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) continue;
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const entry = attendanceByMonth.get(key) ?? { attended: 0, total: 0 };
+      entry.total++;
+      if (a.attended === true) entry.attended++;
+      attendanceByMonth.set(key, entry);
+    }
+    let fullMonths = 0;
+    for (const { attended: att, total } of attendanceByMonth.values()) {
+      if (total >= 3 && att === total) fullMonths++;
+    }
+
+    // Evaluate badges and assign approximate earnedAt dates
+    const badgeOpts = { totalAttended, currentStreak, longestStreak, fullMonths };
+
+    // For earned-at estimation: find the attendance record that pushed over threshold
+    function earnedAtForCount(count: number): string | null {
+      if (count <= 0 || allAttendances.length < count) return null;
+      return allAttendances[count - 1]!.event.startsAt.toISOString();
+    }
+
+    const badges = BADGE_DEFINITIONS.map((def) => {
+      const earned = def.check(badgeOpts);
+      let earnedAt: string | null = null;
+      if (earned) {
+        if (def.id === 'first_training') earnedAt = earnedAtForCount(1);
+        else if (def.id === 'regular') earnedAt = earnedAtForCount(5);
+        else if (def.id === 'reliable') earnedAt = earnedAtForCount(10);
+        else if (def.id === 'iron_man') earnedAt = earnedAtForCount(25);
+        else if (def.id === 'legend') earnedAt = earnedAtForCount(50);
+        else earnedAt = new Date().toISOString(); // streak/month badges: now
+      }
+      return { id: def.id, name: def.name, icon: def.icon, description: def.description, earned, earnedAt };
+    });
+
+    return {
+      currentStreak,
+      longestStreak,
+      totalAttended,
+      attendanceRate,
+      badges,
+    };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Member not found' }, 404);
+  }
+
+  return c.json(result);
+});
+
 export { members as membersRoutes };

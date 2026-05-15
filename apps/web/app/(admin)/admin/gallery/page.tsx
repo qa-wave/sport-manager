@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Camera, ChevronLeft, FolderOpen, Image, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, FolderOpen, Image, Plus, Trash2, Upload, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -40,210 +40,99 @@ interface AlbumDetail {
   createdAt: string;
 }
 
-// ── Album grid ─────────────────────────────────────────────────────────────
+// ── Lightbox ───────────────────────────────────────────────────────────────
 
-function AlbumGrid({
-  canManage,
-  onSelectAlbum,
+function Lightbox({
+  photos,
+  initialIndex,
+  onClose,
 }: {
-  canManage: boolean;
-  onSelectAlbum: (album: Album) => void;
+  photos: GalleryPhoto[];
+  initialIndex: number;
+  onClose: () => void;
 }) {
-  const auth = useAuth();
-  const queryClient = useQueryClient();
-  const [newAlbumTitle, setNewAlbumTitle] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [index, setIndex] = useState(initialIndex);
+  const photo = photos[index];
 
-  const { data, isLoading, isError } = useQuery<{ albums: Album[] }, ApiError>({
-    queryKey: ['gallery', auth.clubId],
-    queryFn: () => apiFetch<{ albums: Album[] }>('/gallery'),
-    enabled: auth.isAuthenticated && !!auth.clubId,
-    retry: false,
-  });
-
-  const createAlbum = useMutation({
-    mutationFn: (title: string) =>
-      apiFetch('/gallery/albums', {
-        method: 'POST',
-        body: JSON.stringify({ title }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery', auth.clubId] });
-      setNewAlbumTitle('');
-      setShowCreate(false);
-    },
-  });
-
-  const deleteAlbum = useMutation({
-    mutationFn: (albumId: string) =>
-      apiFetch(`/gallery/albums/${albumId}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery', auth.clubId] });
-      setDeleteConfirm(null);
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-video rounded-xl" />
-        ))}
-      </div>
-    );
+  function prev(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIndex((i) => (i - 1 + photos.length) % photos.length);
+  }
+  function next(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIndex((i) => (i + 1) % photos.length);
   }
 
-  if (isError) {
-    return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardContent className="p-4 text-sm text-destructive">
-          Nepodařilo se načíst galerii
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const albums = data?.albums ?? [];
+  if (!photo) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Create album form */}
-      {showCreate && (
-        <Card className="border-primary/20">
-          <CardContent className="p-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (newAlbumTitle.trim()) createAlbum.mutate(newAlbumTitle.trim());
-              }}
-              className="flex gap-2"
-            >
-              <div className="flex-1 space-y-1">
-                <Label htmlFor="album-title" className="text-xs">Název alba</Label>
-                <Input
-                  id="album-title"
-                  autoFocus
-                  value={newAlbumTitle}
-                  onChange={(e) => setNewAlbumTitle(e.target.value)}
-                  placeholder="např. Zápas 4. května 2026"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="flex items-end gap-1.5">
-                <Button type="submit" size="sm" disabled={!newAlbumTitle.trim() || createAlbum.isPending}>
-                  {createAlbum.isPending ? 'Vytvářím...' : 'Vytvořit'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setShowCreate(false); setNewAlbumTitle(''); }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/92 p-4"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        onClick={onClose}
+      >
+        <X className="h-5 w-5" />
+      </button>
 
-      {albums.length === 0 && !showCreate ? (
-        <EmptyState
-          icon={Camera}
-          title="Zatím žádná alba"
-          description="Vytvořte první album a nahrajte fotky z tréninků a zápasů."
-          cta={
-            canManage ? (
-              <Button size="sm" onClick={() => setShowCreate(true)}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nové album
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {albums.map((album) => (
-            <div
-              key={album.id}
-              className="group relative cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all hover:border-primary/40 hover:shadow-md"
-              onClick={() => onSelectAlbum(album)}
-            >
-              {/* Cover */}
-              <div className="aspect-video bg-muted/30">
-                {album.coverUrl ? (
-                  <img
-                    src={album.coverUrl}
-                    alt={album.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Image className="h-10 w-10 text-muted-foreground/30" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex items-center justify-between p-3">
-                <div>
-                  <div className="text-sm font-semibold">{album.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {album.photoCount} {album.photoCount === 1 ? 'fotka' : album.photoCount < 5 ? 'fotky' : 'fotek'}
-                  </div>
-                </div>
-                {canManage && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirm(album.id);
-                    }}
-                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                    title="Smazat album"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Delete confirm overlay */}
-              {deleteConfirm === album.id && (
-                <div
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/90 p-4"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-center text-sm font-medium">Smazat album a všechny fotky?</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={deleteAlbum.isPending}
-                      onClick={() => deleteAlbum.mutate(album.id)}
-                    >
-                      Smazat
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setDeleteConfirm(null)}
-                    >
-                      Zrušit
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+      {/* Counter */}
+      {photos.length > 1 && (
+        <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+          {index + 1} / {photos.length}
         </div>
       )}
+
+      {/* Prev / Next */}
+      {photos.length > 1 && (
+        <>
+          <button
+            className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            onClick={prev}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            onClick={next}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
+
+      {/* Image */}
+      <div
+        className="max-h-[85vh] max-w-5xl overflow-hidden rounded-xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={photo.url}
+          alt={photo.caption ?? 'Fotka'}
+          className="max-h-[85vh] max-w-full object-contain"
+        />
+        {(photo.caption || photo.uploadedByName) && (
+          <div className="bg-black/80 px-4 py-3">
+            {photo.caption && <p className="text-sm text-white">{photo.caption}</p>}
+            <p className="mt-0.5 text-xs text-white/50">
+              Nahrál/a: {photo.uploadedByName}
+              {' \u00b7 '}
+              {new Date(photo.createdAt).toLocaleDateString('cs-CZ', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── Album detail ────────────────────────────────────────────────────────────
+// ── Album detail ───────────────────────────────────────────────────────────
 
 function AlbumDetailView({
   album,
@@ -257,9 +146,11 @@ function AlbumDetailView({
   const auth = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [lightboxPhoto, setLightboxPhoto] = useState<GalleryPhoto | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery<{ album: AlbumDetail }, ApiError>({
     queryKey: ['gallery-album', auth.clubId, album.id],
@@ -277,42 +168,62 @@ function AlbumDetailView({
     },
   });
 
-  async function handleFileUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    setUploadError(null);
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setUploading(true);
+      setUploadError(null);
 
-    try {
-      for (const file of Array.from(files)) {
-        // Upload file → get URL
-        const form = new FormData();
-        form.append('file', file);
-        const uploadRes = await apiFetch<{ url: string }>('/upload', {
-          method: 'POST',
-          body: form,
-          headers: {},
-        });
-
-        // Add photo to album
-        await apiFetch(`/gallery/albums/${album.id}/photos`, {
-          method: 'POST',
-          body: JSON.stringify({ url: uploadRes.url, caption: null }),
-        });
+      try {
+        for (const file of Array.from(files)) {
+          const form = new FormData();
+          form.append('file', file);
+          const uploadRes = await apiFetch<{ url: string }>('/upload', {
+            method: 'POST',
+            body: form,
+            headers: {},
+          });
+          await apiFetch(`/gallery/albums/${album.id}/photos`, {
+            method: 'POST',
+            body: JSON.stringify({ url: uploadRes.url, caption: null }),
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ['gallery-album', auth.clubId, album.id] });
+        queryClient.invalidateQueries({ queryKey: ['gallery', auth.clubId] });
+      } catch {
+        setUploadError('Nepodařilo se nahrát fotku. Max. 2 MB, formáty: JPG, PNG, WebP.');
+      } finally {
+        setUploading(false);
       }
+    },
+    [album.id, auth.clubId, queryClient],
+  );
 
-      queryClient.invalidateQueries({ queryKey: ['gallery-album', auth.clubId, album.id] });
-      queryClient.invalidateQueries({ queryKey: ['gallery', auth.clubId] });
-    } catch (err) {
-      setUploadError('Nepodařilo se nahrát fotku. Max. 2 MB, formáty: JPG, PNG, WebP.');
-    } finally {
-      setUploading(false);
-    }
+  function onDragOver(e: React.DragEvent) {
+    if (!canManage) return;
+    e.preventDefault();
+    setIsDragging(true);
+  }
+  function onDragLeave() {
+    setIsDragging(false);
+  }
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!canManage) return;
+    handleFiles(e.dataTransfer.files);
   }
 
   const photos = data?.album.photos ?? [];
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      ref={dropZoneRef}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <PageHeader
         title={album.title}
         subtitle={`${photos.length} ${photos.length === 1 ? 'fotka' : photos.length < 5 ? 'fotky' : 'fotek'}`}
@@ -326,7 +237,7 @@ function AlbumDetailView({
                   accept="image/jpeg,image/png,image/webp"
                   multiple
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e.target.files)}
+                  onChange={(e) => handleFiles(e.target.files)}
                 />
                 <Button
                   size="sm"
@@ -347,6 +258,16 @@ function AlbumDetailView({
         }
       />
 
+      {/* Drag-and-drop indicator */}
+      {isDragging && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-primary/10 backdrop-blur-sm">
+          <div className="rounded-2xl border-2 border-dashed border-primary bg-background/80 px-12 py-8 text-center shadow-xl">
+            <Upload className="mx-auto mb-2 h-10 w-10 text-primary" />
+            <p className="text-sm font-semibold text-primary">Pusťte fotky sem</p>
+          </div>
+        </div>
+      )}
+
       {uploadError && (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-3 text-xs text-destructive">{uploadError}</CardContent>
@@ -363,15 +284,27 @@ function AlbumDetailView({
         <EmptyState
           icon={Image}
           title="Album je prázdné"
-          description="Nahrajte první fotky kliknutím na tlačítko výše."
+          description={
+            canManage
+              ? 'Nahrajte fotky kliknutím na tlačítko nebo přetáhněte soubory sem.'
+              : 'Zatím žádné fotky.'
+          }
+          cta={
+            canManage ? (
+              <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-1.5 h-4 w-4" />
+                Nahrát fotky
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {photos.map((photo) => (
+          {photos.map((photo, idx) => (
             <div
               key={photo.id}
               className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-border/40 bg-muted/20 transition-all hover:border-primary/40 hover:shadow-md"
-              onClick={() => setLightboxPhoto(photo)}
+              onClick={() => setLightboxIndex(idx)}
             >
               <img
                 src={photo.url}
@@ -380,7 +313,7 @@ function AlbumDetailView({
               />
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
-              {/* Delete button */}
+              {/* Delete */}
               {canManage && (
                 <button
                   onClick={(e) => {
@@ -394,112 +327,49 @@ function AlbumDetailView({
                   <X className="h-3 w-3" />
                 </button>
               )}
-              {/* Caption */}
+              {/* Caption overlay */}
               {photo.caption && (
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <p className="truncate text-[11px] text-white">{photo.caption}</p>
                 </div>
               )}
+              {/* Index badge */}
+              <div className="absolute bottom-1.5 left-1.5 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">
+                {idx + 1}
+              </div>
             </div>
           ))}
         </div>
       )}
 
       {/* Lightbox */}
-      {lightboxPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setLightboxPhoto(null)}
-        >
-          <button
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-            onClick={() => setLightboxPhoto(null)}
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div
-            className="max-h-[85vh] max-w-5xl overflow-hidden rounded-xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={lightboxPhoto.url}
-              alt={lightboxPhoto.caption ?? 'Fotka'}
-              className="max-h-[85vh] max-w-full object-contain"
-            />
-            {(lightboxPhoto.caption || lightboxPhoto.uploadedByName) && (
-              <div className="bg-black/80 px-4 py-3">
-                {lightboxPhoto.caption && (
-                  <p className="text-sm text-white">{lightboxPhoto.caption}</p>
-                )}
-                <p className="mt-0.5 text-xs text-white/50">
-                  Nahrál/a: {lightboxPhoto.uploadedByName} &middot;{' '}
-                  {new Date(lightboxPhoto.createdAt).toLocaleDateString('cs-CZ', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      {lightboxIndex !== null && (
+        <Lightbox
+          photos={photos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </div>
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
+// ── Album grid ─────────────────────────────────────────────────────────────
 
-export default function GalleryPage() {
-  const auth = useAuth();
-  const { data: memberCtx } = useMemberContext();
-  const canManage = memberCtx ? isAdmin(memberCtx) || isCoach(memberCtx) : false;
-  const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
-
-  if (activeAlbum) {
-    return (
-      <AlbumDetailView
-        album={activeAlbum}
-        canManage={canManage}
-        onBack={() => setActiveAlbum(null)}
-      />
-    );
-  }
-
-  return (
-    <>
-      <PageHeader
-        title="Galerie"
-        subtitle="Fotky z tréninků a zápasů"
-        actions={
-          canManage ? (
-            <Button size="sm" onClick={() => {
-              // Trigger the create form via the AlbumGrid — use a ref or callback
-              document.getElementById('gallery-new-album-btn')?.click();
-            }}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nové album
-            </Button>
-          ) : undefined
-        }
-      />
-      <AlbumGridWithTrigger canManage={canManage} onSelectAlbum={setActiveAlbum} />
-    </>
-  );
-}
-
-// Wrapper that exposes the create-album trigger via a hidden button
-function AlbumGridWithTrigger({
+function AlbumGrid({
   canManage,
   onSelectAlbum,
+  showCreate,
+  onHideCreate,
 }: {
   canManage: boolean;
   onSelectAlbum: (album: Album) => void;
+  showCreate: boolean;
+  onHideCreate: () => void;
 }) {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery<{ albums: Album[] }, ApiError>({
@@ -518,7 +388,7 @@ function AlbumGridWithTrigger({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gallery', auth.clubId] });
       setNewAlbumTitle('');
-      setShowCreate(false);
+      onHideCreate();
     },
   });
 
@@ -555,13 +425,6 @@ function AlbumGridWithTrigger({
 
   return (
     <div className="space-y-4">
-      {/* Hidden trigger button for external click from PageHeader */}
-      <button
-        id="gallery-new-album-btn"
-        className="hidden"
-        onClick={() => setShowCreate(true)}
-      />
-
       {/* Create album form */}
       {showCreate && (
         <Card className="border-primary/20">
@@ -596,7 +459,10 @@ function AlbumGridWithTrigger({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => { setShowCreate(false); setNewAlbumTitle(''); }}
+                  onClick={() => {
+                    setNewAlbumTitle('');
+                    onHideCreate();
+                  }}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -611,14 +477,6 @@ function AlbumGridWithTrigger({
           icon={Camera}
           title="Zatím žádná alba"
           description="Vytvořte první album a nahrajte fotky z tréninků a zápasů."
-          cta={
-            canManage ? (
-              <Button size="sm" onClick={() => setShowCreate(true)}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nové album
-              </Button>
-            ) : undefined
-          }
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -649,9 +507,12 @@ function AlbumGridWithTrigger({
                   <div className="text-sm font-semibold">{album.title}</div>
                   <div className="text-xs text-muted-foreground">
                     {album.photoCount}{' '}
-                    {album.photoCount === 1 ? 'fotka' : album.photoCount < 5 ? 'fotky' : 'fotek'}
-                    {' '}
-                    &middot;{' '}
+                    {album.photoCount === 1
+                      ? 'fotka'
+                      : album.photoCount < 5
+                        ? 'fotky'
+                        : 'fotek'}
+                    {' \u00b7 '}
                     {new Date(album.createdAt).toLocaleDateString('cs-CZ', {
                       day: 'numeric',
                       month: 'short',
@@ -679,7 +540,9 @@ function AlbumGridWithTrigger({
                   className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/92 p-4 backdrop-blur-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <p className="text-center text-sm font-medium">Smazat album a všechny fotky?</p>
+                  <p className="text-center text-sm font-medium">
+                    Smazat album a všechny fotky?
+                  </p>
                   <div className="flex gap-2">
                     <Button
                       variant="destructive"
@@ -706,5 +569,47 @@ function AlbumGridWithTrigger({
         </div>
       )}
     </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
+
+export default function GalleryPage() {
+  const { data: memberCtx } = useMemberContext();
+  const canManage = memberCtx ? isAdmin(memberCtx) || isCoach(memberCtx) : false;
+  const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  if (activeAlbum) {
+    return (
+      <AlbumDetailView
+        album={activeAlbum}
+        canManage={canManage}
+        onBack={() => setActiveAlbum(null)}
+      />
+    );
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="Galerie"
+        subtitle="Fotky z tréninků a zápasů"
+        actions={
+          canManage ? (
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nové album
+            </Button>
+          ) : undefined
+        }
+      />
+      <AlbumGrid
+        canManage={canManage}
+        onSelectAlbum={setActiveAlbum}
+        showCreate={showCreate}
+        onHideCreate={() => setShowCreate(false)}
+      />
+    </>
   );
 }

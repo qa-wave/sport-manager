@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { UpgradeBanner } from '@/components/admin/upgrade-banner';
-import { apiFetch, ApiError, type ChildDashboardEntry, type DashboardFeed, type EventSummary, type MeResponse } from '@/lib/api';
+import { apiFetch, ApiError, type ChildDashboardEntry, type DashboardFeed, type EventSummary, type MeResponse, type MemberBadgesResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
@@ -399,6 +399,21 @@ function childAttendanceColor(rate: number): string {
 
 function ChildCard({ child }: { child: ChildDashboardEntry }) {
   const { t } = useTranslation();
+  const auth = useAuth();
+
+  const { data: badgesData } = useQuery<MemberBadgesResponse, ApiError>({
+    queryKey: ['member-badges', child.childMemberId, auth.clubId],
+    queryFn: () => apiFetch<MemberBadgesResponse>(`/members/${child.childMemberId}/badges`),
+    enabled: auth.isAuthenticated && !!auth.clubId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Show max 3 recently earned badges (earned within last 30 days)
+  const recentBadges = badgesData?.badges.filter((b) => {
+    if (!b.earned || !b.earnedAt) return false;
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return new Date(b.earnedAt).getTime() >= thirtyDaysAgo;
+  }).slice(0, 3) ?? [];
 
   const EVENT_TYPE_LABEL: Record<string, string> = {
     PRACTICE: t('events.practice'),
@@ -489,6 +504,27 @@ function ChildCard({ child }: { child: ChildDashboardEntry }) {
           <div className="mt-3 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
             <CreditCard className="h-3.5 w-3.5" />
             {child.pendingPaymentsCount} platba{child.pendingPaymentsCount > 1 ? 'y' : ''} čekají
+          </div>
+        )}
+
+        {/* Recently earned badges */}
+        {recentBadges.length > 0 && (
+          <div className="mt-3 rounded-md border border-primary/20 bg-primary/[0.03] px-3 py-2">
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary/70">
+              Nové odznaky
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recentBadges.map((badge) => (
+                <div
+                  key={badge.id}
+                  title={badge.description}
+                  className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium"
+                >
+                  <span>{badge.icon}</span>
+                  <span>{badge.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

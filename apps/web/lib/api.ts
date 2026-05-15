@@ -424,6 +424,24 @@ export type MemberStats = {
   streak: number;
 };
 
+// ---------- Member Badges ----------
+export type MemberBadge = {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  earned: boolean;
+  earnedAt: string | null;
+};
+
+export type MemberBadgesResponse = {
+  currentStreak: number;
+  longestStreak: number;
+  totalAttended: number;
+  attendanceRate: number;
+  badges: MemberBadge[];
+};
+
 // ---------- Activity Feed ----------
 export type ActivityItem = {
   id: string;
