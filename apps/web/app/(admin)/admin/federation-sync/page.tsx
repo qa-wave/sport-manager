@@ -6,10 +6,12 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Globe,
   Loader2,
   RefreshCw,
   Search,
+  Zap,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
 import { apiFetch, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { cn } from '@/lib/utils';
@@ -65,6 +68,15 @@ type SyncResult = {
   errors: string[];
 };
 
+type FederationConfig = {
+  adapterId: string;
+  teamId: string;
+  teamName: string;
+  internalTeamId: string;
+  autoSync: boolean;
+  lastSyncAt: string | null;
+};
+
 type WizardStep = 'federation' | 'team' | 'fixtures' | 'done';
 
 // ---------------------------------------------------------------------------
@@ -74,6 +86,20 @@ function fmtDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString('cs-CZ', {
       weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function fmtRelative(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString('cs-CZ', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -146,7 +172,7 @@ function StepFederation({
                   <p className="font-medium text-sm">{fed.name}</p>
                   <p className="text-xs text-muted-foreground">{fed.sport}</p>
                 </div>
-                <Badge variant="secondary" className="shrink-0 text-[10px] bg-green-500/10 text-green-700 dark:text-green-400 border-0">
+                <Badge variant="default" className="shrink-0 text-[10px] bg-green-500/10 text-green-700 dark:text-green-400 border-0">
                   Aktivní
                 </Badge>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -213,7 +239,7 @@ function StepTeamSearch({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Zadejte název vašeho týmu a vyhledejte ho v databázi svazu.
+        Zadejte název vašeho týmu nebo GUID soutěže z is.fotbal.cz a vyhledejte ho v databázi svazu.
       </p>
 
       <div className="flex gap-2">
@@ -223,7 +249,7 @@ function StepTeamSearch({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Název týmu, např. FC Hvězda..."
+            placeholder="Název týmu nebo GUID soutěže..."
             className="pl-8"
           />
         </div>
@@ -299,7 +325,7 @@ function StepFixtures({
 }: {
   adapterId: string;
   federationTeam: FederationTeam;
-  onDone: (result: SyncResult) => void;
+  onDone: (result: SyncResult, internalTeamId: string) => void;
 }) {
   const auth = useAuth();
   const queryClient = useQueryClient();
@@ -336,7 +362,7 @@ function StepFixtures({
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['events', auth.clubId] });
-      onDone(data);
+      onDone(data, internalTeamId);
     },
   });
 
@@ -396,6 +422,10 @@ function StepFixtures({
       </div>
     );
   }
+
+  // Check if user is on free plan (sync blocked)
+  const isFreeBlocked = syncMutation.isError &&
+    (syncMutation.error as ApiError & { code?: string })?.message?.includes('federation-sync');
 
   const scheduledCount = fixtures?.filter((f) => f.status !== 'completed').length ?? 0;
 
@@ -492,10 +522,28 @@ function StepFixtures({
         </p>
       </div>
 
-      {syncMutation.isError && (
+      {syncMutation.isError && !isFreeBlocked && (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           Import selhal: {syncMutation.error.message}
+        </div>
+      )}
+
+      {/* PRO upgrade banner — shown when plan gate fails */}
+      {isFreeBlocked && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+          <Zap className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-amber-700 dark:text-amber-400 text-sm">
+              Vyžadován plán PRO
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Import zápasů ze svazu je dostupný v plánu PRO a vyšším.
+            </p>
+            <Button size="sm" variant="outline" className="mt-2 border-amber-500/50 text-amber-700 hover:bg-amber-500/10" asChild>
+              <a href="/admin/account#billing">Upgradovat na PRO</a>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -524,11 +572,55 @@ function StepFixtures({
 // ---------------------------------------------------------------------------
 function StepDone({
   result,
+  federation,
+  federationTeam,
+  internalTeamId,
   onReset,
 }: {
   result: SyncResult;
+  federation: FederationListItem | null;
+  federationTeam: FederationTeam | null;
+  internalTeamId: string;
   onReset: () => void;
 }) {
+  const queryClient = useQueryClient();
+
+  // Load current config
+  const { data: configData, isLoading: configLoading } = useQuery<{ federation: FederationConfig | null }>({
+    queryKey: ['federation-config'],
+    queryFn: () => apiFetch<{ federation: FederationConfig | null }>('/federation/config'),
+    staleTime: 0,
+  });
+
+  const existingConfig = configData?.federation;
+
+  const [autoSync, setAutoSync] = useState<boolean>(existingConfig?.autoSync ?? false);
+
+  const configMutation = useMutation<{ federation: FederationConfig }, ApiError, boolean>({
+    mutationFn: (enabled: boolean) => {
+      return apiFetch<{ federation: FederationConfig }>('/federation/config', {
+        method: 'PUT',
+        body: JSON.stringify({
+          adapterId: federation?.id ?? existingConfig?.adapterId ?? '',
+          teamId: federationTeam?.externalId ?? existingConfig?.teamId ?? '',
+          teamName: federationTeam?.name ?? existingConfig?.teamName ?? '',
+          internalTeamId: internalTeamId || existingConfig?.internalTeamId || '',
+          autoSync: enabled,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['federation-config'] });
+    },
+  });
+
+  const handleAutoSyncToggle = (checked: boolean) => {
+    setAutoSync(checked);
+    configMutation.mutate(checked);
+  };
+
+  const lastSyncAt = existingConfig?.lastSyncAt ?? null;
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4">
@@ -550,14 +642,61 @@ function StepDone({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/50 bg-muted/20 p-4 space-y-2">
-        <p className="text-sm font-medium">Nastavit automatický sync</p>
+      {/* Automatický sync toggle */}
+      <div className="rounded-lg border border-border/50 bg-muted/20 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium">Automatický sync</p>
+          </div>
+          {configLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoSync}
+              aria-label="Automatický sync"
+              disabled={configMutation.isPending}
+              onClick={() => handleAutoSyncToggle(!autoSync)}
+              className={cn(
+                'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+                autoSync ? 'bg-primary' : 'bg-input',
+              )}
+            >
+              <span
+                className={cn(
+                  'pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                  autoSync ? 'translate-x-4' : 'translate-x-0',
+                )}
+              />
+            </button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
-          Automatická synchronizace rozpisů z ligy bude dostupná v příští verzi.
-          Prozatím spuste sync rucně kdykoli potřebujete aktualizovat rozpis.
+          Zápasy se automaticky synchronizují jednou denně (každý den v 6:00).
         </p>
-        <Badge variant="outline" className="text-[10px]">Brzy dostupné</Badge>
+        {configMutation.isError && (
+          <p className="text-xs text-destructive">
+            Nepodařilo se uložit nastavení: {configMutation.error.message}
+          </p>
+        )}
+        {configMutation.isSuccess && (
+          <p className="text-xs text-green-600 dark:text-green-400">
+            Nastavení uloženo.
+          </p>
+        )}
       </div>
+
+      {/* Poslední sync badge */}
+      {lastSyncAt && (
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <Badge variant="outline" className="text-xs font-normal">
+            Poslední sync: {fmtRelative(lastSyncAt)}
+          </Badge>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <Button size="sm" variant="outline" asChild>
@@ -621,6 +760,27 @@ function WizardProgress({ current }: { current: WizardStep }) {
 }
 
 // ---------------------------------------------------------------------------
+// Last sync badge shown at top of page if config exists
+// ---------------------------------------------------------------------------
+function LastSyncBadge() {
+  const { data } = useQuery<{ federation: FederationConfig | null }>({
+    queryKey: ['federation-config'],
+    queryFn: () => apiFetch<{ federation: FederationConfig | null }>('/federation/config'),
+    staleTime: 5 * 60_000,
+  });
+
+  const lastSyncAt = data?.federation?.lastSyncAt;
+  if (!lastSyncAt) return null;
+
+  return (
+    <Badge variant="outline" className="text-xs font-normal gap-1">
+      <Clock className="h-3 w-3" />
+      Poslední sync: {fmtRelative(lastSyncAt)}
+    </Badge>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 export default function FederationSyncPage() {
@@ -628,6 +788,7 @@ export default function FederationSyncPage() {
   const [selectedFederation, setSelectedFederation] = useState<FederationListItem | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<FederationTeam | null>(null);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [syncedInternalTeamId, setSyncedInternalTeamId] = useState<string>('');
 
   const handleSelectFederation = (fed: FederationListItem) => {
     setSelectedFederation(fed);
@@ -642,8 +803,9 @@ export default function FederationSyncPage() {
     setStep('fixtures');
   };
 
-  const handleDone = (result: SyncResult) => {
+  const handleDone = (result: SyncResult, internalTeamId: string) => {
     setSyncResult(result);
+    setSyncedInternalTeamId(internalTeamId);
     setStep('done');
   };
 
@@ -652,6 +814,7 @@ export default function FederationSyncPage() {
     setSelectedFederation(null);
     setSelectedTeam(null);
     setSyncResult(null);
+    setSyncedInternalTeamId('');
   };
 
   const goBack = () => {
@@ -665,11 +828,14 @@ export default function FederationSyncPage() {
         title="Liga sync"
         subtitle="Stáhněte rozpis zápasů přímo ze sportovního svazu"
         actions={
-          step !== 'federation' && step !== 'done' ? (
-            <Button variant="ghost" size="sm" onClick={goBack}>
-              Zpět
-            </Button>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            <LastSyncBadge />
+            {step !== 'federation' && step !== 'done' ? (
+              <Button variant="ghost" size="sm" onClick={goBack}>
+                Zpět
+              </Button>
+            ) : undefined}
+          </div>
         }
       />
 
@@ -737,7 +903,13 @@ export default function FederationSyncPage() {
             )}
 
             {step === 'done' && syncResult && (
-              <StepDone result={syncResult} onReset={handleReset} />
+              <StepDone
+                result={syncResult}
+                federation={selectedFederation}
+                federationTeam={selectedTeam}
+                internalTeamId={syncedInternalTeamId}
+                onReset={handleReset}
+              />
             )}
           </CardContent>
         </Card>
