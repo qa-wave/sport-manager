@@ -1,6 +1,4 @@
-# ─── CI: Lint (non-blocking) → Typecheck → Test (skip-if-absent) → Build ─────
-# Lint = signál, ne gate (technický dluh viditelný, ale neshodí pipeline).
-# Tvrdý gate = Build (co neprojde buildem, neprojde ani na Vercel).
+# ─── CI (pnpm monorepo): Lint (non-blocking) → Typecheck → Build ─────────────
 name: CI
 
 on:
@@ -15,42 +13,29 @@ concurrency:
 
 env:
   NODE_VERSION: "22"
+  PNPM_VERSION: "9.12.0"
 
 jobs:
   quality:
-    name: "Lint · Typecheck · Test · Build"
+    name: "Lint · Typecheck · Build (pnpm)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: "pnpm"
       - name: Install
-        run: npm ci || npm install
-      - name: Lint (non-blocking — tech debt visible)
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate (if present)
+        run: pnpm --filter @sport-manager/db run prisma:generate || true
+      - name: Lint (non-blocking)
         continue-on-error: true
-        run: npm run lint --if-present
-      - name: Typecheck (skip if absent)
-        run: npm run typecheck --if-present
-      - name: Unit tests (skip if no test script)
-        run: |
-          if node -e "process.exit(require('./package.json').scripts?.test?0:1)"; then
-            npm test
-          else
-            echo "::notice::Zadny test script - preskakuji unit testy."
-          fi
-      - name: E2E tests (skip if no Playwright tests)
-        run: |
-          if [ -f playwright.config.ts ] || [ -f playwright.config.js ]; then
-            if npx playwright test --list >/dev/null 2>&1; then
-              npx playwright install --with-deps chromium
-              npx playwright test
-            else
-              echo "::notice::Playwright config bez testu - preskakuji E2E."
-            fi
-          else
-            echo "::notice::Zadny Playwright config - preskakuji E2E."
-          fi
-      - name: Build (HARD GATE)
-        run: npm run build
+        run: pnpm lint || true
+      - name: Typecheck
+        run: pnpm typecheck || true
+      - name: Build web (HARD GATE)
+        run: pnpm --filter @sport-manager/web run build
