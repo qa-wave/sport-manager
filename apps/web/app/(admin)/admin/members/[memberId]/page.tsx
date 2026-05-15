@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROLE_VARIANT, PAYMENT_VARIANT, STATUS_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
+import { formatDate } from '@/lib/date-utils';
 
 type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED';
 
@@ -26,10 +27,6 @@ const STATUS_OPTIONS: Array<{ value: MemberStatus; label: string }> = [
   { value: 'ARCHIVED', label: 'Archivovaný' },
 ];
 
-function formatDate(d: string | null): string {
-  if (!d) return '--';
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat('en', { style: 'currency', currency, minimumFractionDigits: 0 }).format(cents / 100);

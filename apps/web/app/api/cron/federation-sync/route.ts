@@ -21,12 +21,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[cron/federation-sync] Starting scheduled auto-sync...');
-
   try {
     const summary = await runAutoSync();
-
-    console.log('[cron/federation-sync] Completed:', summary);
 
     return NextResponse.json({
       ok: true,

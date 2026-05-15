@@ -20,7 +20,6 @@ const API_BASE = 'https://v3.football.api-sports.io';
 async function apiFetch(endpoint: string, params: Record<string, string>) {
   const key = process.env.API_FOOTBALL_KEY;
   if (!key) {
-    console.log('[facr] API_FOOTBALL_KEY not set, returning demo data');
     return null; // triggers demo mode
   }
 
@@ -127,12 +126,10 @@ export async function scrapeCompetitionFixtures(
   const cacheKey = `fixtures:${competitionGuid}`;
   const cached = fixtureCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    console.log(`[facr-scraper] Cache hit for competition ${competitionGuid}`);
     return cached.data;
   }
 
   const url = `${FOTBAL_BASE}/public/souteze/detail-souteze.aspx?req=${encodeURIComponent(competitionGuid)}&sport=fotbal`;
-  console.log(`[facr-scraper] Fetching ${url}`);
 
   const html = await rateLimitedFetch(url);
   if (!html) {
@@ -257,7 +254,6 @@ export async function scrapeCompetitionFixtures(
     return DEMO_FIXTURES;
   }
 
-  console.log(`[facr-scraper] Parsed ${fixtures.length} fixtures for competition ${competitionGuid}`);
   fixtureCache.set(cacheKey, { data: fixtures, expiresAt: Date.now() + CACHE_TTL_MS });
   return fixtures;
 }
@@ -377,7 +373,6 @@ export const facrAdapter: FederationAdapter & { source: FacrSource } = {
 
     // If query looks like a GUID → treat as competition ID, scrape and extract teams
     if (isGuid(query)) {
-      console.log(`[facr] GUID detected, scraping competition ${query}`);
       const fixtures = await scrapeCompetitionFixtures(query);
       return extractTeamsFromFixtures(fixtures, '');
     }
@@ -397,7 +392,6 @@ export const facrAdapter: FederationAdapter & { source: FacrSource } = {
       }
 
       // No cached data — fall back to demo teams filtered by query
-      console.log('[facr] No cached fixtures, returning filtered demo teams');
       return DEMO_TEAMS.filter((t) =>
         t.name.toLowerCase().includes(query.toLowerCase()),
       );
@@ -426,7 +420,6 @@ export const facrAdapter: FederationAdapter & { source: FacrSource } = {
   async getFixtures(teamId: string): Promise<FederationFixture[]> {
     // GUID → direct scrape as competition ID
     if (isGuid(teamId)) {
-      console.log(`[facr] getFixtures: GUID detected, scraping competition ${teamId}`);
       return scrapeCompetitionFixtures(teamId);
     }
 
@@ -453,7 +446,6 @@ export const facrAdapter: FederationAdapter & { source: FacrSource } = {
     const source = getSource();
     if (source === 'direct-scrape') {
       // Cannot scrape without a competition GUID — return demo
-      console.log('[facr] direct-scrape: numeric teamId without GUID, using demo');
       return DEMO_FIXTURES;
     }
 

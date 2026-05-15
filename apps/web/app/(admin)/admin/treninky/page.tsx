@@ -33,6 +33,7 @@ import {
   type Sport,
   type Drill,
 } from '@/lib/training-library';
+import { DAYS_CS, EVENT_TYPE_LABEL } from '@/lib/event-labels';
 
 type PageView = 'library' | 'recurring';
 
@@ -43,17 +44,9 @@ const SPORTS: { value: Sport; label: string }[] = [
   { value: 'universal', label: 'Univerzální' },
 ];
 
-const DAYS_CS = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'];
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
 
 const DAY_LABELS = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Akce',
-};
 
 function getMonday(d: Date): Date {
   const date = new Date(d);

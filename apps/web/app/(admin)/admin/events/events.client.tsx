@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { EVENT_TYPE_LABEL } from '@/lib/event-labels';
+import { formatTime, isToday, isSameDay } from '@/lib/date-utils';
 
 /* ── Date helpers ─────────────────────────────────── */
 
@@ -27,23 +29,11 @@ function weekdayShort(d: string): string {
   return new Date(d).toLocaleDateString('cs-CZ', { weekday: 'short' }).toUpperCase();
 }
 
-function formatTime(d: string): string {
-  return new Date(d).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
-}
 
 function monthYear(d: string): string {
   return new Date(d).toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' });
 }
 
-function isToday(d: string): boolean {
-  const now = new Date();
-  const date = new Date(d);
-  return (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  );
-}
 
 function isTomorrow(d: string): boolean {
   const now = new Date();
@@ -73,13 +63,7 @@ function addDays(date: Date, n: number): Date {
   return d;
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
+
 
 /* ── Grouping ─────────────────────────────────────── */
 
@@ -111,14 +95,6 @@ const EVENT_BG_COLOR: Record<string, string> = {
   TOURNAMENT: 'bg-blue-500/15 border-blue-500/30 text-blue-700 dark:text-blue-400',
   MEETING: 'bg-violet-500/15 border-violet-500/30 text-violet-700 dark:text-violet-400',
   SOCIAL: 'bg-pink-500/15 border-pink-500/30 text-pink-700 dark:text-pink-400',
-};
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Akce',
 };
 
 const CZECH_WEEKDAYS_LONG = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'];

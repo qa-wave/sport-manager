@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { SignJWT } from 'jose';
+import { EventType, HomeAway, RSVPStatus } from '@prisma/client';
 import {
   CreateEventInput,
   UpdateEventInput,
@@ -18,6 +19,7 @@ import { sendEmail, rsvpReminderEmail } from '../services/email.service';
 import { sendPushToUser } from '../services/push.service';
 import { generateEventSummary } from '../services/ai-summary.service';
 import type { HonoEnv } from '../../types/hono';
+import { APP_BASE_URL } from '../../constants';
 import type { MemberContext } from '../../types/hono';
 
 /**
@@ -238,7 +240,7 @@ events.post(
           clubId: member.clubId,
           createdById: member.memberId,
           teamId: input.teamId ?? null,
-          type: input.type as any,
+          type: input.type as EventType,
           title: input.title,
           description: input.description,
           startsAt: new Date(input.startsAt),
@@ -246,7 +248,7 @@ events.post(
           location: input.location,
           locationUrl: input.locationUrl,
           opponent: input.opponent,
-          homeAway: input.homeAway as any,
+          homeAway: input.homeAway as HomeAway | null,
           rsvpDeadline: input.rsvpDeadline ? new Date(input.rsvpDeadline) : null,
         },
       });
@@ -409,12 +411,12 @@ events.post('/:eventId/rsvp', requireAuth(), async (c) => {
         eventId,
         memberId: input.memberId,
         respondedById: member.memberId,
-        status: input.status as any,
+        status: input.status as RSVPStatus,
         note: input.note ?? null,
       },
       update: {
         respondedById: member.memberId,
-        status: input.status as any,
+        status: input.status as RSVPStatus,
         note: input.note ?? null,
         respondedAt: new Date(),
       },
@@ -561,8 +563,7 @@ events.post(
       .setExpirationTime('7d')
       .sign(new TextEncoder().encode(secret));
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
-    const url = `${baseUrl}/rsvp/${token}`;
+    const url = `${APP_BASE_URL}/rsvp/${token}`;
 
     return c.json({ url });
   },
@@ -608,8 +609,7 @@ events.post(
       .setExpirationTime(Math.floor(expiry.getTime() / 1000))
       .sign(new TextEncoder().encode(secret));
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
-    const url = `${baseUrl}/attend/${token}`;
+    const url = `${APP_BASE_URL}/attend/${token}`;
 
     return c.json({ token, url, eventTitle: event.title, expiresAt: expiry });
   },
@@ -701,8 +701,6 @@ async function sendRsvpEmailsForEvent(opts: {
   const secret = process.env.JWT_ACCESS_SECRET;
   if (!secret) return;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
-
   try {
     const memberships = await prisma.teamMembership.findMany({
       where: { teamId: opts.teamId, leftAt: null },
@@ -739,8 +737,7 @@ async function sendRsvpEmailsForEvent(opts: {
         .setExpirationTime('7d')
         .sign(new TextEncoder().encode(secret));
 
-      const rsvpUrl = `${baseUrl}/rsvp/${token}`;
-      console.log(`[rsvp] Magic link for ${playerName}: ${rsvpUrl}`);
+      const rsvpUrl = `${APP_BASE_URL}/rsvp/${token}`;
 
       // Send to each verified guardian with canRsvp
       for (const link of member.childLinks) {

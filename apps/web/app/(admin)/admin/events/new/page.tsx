@@ -13,16 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EventMap } from '@/components/admin/event-map';
-
-const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Společenská akce',
-};
+import { EVENT_TYPES, EVENT_TYPE_LABEL } from '@/lib/event-labels';
 
 export default function NewEventPage() {
   const auth = useAuth();

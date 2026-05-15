@@ -59,7 +59,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                  console.log('[sw] Registered, scope:', reg.scope);
                   // Trigger mutation queue replay when back online
                   window.addEventListener('online', function() {
                     if (reg.active) {
@@ -67,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     }
                   });
                 }).catch(function(err) {
-                  console.warn('[sw] Registration failed:', err);
+                  console.error('[sw] Registration failed:', err);
                 });
               }
             `,

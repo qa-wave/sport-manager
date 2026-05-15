@@ -36,23 +36,7 @@ import {
 import { LineupBuilder } from '@/components/admin/lineup-builder';
 import { EventMap } from '@/components/admin/event-map';
 import { PollsSection } from '@/components/admin/polls-section';
-
-const EVENT_TYPES = ['PRACTICE', 'MATCH', 'TOURNAMENT', 'MEETING', 'SOCIAL'] as const;
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  PRACTICE: 'Trénink',
-  MATCH: 'Zápas',
-  TOURNAMENT: 'Turnaj',
-  MEETING: 'Schůzka',
-  SOCIAL: 'Společenská akce',
-};
-
-const RSVP_STATUS_LABEL: Record<string, string> = {
-  YES: 'Ano',
-  NO: 'Ne',
-  MAYBE: 'Možná',
-  PENDING: 'Čeká',
-};
+import { EVENT_TYPES, EVENT_TYPE_LABEL, RSVP_STATUS_LABEL } from '@/lib/event-labels';
 
 // ─── RSVP Deadline helpers ───
 
@@ -93,7 +77,7 @@ function useRsvpDeadlineCountdown(deadline: string | null | undefined): {
   } else if (days === 1) {
     label = `RSVP do: zítra ${new Date(deadline).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })} (zbývá ${remHours}h ${mins}min)`;
   } else if (hours > 0) {
-    label = `RSVP do: ${new Date(deadline).toLocaleTimeString('cs-CZ', { weekday: 'short', hour: '2-digit', minute: '2-digit' } as any)} (zbývá ${hours}h ${mins}min)`;
+    label = `RSVP do: ${new Date(deadline).toLocaleString('cs-CZ', { weekday: 'short', hour: '2-digit', minute: '2-digit' })} (zbývá ${hours}h ${mins}min)`;
   } else {
     label = `RSVP uzávěrka za ${mins} min`;
   }

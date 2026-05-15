@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate } from '@/lib/date-utils';
 
 type ClubDocumentMeta = {
   id: string;
@@ -42,9 +43,6 @@ function DocTypeIcon({ mimeType }: { mimeType: string }) {
   return <FileText className="h-8 w-8 text-red-500" />;
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
-}
 
 export default function DocumentsPage() {
   const auth = useAuth();

@@ -3,6 +3,8 @@ import * as bcrypt from 'bcrypt';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '../prisma';
 import type { LoginInput, RegisterInput } from '@sport-manager/contracts';
+import { APP_BASE_URL } from '../../constants';
+import { sendEmail } from './email.service';
 
 const BCRYPT_ROUNDS = 12;
 const ACCESS_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -205,11 +207,19 @@ export async function forgotPassword(email: string): Promise<void> {
     .setExpirationTime('1h')
     .sign(new TextEncoder().encode(secret));
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3100';
-  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+  const resetUrl = `${APP_BASE_URL}/reset-password?token=${resetToken}`;
 
-  // TODO: send email — for now log to console
-  console.info(`[auth] Password reset URL for ${email}: ${resetUrl}`);
+  await sendEmail({
+    to: email,
+    subject: 'Obnova hesla — Sport Manager',
+    html: `
+      <h2>Obnovení hesla</h2>
+      <p>Obdrželi jsme žádost o reset hesla pro váš účet.</p>
+      <p><a href="${resetUrl}" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0">Nastavit nové heslo</a></p>
+      <p style="color:#666;font-size:12px">Odkaz je platný 1 hodinu. Pokud jste o reset nežádali, tento email ignorujte.</p>
+      <p style="color:#666;font-size:12px">Nebo zkopírujte odkaz: ${resetUrl}</p>
+    `,
+  });
 }
 
 // ---------------------------------------------------------------------------

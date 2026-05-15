@@ -115,7 +115,7 @@ export function NotificationBell() {
     }
     if (item.link) {
       setOpen(false);
-      router.push(item.link as any);
+      router.push(item.link as string);
     }
   };
 

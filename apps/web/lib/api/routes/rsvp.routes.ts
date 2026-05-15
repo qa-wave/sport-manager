@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { jwtVerify } from 'jose';
+import { RSVPStatus } from '@prisma/client';
 import { prisma } from '../prisma';
 import type { HonoEnv } from '../../types/hono';
 
@@ -113,12 +114,12 @@ rsvp.post('/:token', async (c) => {
         eventId: decoded.eventId,
         memberId: decoded.memberId,
         respondedById: decoded.memberId,
-        status: chosenStatus as any,
+        status: chosenStatus as RSVPStatus,
         note: null,
       },
       update: {
         respondedById: decoded.memberId,
-        status: chosenStatus as any,
+        status: chosenStatus as RSVPStatus,
         respondedAt: new Date(),
       },
     });

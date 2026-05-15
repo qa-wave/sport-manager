@@ -65,10 +65,7 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           keys
             .filter((key) => !CACHE_ALL.includes(key))
-            .map((key) => {
-              console.log(`[sw] Deleting old cache: ${key}`);
-              return caches.delete(key);
-            }),
+            .map((key) => caches.delete(key)),
         ),
       ),
     ]),
@@ -265,7 +262,6 @@ async function handleMutation(request) {
       }),
     );
 
-    console.log('[sw] Queued offline mutation:', request.method, request.url);
 
     return new Response(
       JSON.stringify({
@@ -321,7 +317,7 @@ async function replayMutationQueue() {
         body: req.body || undefined,
       });
       if (res.ok || res.status < 500) {
-        console.log('[sw] Replayed mutation:', req.method, req.url);
+        // mutation replayed successfully
       } else {
         remaining.push(req);
       }

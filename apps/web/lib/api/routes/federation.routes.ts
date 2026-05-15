@@ -370,7 +370,6 @@ export async function runAutoSync(): Promise<{
     select: { id: true, name: true, config: true },
   });
 
-  console.log(`[federation] auto-sync: found ${clubs.length} clubs with autoSync=true`);
 
   let clubsProcessed = 0;
   let newMatches = 0;
@@ -402,7 +401,6 @@ export async function runAutoSync(): Promise<{
       const scheduledFixtures = fixtures.filter((f) => f.status !== 'completed');
 
       if (scheduledFixtures.length === 0) {
-        console.log(`[federation] auto-sync: no scheduled fixtures for club ${club.id}`);
         clubsProcessed++;
         continue;
       }
@@ -436,10 +434,6 @@ export async function runAutoSync(): Promise<{
 
       await updateLastSyncAt(club.id);
       clubsProcessed++;
-
-      console.log(
-        `[federation] auto-sync: club ${club.name} — created ${result.created}, skipped ${result.skipped}`,
-      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[federation] auto-sync: error for club ${club.id}:`, err);

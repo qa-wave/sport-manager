@@ -10,6 +10,7 @@ import { invalidateFeatureCache } from '../middleware/feature-flag.middleware';
 import { sendEmail } from '../services/email.service';
 import { getClubUsage } from '../services/limits.service';
 import type { HonoEnv } from '../../types/hono';
+import { APP_BASE_URL } from '../../constants';
 
 /**
  * /v1/clubs — club management endpoints.
@@ -311,8 +312,7 @@ clubs.post(
       .setExpirationTime('7d')
       .sign(secret);
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sport-manager.qawave.ai';
-    const link = `${baseUrl}/join?token=${token}`;
+    const link = `${APP_BASE_URL}/join?token=${token}`;
 
     return c.json({ link, expiresIn: '7 dní' });
   },
@@ -418,8 +418,7 @@ clubs.get('/referral-code', requireRole('OWNER', 'ADMIN'), async (c) => {
   }
 
   const code = club.id.replace(/-/g, '').slice(0, 8).toUpperCase();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sport-manager.qawave.ai';
-  const link = `${baseUrl}/signup?ref=${code}`;
+  const link = `${APP_BASE_URL}/signup?ref=${code}`;
 
   const cfg = (club.config as Record<string, unknown>) ?? {};
   const referredClubs: string[] = Array.isArray(cfg.referredClubs)

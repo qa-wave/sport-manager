@@ -15,6 +15,7 @@ import {
   constructWebhookEvent,
 } from '../services/stripe.service';
 import type { HonoEnv } from '../../types/hono';
+import { APP_BASE_URL } from '../../constants';
 
 const stripe = new Hono<HonoEnv>();
 
@@ -73,9 +74,7 @@ stripe.post('/connect', requireRole('OWNER'), async (c) => {
   }
 
   // Build return URL — defaults to the account page.
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://sport-manager.qawave.ai';
-  const returnUrl = `${baseUrl}/admin/account?stripe=connected`;
+  const returnUrl = `${APP_BASE_URL}/admin/account?stripe=connected`;
 
   const onboardingUrl = await createOnboardingLink(stripeAccountId, returnUrl);
 
@@ -142,17 +141,14 @@ stripe.post('/checkout', requireAuth(), async (c) => {
     );
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://sport-manager.qawave.ai';
-
   const url = await createCheckoutSession({
     connectedAccountId: stripeAccountId,
     amountCents: payment.amountCents,
     currency: payment.currency,
     feeName: payment.fee.name,
     paymentId: payment.id,
-    successUrl: `${baseUrl}/admin/payments?success=1`,
-    cancelUrl: `${baseUrl}/admin/payments?cancelled=1`,
+    successUrl: `${APP_BASE_URL}/admin/payments?success=1`,
+    cancelUrl: `${APP_BASE_URL}/admin/payments?cancelled=1`,
   });
 
   return c.json({ url });
