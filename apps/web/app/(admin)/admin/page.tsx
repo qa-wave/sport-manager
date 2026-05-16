@@ -18,13 +18,13 @@ import {
 import { PageHeader } from '@/components/admin/page-header';
 import { UpgradeBanner } from '@/components/admin/upgrade-banner';
 import { ChildProgressCard } from '@/components/admin/child-progress-card';
+import { DashboardSkeleton } from '@/components/admin/skeleton-loaders';
 import { apiFetch, ApiError, type DashboardFeed, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 
 function dayNum(d: string) { return new Date(d).getDate().toString(); }
 function weekdayShort(d: string) { return new Date(d).toLocaleDateString('cs-CZ', { weekday: 'short' }).toUpperCase(); }
@@ -138,16 +138,9 @@ export default function DashboardPage() {
       />
 
       {isLoading ? (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        </div>
+        <DashboardSkeleton />
       ) : !feed ? null : (
-        <div className="space-y-8 animate-fade-up">
+        <div data-tour="dashboard" className="space-y-8 animate-fade-up">
           {/* Upgrade banner — shown to admins/owners on FREE plan near limit */}
           {admin && <UpgradeBanner />}
 

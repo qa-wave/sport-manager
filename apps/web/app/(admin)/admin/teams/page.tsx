@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type TeamSummary } from '@/lib/api';
@@ -70,8 +70,17 @@ export default function TeamsPage() {
       ) : !data || data.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="V tomto klubu nejsou žádné týmy"
-          description="Vytvořte první tým a začněte sestavovat soupistku."
+          title="Zatím nemáte žádné týmy"
+          description="Vytvořte první tým, přiřaďte trenéra a přidejte hráče."
+          tip="Tip: Přiřaďte členy do týmů pro lepší organizaci tréninků a zápasů."
+          cta={
+            <Button size="sm" asChild>
+              <Link href="/admin/teams/new">
+                <Plus className="mr-1 h-4 w-4" />
+                Vytvořit první tým
+              </Link>
+            </Button>
+          }
         />
       ) : (
         <Card className="overflow-hidden ">

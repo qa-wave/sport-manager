@@ -97,6 +97,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
       <div className="flex items-center gap-3">
         {process.env.NODE_ENV === 'development' && <DevRoleSwitcher />}
         <button
+          data-tour="search"
           onClick={() => {
             // Dispatch a synthetic Cmd+K to open the command palette
             document.dispatchEvent(

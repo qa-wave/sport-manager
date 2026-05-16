@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
+import { ChatSkeleton } from '@/components/admin/skeleton-loaders';
 import { apiFetch, ApiError, type ConversationSummary, type MemberSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext } from '@/lib/member-context';
@@ -248,17 +249,7 @@ export default function MessagesPage() {
           description="Vyžaduje přihlášenou session."
         />
       ) : isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex gap-3 rounded-xl border border-border/50 bg-card p-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <ChatSkeleton />
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-4 text-sm text-destructive">
@@ -269,7 +260,17 @@ export default function MessagesPage() {
         <EmptyState
           icon={MessageCircle}
           title="Zatím žádné konverzace"
-          description="Konverzace se zobrazí, jakmile budou vytvořeny týmové chaty."
+          description="Napište zprávu kolegovi nebo vytvořte skupinový chat pro celý tým."
+          tip="Tip: Komunikujte s rodiči a hráči přímo z aplikace — bez WhatsAppu."
+          cta={
+            <Button
+              size="sm"
+              onClick={() => setShowNewDM(true)}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Napsat zprávu
+            </Button>
+          }
         />
       ) : (
         <div className="space-y-6">

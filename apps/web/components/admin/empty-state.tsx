@@ -7,11 +7,13 @@ export function EmptyState({
   title,
   description,
   cta,
+  tip,
 }: {
   icon?: LucideIcon;
   title: string;
   description: string;
   cta?: ReactNode;
+  tip?: string;
 }) {
   return (
     <Card className="border-dashed border-border/60">
@@ -29,6 +31,11 @@ export function EmptyState({
           {description}
         </p>
         {cta ? <div className="mt-6">{cta}</div> : null}
+        {tip ? (
+          <p className="mt-5 max-w-sm rounded-lg bg-muted/60 px-4 py-2.5 text-xs text-muted-foreground leading-relaxed">
+            {tip}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

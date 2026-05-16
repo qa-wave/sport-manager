@@ -159,7 +159,7 @@ export function Sidebar({
         </div>
 
         {/* Nav */}
-        <nav className="relative flex-1 space-y-1 overflow-y-auto px-2 py-3">
+        <nav data-tour="sidebar" className="relative flex-1 space-y-1 overflow-y-auto px-2 py-3">
           {NAV_GROUPS.map((group) => {
             const items = nav.filter((i) => (i.group ?? 'main') === group.key);
             if (items.length === 0) return null;
@@ -244,6 +244,16 @@ export function Sidebar({
               <ChevronLeft className="h-4 w-4" />
             )}
           </Button>
+          {!collapsed && (
+            <button
+              data-tour="help"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-border/60 text-[11px] font-bold text-muted-foreground/60 transition-colors hover:border-primary/40 hover:text-primary"
+              title="Nápověda"
+              aria-label="Nápověda"
+            >
+              ?
+            </button>
+          )}
         </div>
       </aside>
 

@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Download, Filter, Search, Upload, UserCircle, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
+import { MemberListSkeleton } from '@/components/admin/skeleton-loaders';
 import { apiFetch, ApiError, type MemberSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useMemberContext, isAdmin } from '@/lib/member-context';
@@ -330,20 +331,7 @@ export default function MembersPage() {
           }
         />
       ) : isLoading ? (
-        <Card>
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-5 w-12" />
-                <Skeleton className="h-5 w-10" />
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="ml-auto h-5 w-14" />
-              </div>
-            ))}
-          </div>
-        </Card>
+        <MemberListSkeleton />
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
           <div className="p-4 text-sm text-destructive">Nepodařilo se načíst členy</div>
@@ -351,17 +339,31 @@ export default function MembersPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserCircle}
-          title={hasActiveFilters ? 'Žádné výsledky' : 'Žádní členové'}
+          title={hasActiveFilters ? 'Žádné výsledky' : 'Zatím nemáte žádné členy'}
           description={
             hasActiveFilters
               ? 'Žádní členové neodpovídají zvoleným filtrům.'
-              : 'V tomto klubu nebyli nalezeni žádní členové.'
+              : 'Přidejte první členy a začněte budovat svůj tým.'
           }
+          tip={!hasActiveFilters ? 'Tip: Sdílejte invite link a členové se přidají sami bez nutnosti zadávat hesla.' : undefined}
           cta={
             hasActiveFilters ? (
               <Button size="sm" variant="outline" onClick={() => { setSearch(''); setStatusFilter(''); setTeamFilter(''); setRoleFilter(''); }}>
                 Zrušit filtry
               </Button>
+            ) : canManage ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button size="sm" asChild>
+                  <Link href="/admin/members/new">
+                    <UserPlus className="mr-1.5 h-4 w-4" />
+                    Pozvat členy
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  Importovat z CSV
+                </Button>
+              </div>
             ) : undefined
           }
         />

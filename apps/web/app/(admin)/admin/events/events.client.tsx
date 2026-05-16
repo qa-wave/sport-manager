@@ -9,6 +9,7 @@ import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, Do
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
 import { EventCalendar } from '@/components/admin/event-calendar';
+import { EventListSkeleton } from '@/components/admin/skeleton-loaders';
 import { apiFetch, ApiError, type EventSummary } from '@/lib/api';
 import { downloadICal, generateICal } from '@/lib/ical';
 import { useAuth } from '@/lib/auth-store';
@@ -545,7 +546,7 @@ export default function EventsPage() {
               <ICalExportButton events={data} />
             )}
             {canCreate && (
-              <Button size="sm" asChild>
+              <Button size="sm" asChild data-tour="new-event">
                 <Link href="/admin/events/new">
                   <Plus className="mr-1 h-4 w-4" />Nová událost
                 </Link>
@@ -567,17 +568,7 @@ export default function EventsPage() {
           }
         />
       ) : isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex gap-4 rounded-xl border border-border/50 bg-card p-4">
-              <Skeleton className="h-16 w-16 rounded-lg" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <EventListSkeleton />
       ) : isError ? (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-4 text-sm text-destructive">
@@ -619,14 +610,22 @@ export default function EventsPage() {
       ) : groups.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title="Žádné nadcházející události"
-          description="Naplánujte svou první událost a začněte."
+          title="Zatím nemáte žádné události"
+          description="Naplánujte svůj první trénink nebo zápas a pozvěte celý tým."
+          tip="Tip: Vytvořte opakující se trénink v šablonách a ušetřete čas."
           cta={canCreate ? (
-            <Button asChild size="sm">
-              <Link href="/admin/events/new">
-                <Plus className="mr-1 h-4 w-4" />Nová událost
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button asChild size="sm">
+                <Link href="/admin/events/new">
+                  <Plus className="mr-1 h-4 w-4" />Vytvořit první trénink
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/admin/training-templates">
+                  Šablony tréninků
+                </Link>
+              </Button>
+            </div>
           ) : undefined}
         />
       ) : (
