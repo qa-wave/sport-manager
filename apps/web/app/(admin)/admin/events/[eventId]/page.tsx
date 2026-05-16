@@ -45,6 +45,10 @@ const EventStatsTab = dynamic(
   () => import('@/components/admin/event/event-stats-tab').then((m) => m.EventStatsTab),
   { ssr: false },
 );
+const EventCarpoolTab = dynamic(
+  () => import('@/components/admin/event/event-carpool-tab').then((m) => m.EventCarpoolTab),
+  { ssr: false },
+);
 const PollsSection = dynamic(
   () => import('@/components/admin/polls-section').then((m) => m.PollsSection),
   { ssr: false },
@@ -578,6 +582,11 @@ export default function EventDetailPage() {
         ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(tr.role),
       ));
 
+  const isGuardian =
+    memberCtx &&
+    !isCoachOrAdmin &&
+    memberCtx.guardianOf.length > 0;
+
   const { data: event, isLoading, isError } = useQuery<EventDetail, ApiError>({
     queryKey: ['event', eventId, auth.clubId],
     queryFn: () => apiFetch<EventDetail>(`/events/${eventId}`),
@@ -608,7 +617,7 @@ export default function EventDetailPage() {
   });
 
   const rsvpMutation = useMutation({
-    mutationFn: (args: { memberId: string; status: string; note?: string }) =>
+    mutationFn: (args: { memberId: string; status: string; note?: string; reason?: 'ILLNESS' | 'SCHOOL' | 'FAMILY' | 'OTHER' }) =>
       apiFetch(`/events/${eventId}/rsvp`, {
         method: 'POST',
         body: JSON.stringify(args),
@@ -796,6 +805,7 @@ export default function EventDetailPage() {
         { id: 'attendance', label: 'Docházka' },
         { id: 'lineup', label: 'Sestava' },
         { id: 'result', label: 'Výsledek' },
+        { id: 'carpool', label: 'Doprava' },
         { id: 'polls', label: 'Ankety' },
         { id: 'discussion', label: 'Diskuze' },
       ]
@@ -916,7 +926,8 @@ export default function EventDetailPage() {
               myRsvp={myRsvp}
               rsvpDeadlinePassed={rsvpDeadlinePassed}
               isPending={rsvpMutation.isPending}
-              onRsvp={(status) => rsvpMutation.mutate({ memberId: myMemberId, status })}
+              isGuardian={!!isGuardian}
+              onRsvp={(status, reason) => rsvpMutation.mutate({ memberId: myMemberId, status, reason })}
             />
           )}
 
@@ -1102,6 +1113,16 @@ export default function EventDetailPage() {
           onSaveStats={(stats) => statsMutation.mutate(stats)}
           isSaving={statsMutation.isPending}
           onDescriptionUpdate={handleDescriptionUpdate}
+        />
+      )}
+
+      {/* ── Tab: Doprava (MATCH/TOURNAMENT only) ── */}
+      {activeTab === 'carpool' && isMatchOrTournament && (
+        <EventCarpoolTab
+          eventId={eventId}
+          myMemberId={myMemberId}
+          isCoachOrAdmin={!!isCoachOrAdmin}
+          attendeesCount={event.attendees.length}
         />
       )}
 

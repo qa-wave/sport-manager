@@ -405,6 +405,17 @@ events.post('/:eventId/rsvp', requireAuth(), async (c) => {
   const body = await c.req.json();
   const input = RsvpInput.parse({ ...body, eventId });
 
+  // Build note: if reason provided (absence excuse), prepend it to note
+  const REASON_LABEL: Record<string, string> = {
+    ILLNESS: 'Nemoc',
+    SCHOOL: 'Škola',
+    FAMILY: 'Rodinné důvody',
+    OTHER: 'Jiné',
+  };
+  const resolvedNote = input.reason
+    ? [REASON_LABEL[input.reason] ?? input.reason, input.note].filter(Boolean).join(' — ')
+    : (input.note ?? null);
+
   // Check authorization: self or guardian with canRsvp
   if (member.memberId !== input.memberId) {
     if (!canActOnBehalfOf(member as MemberContext, input.memberId, 'canRsvp')) {
@@ -433,12 +444,12 @@ events.post('/:eventId/rsvp', requireAuth(), async (c) => {
         memberId: input.memberId,
         respondedById: member.memberId,
         status: input.status as RSVPStatus,
-        note: input.note ?? null,
+        note: resolvedNote,
       },
       update: {
         respondedById: member.memberId,
         status: input.status as RSVPStatus,
-        note: input.note ?? null,
+        note: resolvedNote,
         respondedAt: new Date(),
       },
     });
@@ -870,8 +881,301 @@ async function sendRsvpEmailsForEvent(opts: {
 }
 
 // ---------------------------------------------------------------------------
+// Carpool helpers — stores structured offers in event description marker.
+// Format: <!-- carpool: [...] -->
+// ---------------------------------------------------------------------------
+
+interface CarpoolOffer {
+  id: string;
+  memberId: string;
+  memberName: string;
+  seats: number;
+  takenSeats: string[]; // array of memberId
+  departureTime: string;
+  departureLocation: string;
+  note?: string;
+}
+
+const CARPOOL_MARKER_RE = /<!--\s*carpool:\s*([\s\S]*?)\s*-->/;
+
+function parseCarpoolMarker(description: string | null): CarpoolOffer[] {
+  if (!description) return [];
+  const match = CARPOOL_MARKER_RE.exec(description);
+  if (!match || !match[1]) return [];
+  try {
+    return JSON.parse(match[1]) as CarpoolOffer[];
+  } catch {
+    return [];
+  }
+}
+
+function updateCarpoolMarker(description: string | null, offers: CarpoolOffer[]): string {
+  const marker = `<!-- carpool: ${JSON.stringify(offers)} -->`;
+  const base = description ?? '';
+  if (CARPOOL_MARKER_RE.test(base)) {
+    return base.replace(CARPOOL_MARKER_RE, marker);
+  }
+  return base ? `${base}\n\n${marker}` : marker;
+}
+
+// ---------------------------------------------------------------------------
+// GET /v1/events/:eventId/carpool
+// Returns array of carpool offers for the event.
+// ---------------------------------------------------------------------------
+events.get('/:eventId/carpool', async (c) => {
+  const clubId = c.get('clubId');
+  if (!clubId) {
+    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+  }
+  const eventId = c.req.param('eventId');
+
+  const offers = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      select: { description: true },
+    });
+    if (!event) return null;
+    return parseCarpoolMarker(event.description);
+  });
+
+  if (offers === null) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.json(offers);
+});
+
+// ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/carpool
+// Create a new carpool offer.
+// Body: { seats, departureTime, departureLocation, note? }
+// ---------------------------------------------------------------------------
+const CreateCarpoolInput = z.object({
+  seats: z.number().int().min(1).max(20),
+  departureTime: z.string().min(1),
+  departureLocation: z.string().min(1).max(200),
+  note: z.string().max(300).optional(),
+});
+
+events.post(
+  '/:eventId/carpool',
+  requireAuth(),
+  zValidator('json', CreateCarpoolInput),
+  async (c) => {
+    const member = c.get('member');
+    const clubId = c.get('clubId');
+    if (!member || !clubId) {
+      return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+    }
+
+    const eventId = c.req.param('eventId');
+    const { seats, departureTime, departureLocation, note } = c.req.valid('json');
+
+    const result = await prisma.withClub(clubId, async (tx) => {
+      const event = await tx.event.findUnique({ where: { id: eventId } });
+      if (!event) return null;
+
+      const memberRecord = await tx.member.findUnique({
+        where: { id: member.memberId },
+        select: { user: { select: { firstName: true, lastName: true } } },
+      });
+      const memberName = memberRecord
+        ? `${memberRecord.user.firstName} ${memberRecord.user.lastName}`
+        : 'Neznámý';
+
+      const existing = parseCarpoolMarker(event.description);
+
+      // Member can only have one offer at a time — remove previous if exists
+      const filtered = existing.filter((o) => o.memberId !== member.memberId);
+
+      const newOffer: CarpoolOffer = {
+        id: crypto.randomUUID(),
+        memberId: member.memberId,
+        memberName,
+        seats,
+        takenSeats: [],
+        departureTime,
+        departureLocation,
+        ...(note ? { note } : {}),
+      };
+      filtered.push(newOffer);
+
+      const newDesc = updateCarpoolMarker(event.description, filtered);
+      await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+
+      return newOffer;
+    });
+
+    if (!result) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    return c.json(result, 201);
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/carpool/:offerId/join
+// Join a carpool offer (claim a seat).
+// ---------------------------------------------------------------------------
+events.post('/:eventId/carpool/:offerId/join', requireAuth(), async (c) => {
+  const member = c.get('member');
+  const clubId = c.get('clubId');
+  if (!member || !clubId) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const eventId = c.req.param('eventId');
+  const offerId = c.req.param('offerId');
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId } });
+    if (!event) return null;
+
+    const offers = parseCarpoolMarker(event.description);
+    const offer = offers.find((o) => o.id === offerId);
+
+    if (!offer) {
+      throw Object.assign(new Error('Carpool offer not found'), {
+        statusCode: 404,
+        code: 'NOT_FOUND',
+      });
+    }
+    if (offer.memberId === member.memberId) {
+      throw Object.assign(new Error('Cannot join your own carpool offer'), {
+        statusCode: 400,
+        code: 'CANNOT_JOIN_OWN',
+      });
+    }
+    if (offer.takenSeats.includes(member.memberId)) {
+      throw Object.assign(new Error('Already joined this carpool'), {
+        statusCode: 400,
+        code: 'ALREADY_JOINED',
+      });
+    }
+    if (offer.takenSeats.length >= offer.seats) {
+      throw Object.assign(new Error('No seats available'), {
+        statusCode: 409,
+        code: 'NO_SEATS',
+      });
+    }
+
+    offer.takenSeats.push(member.memberId);
+    const newDesc = updateCarpoolMarker(event.description, offers);
+    await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+
+    return { ok: true };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /v1/events/:eventId/carpool/:offerId/leave
+// Leave a carpool offer (free up your seat).
+// ---------------------------------------------------------------------------
+events.delete('/:eventId/carpool/:offerId/leave', requireAuth(), async (c) => {
+  const member = c.get('member');
+  const clubId = c.get('clubId');
+  if (!member || !clubId) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const eventId = c.req.param('eventId');
+  const offerId = c.req.param('offerId');
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId } });
+    if (!event) return null;
+
+    const offers = parseCarpoolMarker(event.description);
+    const offer = offers.find((o) => o.id === offerId);
+
+    if (!offer) {
+      throw Object.assign(new Error('Carpool offer not found'), {
+        statusCode: 404,
+        code: 'NOT_FOUND',
+      });
+    }
+
+    offer.takenSeats = offer.takenSeats.filter((id) => id !== member.memberId);
+    const newDesc = updateCarpoolMarker(event.description, offers);
+    await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+
+    return { ok: true };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /v1/events/:eventId/carpool/:offerId
+// Delete a carpool offer — only the author can do this.
+// ---------------------------------------------------------------------------
+events.delete('/:eventId/carpool/:offerId', requireAuth(), async (c) => {
+  const member = c.get('member');
+  const clubId = c.get('clubId');
+  if (!member || !clubId) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const eventId = c.req.param('eventId');
+  const offerId = c.req.param('offerId');
+
+  const result = await prisma.withClub(clubId, async (tx) => {
+    const event = await tx.event.findUnique({ where: { id: eventId } });
+    if (!event) return null;
+
+    const offers = parseCarpoolMarker(event.description);
+    const offer = offers.find((o) => o.id === offerId);
+
+    if (!offer) {
+      throw Object.assign(new Error('Carpool offer not found'), {
+        statusCode: 404,
+        code: 'NOT_FOUND',
+      });
+    }
+
+    // Only the author or admin/coach can delete
+    const isAuthor = offer.memberId === member.memberId;
+    const isAdmin = member.clubRoles.some((r: string) => ['ADMIN', 'OWNER'].includes(r));
+    const isCoach = member.teamRoles.some((tr: { role: string }) =>
+      ['HEAD_COACH', 'ASSISTANT_COACH'].includes(tr.role),
+    );
+
+    if (!isAuthor && !isAdmin && !isCoach) {
+      throw Object.assign(new Error('Only the offer author can delete this offer'), {
+        statusCode: 403,
+        code: 'FORBIDDEN',
+      });
+    }
+
+    const updated = offers.filter((o) => o.id !== offerId);
+    const newDesc = updateCarpoolMarker(event.description, updated);
+    await tx.event.update({ where: { id: eventId }, data: { description: newDesc } });
+
+    return { ok: true };
+  });
+
+  if (!result) {
+    return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+  }
+
+  return c.body(null, 204);
+});
+
+// ---------------------------------------------------------------------------
 // PATCH /v1/events/:eventId/carpool
-// Stores carpool offer/request in the RSVP note field using a 🚗 prefix.
+// Legacy: Stores carpool offer/request in the RSVP note field using a 🚗 prefix.
+// Kept for backward compatibility with existing PRACTICE tab.
 // ---------------------------------------------------------------------------
 const CarpoolInput = z.object({
   type: z.enum(['offer', 'request', 'none']),

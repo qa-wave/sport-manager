@@ -66,11 +66,15 @@ export type HomeAway = z.infer<typeof HomeAway>;
 export const RSVPStatus = z.enum(['YES', 'NO', 'MAYBE', 'PENDING']);
 export type RSVPStatus = z.infer<typeof RSVPStatus>;
 
+export const AbsenceReason = z.enum(['ILLNESS', 'SCHOOL', 'FAMILY', 'OTHER']);
+export type AbsenceReason = z.infer<typeof AbsenceReason>;
+
 export const RsvpInput = z.object({
   eventId: z.string().cuid(),
   memberId: z.string().cuid(),
   status: RSVPStatus,
   note: z.string().max(500).optional(),
+  reason: AbsenceReason.optional(),
 });
 export type RsvpInput = z.infer<typeof RsvpInput>;
 

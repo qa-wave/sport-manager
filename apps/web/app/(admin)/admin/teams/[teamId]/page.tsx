@@ -15,9 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ROLE_VARIANT, STATUS_VARIANT } from '@/lib/role-colors';
 import { AttendanceHeatmap } from '@/components/admin/attendance-heatmap';
+import { TeamStatsDashboard } from '@/components/admin/team-stats-dashboard';
 
 const ROLE_LABEL: Record<string, string> = {
   PLAYER: 'Hráč',
@@ -139,115 +141,138 @@ export default function TeamDetailPage() {
         />
       </div>
 
-      {/* Realizacni tym */}
-      {coaches.length > 0 && (
-        <Card className="">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Realizační tým</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {coaches.map((c) => (
-                <CoachChip key={c.membershipId} member={c} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Taby — Soupiska / Statistiky / Docházka */}
+      <Tabs defaultValue="roster">
+        <TabsList>
+          <TabsTrigger value="roster">Soupiska</TabsTrigger>
+          {(isAdminUser || memberCtx?.teamRoles.some((r) => r.teamId === teamId && ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(r.role))) && (
+            <TabsTrigger value="stats">Statistiky</TabsTrigger>
+          )}
+          <TabsTrigger value="attendance">Docházka</TabsTrigger>
+        </TabsList>
 
-      {/* Soupiska */}
-      <Card className="overflow-hidden ">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">
-            Soupiska{players.length > 0 ? ` (${players.length})` : ''}
-          </CardTitle>
-        </CardHeader>
+        {/* TAB: Soupiska */}
+        <TabsContent value="roster" className="space-y-4">
+          {/* Realizační tým */}
+          {coaches.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Realizační tým</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-3">
+                  {coaches.map((c) => (
+                    <CoachChip key={c.membershipId} member={c} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        {players.length === 0 ? (
-          <CardContent className="py-8 text-center text-xs text-muted-foreground">
-            <Users className="mx-auto mb-2 h-8 w-8 opacity-30" />
-            Žádní hráči v týmu
-          </CardContent>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-widest">Hrac</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-widest">Role</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-widest">Dres</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-widest">Pozice</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-widest">Stav</TableHead>
-                {isAdminUser && otherTeams.length > 0 && (
-                  <TableHead className="text-[11px] uppercase tracking-widest">Presun</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {players.map((m) => (
-                <TableRow
-                  key={m.membershipId}
-                  className="group border-border/30 transition-colors hover:bg-primary/[0.03]"
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
-                          {m.firstName[0]}{m.lastName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <Link
-                        href={`/admin/members/${m.memberId}` as any}
-                        className="text-sm font-medium transition-colors hover:text-primary"
-                      >
-                        {m.firstName} {m.lastName}
-                      </Link>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={ROLE_VARIANT[m.role] ?? 'default'}>
-                      {ROLE_LABEL[m.role] ?? m.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {m.jerseyNumber != null ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary">
-                        {m.jerseyNumber}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/50">--</span>
+          {/* Soupiska hráčů */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                Hráči{players.length > 0 ? ` (${players.length})` : ''}
+              </CardTitle>
+            </CardHeader>
+
+            {players.length === 0 ? (
+              <CardContent className="py-8 text-center text-xs text-muted-foreground">
+                <Users className="mx-auto mb-2 h-8 w-8 opacity-30" />
+                Žádní hráči v týmu
+              </CardContent>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="text-[11px] uppercase tracking-widest">Hráč</TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-widest">Role</TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-widest">Dres</TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-widest">Pozice</TableHead>
+                    <TableHead className="text-[11px] uppercase tracking-widest">Stav</TableHead>
+                    {isAdminUser && otherTeams.length > 0 && (
+                      <TableHead className="text-[11px] uppercase tracking-widest">Přesun</TableHead>
                     )}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {m.position ?? '--'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[m.status] ?? 'default'}>
-                      {m.status}
-                    </Badge>
-                  </TableCell>
-                  {isAdminUser && otherTeams.length > 0 && (
-                    <TableCell>
-                      <TransferMemberSelect
-                        memberId={m.memberId}
-                        fromTeamId={teamId}
-                        otherTeams={otherTeams}
-                      />
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {players.map((m) => (
+                    <TableRow
+                      key={m.membershipId}
+                      className="group border-border/30 transition-colors hover:bg-primary/[0.03]"
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
+                              {m.firstName[0]}{m.lastName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <Link
+                            href={`/admin/members/${m.memberId}` as any}
+                            className="text-sm font-medium transition-colors hover:text-primary"
+                          >
+                            {m.firstName} {m.lastName}
+                          </Link>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={ROLE_VARIANT[m.role] ?? 'default'}>
+                          {ROLE_LABEL[m.role] ?? m.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {m.jerseyNumber != null ? (
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary">
+                            {m.jerseyNumber}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">--</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {m.position ?? '--'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANT[m.status] ?? 'default'}>
+                          {m.status}
+                        </Badge>
+                      </TableCell>
+                      {isAdminUser && otherTeams.length > 0 && (
+                        <TableCell>
+                          <TransferMemberSelect
+                            memberId={m.memberId}
+                            fromTeamId={teamId}
+                            otherTeams={otherTeams}
+                          />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+
+          {/* Quick stats pod soupiskou (coach/admin) */}
+          {(isAdminUser || memberCtx?.teamRoles.some((r) => r.teamId === teamId && ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(r.role))) && (
+            <CoachStatsSection teamId={teamId} />
+          )}
+        </TabsContent>
+
+        {/* TAB: Statistiky */}
+        {(isAdminUser || memberCtx?.teamRoles.some((r) => r.teamId === teamId && ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(r.role))) && (
+          <TabsContent value="stats">
+            <TeamStatsDashboard teamId={teamId} />
+          </TabsContent>
         )}
-      </Card>
 
-      {/* Statistiky trenéra */}
-      {(isAdminUser || memberCtx?.teamRoles.some((r) => r.teamId === teamId && ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(r.role))) && (
-        <CoachStatsSection teamId={teamId} />
-      )}
-
-      {/* Heatmap docházky */}
-      <AttendanceHeatmap teamId={teamId} />
+        {/* TAB: Docházka */}
+        <TabsContent value="attendance">
+          <AttendanceHeatmap teamId={teamId} />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

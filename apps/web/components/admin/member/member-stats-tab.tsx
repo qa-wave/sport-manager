@@ -4,6 +4,164 @@ import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { MemberStats } from '@/lib/api';
 
+// ── SVG inline čárový graf docházky ──────────────────────────────────────────
+
+interface AttendanceLineChartProps {
+  /** Pole { month: 'Led', value: 85 } — max 6 položek */
+  data: Array<{ month: string; value: number }>;
+}
+
+function AttendanceLineChart({ data }: AttendanceLineChartProps) {
+  if (data.length === 0) return null;
+
+  const W = 340;
+  const H = 100;
+  const padX = 16;
+  const padY = 14;
+  const chartW = W - padX * 2;
+  const chartH = H - padY * 2;
+
+  const values = data.map((d) => d.value);
+  const minVal = Math.max(0, Math.min(...values) - 10);
+  const maxVal = Math.min(100, Math.max(...values) + 10);
+  const range = maxVal - minVal || 1;
+
+  const pts = data.map((d, i) => ({
+    x: padX + (i / Math.max(data.length - 1, 1)) * chartW,
+    y: padY + chartH - ((d.value - minVal) / range) * chartH,
+    value: d.value,
+    month: d.month,
+  }));
+
+  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ');
+  const firstPt = pts[0];
+  const lastPt = pts[pts.length - 1];
+  const areaPath =
+    firstPt && lastPt
+      ? `M ${firstPt.x},${padY + chartH} ${pts.map((p) => `L ${p.x},${p.y}`).join(' ')} L ${lastPt.x},${padY + chartH} Z`
+      : '';
+
+  const avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+
+  return (
+    <div>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        preserveAspectRatio="none"
+        style={{ height: H }}
+      >
+        {/* Grid */}
+        {[0, 0.5, 1].map((pct, i) => (
+          <line
+            key={i}
+            x1={padX}
+            y1={padY + chartH * (1 - pct)}
+            x2={W - padX}
+            y2={padY + chartH * (1 - pct)}
+            stroke="currentColor"
+            strokeOpacity={0.07}
+            strokeWidth={1}
+            className="text-foreground"
+          />
+        ))}
+
+        {/* Area fill */}
+        <path d={areaPath} fill="hsl(var(--primary))" opacity={0.1} />
+
+        {/* Line */}
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Dots */}
+        {pts.map((p, i) => {
+          const dotColor =
+            p.value >= 80
+              ? '#22c55e'
+              : p.value >= 50
+                ? '#f59e0b'
+                : '#ef4444';
+          return (
+            <g key={i}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={4}
+                fill={dotColor}
+                stroke="hsl(var(--background))"
+                strokeWidth={2}
+              />
+              <title>{`${p.month}: ${p.value}%`}</title>
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* X-axis labels */}
+      <div className="flex items-center justify-between px-4 text-[10px] text-muted-foreground">
+        {data.map((d, i) => (
+          <span key={i}>{d.month}</span>
+        ))}
+      </div>
+
+      {/* Průměr */}
+      <div className="mt-2 text-center text-xs text-muted-foreground">
+        Průměr:{' '}
+        <strong
+          className={
+            avg >= 80
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : avg >= 50
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-red-600 dark:text-red-400'
+          }
+        >
+          {avg}%
+        </strong>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sestaví měsíční průměry z recentForm dat (poslední 6 měsíců).
+ * recentForm nemá datum — použijeme attendance.rate jako zástupné data
+ * pro demonstraci grafu; reálná data by přišla z API monthly breakdown.
+ */
+function buildMonthlyData(
+  recentForm: MemberStats['recentForm'],
+  overallRate: number,
+): Array<{ month: string; value: number }> {
+  // Seskupí záznamy dle měsíce
+  const byMonth: Record<string, { attended: number; total: number }> = {};
+
+  for (const item of recentForm) {
+    // date field existuje na recentForm položce
+    const d = new Date(item.date);
+    const key = d.toLocaleDateString('cs-CZ', { month: 'short', year: '2-digit' });
+    if (!byMonth[key]) byMonth[key] = { attended: 0, total: 0 };
+    byMonth[key].total += 1;
+    if (item.attended === true) byMonth[key].attended += 1;
+  }
+
+  const entries = Object.entries(byMonth).map(([month, { attended, total }]) => ({
+    month,
+    value: total > 0 ? Math.round((attended / total) * 100) : 0,
+  }));
+
+  // Seřadíme chronologicky — bereme poslední 6
+  const last6 = entries.slice(-6);
+
+  // Pokud máme méně než 2 body, graf nemá smysl — vrátíme prázdné
+  return last6.length >= 2 ? last6 : [];
+}
+
 function rateColor(rate: number): string {
   if (rate >= 80) return 'text-green-600 dark:text-green-400';
   if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
@@ -38,6 +196,7 @@ interface MemberStatsTabProps {
 
 export function MemberStatsTab({ stats }: MemberStatsTabProps) {
   const { attendance, rsvp, recentForm, streak } = stats;
+  const monthlyData = buildMonthlyData(recentForm, attendance.rate);
 
   return (
     <div className="space-y-4">
@@ -144,6 +303,18 @@ export function MemberStatsTab({ stats }: MemberStatsTabProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Attendance line chart — poslední měsíce */}
+      {monthlyData.length >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Docházka dle měsíce</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <AttendanceLineChart data={monthlyData} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent form */}
       {recentForm.length > 0 && (

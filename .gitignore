@@ -38,3 +38,4 @@ apps/mobile/.expo/
 apps/mobile/web-build/
 *.orig.*
 .vercel
+.env*.local

@@ -5,12 +5,10 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity,
   AlertTriangle,
   Baby,
   CalendarDays,
   ChevronRight,
-  CreditCard,
   Heart,
   MapPin,
   Plus,
@@ -19,7 +17,8 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { UpgradeBanner } from '@/components/admin/upgrade-banner';
-import { apiFetch, ApiError, type ChildDashboardEntry, type DashboardFeed, type EventSummary, type MeResponse, type MemberBadgesResponse } from '@/lib/api';
+import { ChildProgressCard } from '@/components/admin/child-progress-card';
+import { apiFetch, ApiError, type DashboardFeed, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useTranslation } from '@/lib/i18n';
 import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
@@ -159,9 +158,9 @@ export default function DashboardPage() {
                 <Baby className="h-4 w-4 text-primary" />
                 {t('dashboard.myChildren')}
               </h2>
-              <div className="grid gap-3 xs:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {feed.children.map((child) => (
-                  <ChildCard key={child.childMemberId} child={child} />
+                  <ChildProgressCard key={child.childMemberId} child={child} />
                 ))}
               </div>
             </section>
@@ -381,154 +380,6 @@ export default function DashboardPage() {
         </div>
       )}
     </>
-  );
-}
-
-const RSVP_COLOR: Record<string, string> = {
-  YES: 'text-green-500',
-  NO: 'text-red-500',
-  MAYBE: 'text-yellow-500',
-  PENDING: 'text-muted-foreground',
-};
-
-function childAttendanceColor(rate: number): string {
-  if (rate >= 80) return 'text-green-600 dark:text-green-400';
-  if (rate >= 50) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
-}
-
-function ChildCard({ child }: { child: ChildDashboardEntry }) {
-  const { t } = useTranslation();
-  const auth = useAuth();
-
-  const { data: badgesData } = useQuery<MemberBadgesResponse, ApiError>({
-    queryKey: ['member-badges', child.childMemberId, auth.clubId],
-    queryFn: () => apiFetch<MemberBadgesResponse>(`/members/${child.childMemberId}/badges`),
-    enabled: auth.isAuthenticated && !!auth.clubId,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Show max 3 recently earned badges (earned within last 30 days)
-  const recentBadges = badgesData?.badges.filter((b) => {
-    if (!b.earned || !b.earnedAt) return false;
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return new Date(b.earnedAt).getTime() >= thirtyDaysAgo;
-  }).slice(0, 3) ?? [];
-
-  const EVENT_TYPE_LABEL: Record<string, string> = {
-    PRACTICE: t('events.practice'),
-    MATCH: t('events.match'),
-    TOURNAMENT: t('events.tournament'),
-    MEETING: t('events.meeting'),
-    SOCIAL: t('events.social'),
-  };
-
-  const RSVP_LABEL: Record<string, string> = {
-    YES: t('events.yes'),
-    NO: t('events.no'),
-    MAYBE: t('events.maybe'),
-    PENDING: t('events.pending'),
-  };
-
-  return (
-    <Card className="overflow-hidden border-border/50">
-      <CardContent className="p-4">
-        <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {child.name.split(' ').map((n) => n[0]).join('')}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold">{child.name}</div>
-            {child.teamName && (
-              <div className="truncate text-xs text-muted-foreground">{child.teamName}</div>
-            )}
-          </div>
-          <Link
-            href={`/admin/members/${child.childMemberId}`}
-            className="shrink-0 text-[11px] text-primary/70 hover:text-primary hover:underline"
-          >
-            {t('dashboard.stats')} →
-          </Link>
-        </div>
-
-        {/* Mini attendance stats */}
-        <div className="mb-3 flex items-center gap-3 rounded-md bg-secondary/40 px-3 py-2">
-          <div className="text-center">
-            <div className={`text-base font-bold tabular-nums leading-none ${childAttendanceColor(child.attendanceRate)}`}>
-              {child.attendanceRate}%
-            </div>
-            <div className="mt-0.5 text-[10px] text-muted-foreground">{t('dashboard.attendance')}</div>
-          </div>
-          <div className="h-6 w-px bg-border/50" />
-          <div className="text-center">
-            <div className={`text-base font-bold tabular-nums leading-none ${child.streak > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-              {child.streak}
-            </div>
-            <div className="mt-0.5 text-[10px] text-muted-foreground">{t('dashboard.streak')}</div>
-          </div>
-        </div>
-
-        {child.nextEvent ? (
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {t('dashboard.nextEvent')}
-            </div>
-            <Link
-              href={`/admin/events/${child.nextEvent.id}`}
-              className="block rounded-md border border-border/40 bg-secondary/30 px-3 py-2 transition-colors hover:border-primary/30 hover:bg-primary/[0.03]"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-medium">
-                    {EVENT_TYPE_LABEL[child.nextEvent.type] ?? child.nextEvent.type}
-                  </div>
-                  <div className="truncate text-[11px] text-muted-foreground">
-                    {new Date(child.nextEvent.startsAt).toLocaleDateString('cs-CZ', {
-                      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-                    })}
-                  </div>
-                </div>
-                {child.rsvpStatus && (
-                  <span className={`shrink-0 text-[11px] font-semibold ${RSVP_COLOR[child.rsvpStatus] ?? 'text-muted-foreground'}`}>
-                    {RSVP_LABEL[child.rsvpStatus] ?? child.rsvpStatus}
-                  </span>
-                )}
-              </div>
-            </Link>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">{t('dashboard.noUpcomingEvents')}</p>
-        )}
-
-        {child.pendingPaymentsCount > 0 && (
-          <div className="mt-3 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-            <CreditCard className="h-3.5 w-3.5" />
-            {child.pendingPaymentsCount} platba{child.pendingPaymentsCount > 1 ? 'y' : ''} čekají
-          </div>
-        )}
-
-        {/* Recently earned badges */}
-        {recentBadges.length > 0 && (
-          <div className="mt-3 rounded-md border border-primary/20 bg-primary/[0.03] px-3 py-2">
-            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary/70">
-              Nové odznaky
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {recentBadges.map((badge) => (
-                <div
-                  key={badge.id}
-                  title={badge.description}
-                  className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium"
-                >
-                  <span>{badge.icon}</span>
-                  <span>{badge.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
