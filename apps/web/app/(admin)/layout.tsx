@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { Toaster } from 'sonner';
 import { Sidebar } from '@/components/admin/sidebar';
 import { Topbar } from '@/components/admin/topbar';
 import { CommandPalette } from '@/components/command-palette';
@@ -37,6 +38,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </AuthGuard>
+      <Toaster position="bottom-right" richColors closeButton />
     </QueryProvider>
   );
 }

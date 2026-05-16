@@ -4,6 +4,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { CalendarDays, CalendarRange, ChevronDown, ChevronLeft, ChevronRight, Download, LayoutList, Link2, MapPin, Plus, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { EmptyState } from '@/components/admin/empty-state';
@@ -440,16 +441,22 @@ export default function EventsPage() {
   }
 
   async function handleBulkDelete() {
+    const count = selected.size;
+    const deletedIds = Array.from(selected);
     setIsDeleting(true);
     try {
       await Promise.all(
-        Array.from(selected).map((id) =>
+        deletedIds.map((id) =>
           apiFetch(`/events/${id}`, { method: 'DELETE' }),
         ),
       );
       await queryClient.invalidateQueries({ queryKey: ['events'] });
       setSelected(new Set());
       setConfirmDelete(false);
+      const label = count === 1 ? 'událost' : count < 5 ? 'události' : 'událostí';
+      toast.success(`${count} ${label} smazáno`);
+    } catch {
+      toast.error('Nepodařilo se smazat vybrané události');
     } finally {
       setIsDeleting(false);
     }

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   Calendar,
   Car,
@@ -607,13 +608,20 @@ export default function EventDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
       setIsEditing(false);
       setEditError(null);
+      toast.success('Událost uložena');
     },
-    onError: (err: ApiError) => setEditError(err?.message ?? 'Nepodařilo se uložit změny'),
+    onError: (err: ApiError) => {
+      setEditError(err?.message ?? 'Nepodařilo se uložit změny');
+      toast.error('Nepodařilo se uložit změny');
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => apiFetch(`/events/${eventId}`, { method: 'DELETE' }),
-    onSuccess: () => router.push('/admin/events'),
+    onSuccess: () => {
+      toast.success('Událost smazána');
+      router.push('/admin/events');
+    },
   });
 
   const rsvpMutation = useMutation({
@@ -622,7 +630,10 @@ export default function EventDetailPage() {
         method: 'POST',
         body: JSON.stringify(args),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      toast.success('Odpověď uložena');
+    },
   });
 
   const attendanceMutation = useMutation({
@@ -631,7 +642,10 @@ export default function EventDetailPage() {
         method: 'PATCH',
         body: JSON.stringify({ attendances }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      toast.success('Docházka uložena');
+    },
   });
 
   const carpoolMutation = useMutation({

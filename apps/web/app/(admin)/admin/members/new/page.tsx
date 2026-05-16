@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ChevronLeft } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, ApiError, type TeamSummary } from '@/lib/api';
@@ -47,14 +48,15 @@ export default function NewMemberPage() {
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
+      toast.success('Pozvánka odeslána');
       router.push('/admin/members');
     },
     onError: (err) => {
-      setFormError(
-        err?.message?.includes('409')
-          ? 'Uživatel už je členem tohoto klubu.'
-          : (err?.message ?? 'Nepodařilo se přidat člena.'),
-      );
+      const msg = err?.message?.includes('409')
+        ? 'Uživatel už je členem tohoto klubu.'
+        : (err?.message ?? 'Nepodařilo se přidat člena.');
+      setFormError(msg);
+      toast.error(msg);
     },
   });
 

@@ -83,20 +83,31 @@ export function CommandPalette() {
     setSelectedIndex(0);
   }, [debouncedQuery]);
 
-  // Cmd+K / Ctrl+K trigger
+  // Cmd+K / Ctrl+K trigger + single-key shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setOpen((prev) => !prev);
+        return;
       }
       if (e.key === 'Escape') {
         setOpen(false);
+        return;
       }
+      // Single-key shortcuts: only when no input/textarea/select is focused and no modifier
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+      const isEditing = tag === 'input' || tag === 'textarea' || tag === 'select' || (document.activeElement as HTMLElement)?.isContentEditable;
+      if (isEditing) return;
+      if (e.key === 'n') { e.preventDefault(); router.push('/admin/events/new'); }
+      if (e.key === 'm') { e.preventDefault(); router.push('/admin/members'); }
+      if (e.key === 'e') { e.preventDefault(); router.push('/admin/events'); }
+      if (e.key === 't') { e.preventDefault(); router.push('/admin/teams'); }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [router]);
 
   // Focus input when opened
   useEffect(() => {
@@ -263,9 +274,30 @@ export function CommandPalette() {
           {/* Results */}
           <div className="max-h-[400px] overflow-y-auto p-2">
             {!debouncedQuery && (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground/70">
-                Začněte psát pro vyhledávání...
-              </p>
+              <div>
+                <p className="px-3 pt-4 pb-2 text-center text-sm text-muted-foreground/70">
+                  Začněte psát pro vyhledávání...
+                </p>
+                <div className="mx-3 mb-3 rounded-lg border border-border/40 bg-secondary/30 divide-y divide-border/30">
+                  {[
+                    { key: 'n', label: 'Nová událost', path: '/admin/events/new' },
+                    { key: 'e', label: 'Události', path: '/admin/events' },
+                    { key: 'm', label: 'Členové', path: '/admin/members' },
+                    { key: 't', label: 'Týmy', path: '/admin/teams' },
+                  ].map(({ key, label, path }) => (
+                    <button
+                      key={key}
+                      onClick={() => { setOpen(false); router.push(path); }}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-secondary/60"
+                    >
+                      <span className="text-foreground/80">{label}</span>
+                      <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                        {key}
+                      </kbd>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {showEmpty && (

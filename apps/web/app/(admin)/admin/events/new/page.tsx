@@ -4,6 +4,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ChevronLeft } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { apiFetch, ApiError, type TeamSummary } from '@/lib/api';
@@ -52,10 +53,12 @@ export default function NewEventPage() {
         body: JSON.stringify(body),
       }),
     onSuccess: (data) => {
+      toast.success('Událost vytvořena');
       router.push(`/admin/events/${data.id}`);
     },
     onError: (err: any) => {
       setError(err?.message ?? 'Nepodařilo se vytvořit událost');
+      toast.error('Nepodařilo se vytvořit událost');
     },
   });
 
