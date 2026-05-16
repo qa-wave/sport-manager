@@ -242,9 +242,12 @@ assert "SEC-AUTH-003: Login s neexistujícím emailem → 401" "401" "$AUTH_BADU
 AUTH_BADPASS=$(raw_post_status "/auth/login" '{"email":"admin@hvezda.cz","password":"spatneheslo"}')
 assert "SEC-AUTH-004: Login se špatným heslem → 401" "401" "$AUTH_BADPASS"
 
-# SEC-AUTH-005: SQL injection v emailu → 401 (ne 500)
+# SEC-AUTH-005: SQL injection v emailu → 400 nebo 401 (ne 500)
+# Zod rejectuje nevalidní email formát (400) před tím, než se vůbec dotkneme DB (401).
+# Obojí je správné chování — důležité je, že server nepadá (ne 500).
 SQL_INJECT_STATUS=$(raw_post_status "/auth/login" '{"email":"'"'"' OR 1=1 --","password":"x"}')
-assert "SEC-AUTH-005: SQL injection v emailu → 401 (ne 500)" "401" "$SQL_INJECT_STATUS"
+assert "SEC-AUTH-005: SQL injection v emailu → 400 nebo 401 (ne 500)" "true" \
+  "$([ "$SQL_INJECT_STATUS" = "400" ] || [ "$SQL_INJECT_STATUS" = "401" ] && echo true || echo false)"
 
 # SEC-AUTH-006: SQL injection v hesle → 401 (ne 500)
 SQL_INJECT_PASS=$(raw_post_status "/auth/login" '{"email":"admin@hvezda.cz","password":"'"'"' OR '"'"'1'"'"'='"'"'1"}')
@@ -397,14 +400,17 @@ NO_CLUB=$(curl -s -o /dev/null -w "%{http_code}" "$API/events" \
   -H "authorization: Bearer $ADMIN_TOKEN")
 assert "SEC-RBAC-009: Request bez x-club-id → 400" "400" "$NO_CLUB"
 
-# SEC-RBAC-010: Parent nemůže mazat členy
+# SEC-RBAC-010: Parent nemůže mazat členy → 403 nebo 404
+# 403 = route existuje ale parent nemá roli, 404 = DELETE route neexistuje vůbec.
+# Obojí je bezpečné chování — parent data nesmaže.
 MEMBERS_LIST=$(api_get "/members" "$ADMIN_TOKEN" "$HVEZDA_CID")
 FIRST_MEMBER_ID=$(echo "$MEMBERS_LIST" | jq -r '.[0].id')
 if [ -n "$FIRST_MEMBER_ID" ] && [ "$FIRST_MEMBER_ID" != "null" ]; then
   PARENT_DEL_MEMBER=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$API/members/$FIRST_MEMBER_ID" \
     -H "authorization: Bearer $PARENT_TOKEN" \
     -H "x-club-id: $HVEZDA_CID")
-  assert "SEC-RBAC-010: Parent nemůže DELETE member → 403" "403" "$PARENT_DEL_MEMBER"
+  assert "SEC-RBAC-010: Parent nemůže DELETE member → 403 nebo 404" "true" \
+    "$([ "$PARENT_DEL_MEMBER" = "403" ] || [ "$PARENT_DEL_MEMBER" = "404" ] && echo true || echo false)"
 fi
 
 # SEC-RBAC-011: Neautentizovaný user nemůže nic
@@ -643,6 +649,9 @@ fi
 echo ""
 echo "━━━ SEKCE 6: CSRF / Cookie Security ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
+
+# Počkáme 2s aby se resetoval rate limit okno z předchozích sekcí
+sleep 2
 
 # Pro cookie testy potřebujeme zachytit hlavičky
 LOGIN_HEADERS=$(login_full "coach@hvezda.cz")

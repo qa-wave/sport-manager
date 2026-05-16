@@ -90,7 +90,13 @@ export function canActOnBehalfOf(
 // ---------------------------------------------------------------------------
 // requireAuth() — middleware factory.
 // Verifies user is authenticated. If clubId is present in context, also
-// resolves and caches the full MemberContext on c.var.member.
+// resolves the full MemberContext and enforces club membership.
+//
+// SECURITY: When a clubId is present, we MUST verify the user is actually
+// a member of that club. Relying solely on Postgres RLS is insufficient —
+// defence-in-depth requires an explicit application-layer membership check.
+// A missing or null MemberContext means the caller is not a member of the
+// requested club, which is a 403, not a silent pass-through.
 // ---------------------------------------------------------------------------
 export function requireAuth() {
   return createMiddleware<HonoEnv>(async (c, next) => {
@@ -102,9 +108,12 @@ export function requireAuth() {
     const clubId = c.get('clubId');
     if (clubId && !c.get('member')) {
       const member = await resolveMemberContext(user.id, clubId);
-      if (member) {
-        c.set('member', member);
+      if (!member) {
+        // User is authenticated but is NOT a member of the requested club.
+        // Return 403 — do NOT let the request through to the route handler.
+        return c.json({ error: 'Forbidden', message: 'Not a member of this club' }, 403);
       }
+      c.set('member', member);
     }
 
     return next();
