@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,13 +32,23 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LineupBuilder } from '@/components/admin/lineup-builder';
-import { PollsSection } from '@/components/admin/polls-section';
 import { EventHero } from '@/components/admin/event/event-hero';
 import { EventRsvpWidget } from '@/components/admin/event/event-rsvp-widget';
 import { EventAttendanceTab } from '@/components/admin/event/event-attendance-tab';
-import { EventDrillsTab } from '@/components/admin/event/event-drills-tab';
-import { EventStatsTab } from '@/components/admin/event/event-stats-tab';
 import { EventEditSheet, type EventEditFormState } from '@/components/admin/event/event-edit-sheet';
+
+const EventDrillsTab = dynamic(
+  () => import('@/components/admin/event/event-drills-tab').then((m) => m.EventDrillsTab),
+  { ssr: false },
+);
+const EventStatsTab = dynamic(
+  () => import('@/components/admin/event/event-stats-tab').then((m) => m.EventStatsTab),
+  { ssr: false },
+);
+const PollsSection = dynamic(
+  () => import('@/components/admin/polls-section').then((m) => m.PollsSection),
+  { ssr: false },
+);
 
 // ─── Helpers ───
 

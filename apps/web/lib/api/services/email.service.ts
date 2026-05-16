@@ -2,12 +2,20 @@
  * Email service — Resend when RESEND_API_KEY is set, console fallback otherwise.
  */
 import { Resend } from 'resend';
+import { prisma } from '../prisma';
+import {
+  rsvpReminderEmail as buildRsvpReminderEmail,
+  newEventEmail as buildNewEventEmail,
+} from './email-templates';
 
 type EmailPayload = {
   to: string;
   subject: string;
   html: string;
 };
+
+/** Keys that exist on the NotificationPreference model. */
+export type NotifPrefKey = 'emailEvents' | 'emailRsvpReminder' | 'emailMessages';
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -35,24 +43,94 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// getNotifiableMembers
+// Returns active team members whose notification preference for `prefKey` is
+// enabled. Also includes the user's email and name for sending.
+// ---------------------------------------------------------------------------
+
+export interface NotifiableMember {
+  memberId: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export async function getNotifiableMembers(
+  clubId: string,
+  teamId: string,
+  prefKey: NotifPrefKey,
+): Promise<NotifiableMember[]> {
+  const memberships = await prisma.teamMembership.findMany({
+    where: { teamId, leftAt: null },
+    select: {
+      member: {
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          user: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+              notificationPreferences: {
+                where: { clubId },
+                select: { [prefKey]: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const result: NotifiableMember[] = [];
+
+  for (const { member } of memberships) {
+    if (member.status !== 'ACTIVE') continue;
+
+    const pref = member.user.notificationPreferences[0];
+    // If no pref row exists yet, default is true (matches DB @default(true))
+    const enabled = pref ? (pref as Record<string, boolean>)[prefKey] : true;
+    if (!enabled) continue;
+
+    result.push({
+      memberId: member.id,
+      userId: member.userId,
+      email: member.user.email,
+      firstName: member.user.firstName,
+      lastName: member.user.lastName,
+    });
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy compat wrappers (kept for existing call-sites in events.routes.ts)
+// These delegate to the new HTML templates.
+// ---------------------------------------------------------------------------
+
 export function rsvpReminderEmail(opts: {
   playerName: string;
   eventTitle: string;
   eventDate: string;
   rsvpUrl: string;
 }): EmailPayload {
-  return {
-    to: '', // filled by caller
-    subject: `RSVP: ${opts.eventTitle} — ${opts.eventDate}`,
-    html: `
-      <h2>Dobrý den,</h2>
-      <p>${opts.playerName} má nadcházející událost:</p>
-      <h3>${opts.eventTitle}</h3>
-      <p>📅 ${opts.eventDate}</p>
-      <p><a href="${opts.rsvpUrl}" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0">Potvrdit účast</a></p>
-      <p style="color:#666;font-size:12px">Nebo klikněte na odkaz: ${opts.rsvpUrl}</p>
-    `,
-  };
+  const { subject, html } = buildRsvpReminderEmail({
+    recipientName: opts.playerName,
+    playerName: opts.playerName,
+    clubName: '',
+    eventTitle: opts.eventTitle,
+    eventDate: opts.eventDate,
+    eventTime: '',
+    rsvpYesUrl: opts.rsvpUrl,
+    rsvpNoUrl: opts.rsvpUrl,
+    eventUrl: opts.rsvpUrl,
+  });
+  return { to: '', subject, html };
 }
 
 export function newEventEmail(opts: {
@@ -61,15 +139,16 @@ export function newEventEmail(opts: {
   eventDate: string;
   eventUrl: string;
 }): EmailPayload {
-  return {
-    to: '',
-    subject: `Nová událost: ${opts.eventTitle}`,
-    html: `
-      <h2>${opts.clubName}</h2>
-      <p>Byla vytvořena nová událost:</p>
-      <h3>${opts.eventTitle}</h3>
-      <p>📅 ${opts.eventDate}</p>
-      <p><a href="${opts.eventUrl}" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0">Zobrazit detail</a></p>
-    `,
-  };
+  const { subject, html } = buildNewEventEmail({
+    recipientName: '',
+    clubName: opts.clubName,
+    eventTitle: opts.eventTitle,
+    eventType: 'OTHER',
+    eventDate: opts.eventDate,
+    eventTime: '',
+    eventUrl: opts.eventUrl,
+    rsvpYesUrl: opts.eventUrl,
+    rsvpNoUrl: opts.eventUrl,
+  });
+  return { to: '', subject, html };
 }

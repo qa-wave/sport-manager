@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { PlayCircle, Timer, Users, Gauge } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,11 +81,13 @@ export function DrillVideoPreview({ drill }: { drill: Drill }) {
             >
               {/* Thumbnail — YouTube image or video first frame */}
               {isYoutube ? (
-                <img
-                  src={thumbnailUrl}
+                <Image
+                  src={thumbnailUrl!}
                   alt={drill.name}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  fill
+                  className="object-cover"
                   loading="lazy"
+                  unoptimized
                 />
               ) : (
                 <video

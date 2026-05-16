@@ -396,6 +396,7 @@ model Message {
   senderId       String
   body           String
   attachments    Json?
+  reactions      Json?     // Array of { emoji: string; memberId: string }[]
   createdAt      DateTime  @default(now())
   editedAt       DateTime?
   deletedAt      DateTime?

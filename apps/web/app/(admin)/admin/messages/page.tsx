@@ -347,8 +347,8 @@ function ConversationRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className={`text-sm font-semibold truncate transition-colors group-hover:text-primary ${
-            conv.hasUnread ? 'text-foreground' : 'text-foreground/80'
+          <span className={`text-sm truncate transition-colors group-hover:text-primary ${
+            conv.hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground/80'
           }`}>
             {title}
           </span>
@@ -383,8 +383,16 @@ function ConversationRow({
           </span>
         )}
         <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground/40">
-          <Users className="h-3 w-3" />
-          <span>{conv.participantCount}</span>
+          {conv.unreadCount > 0 ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+            </span>
+          ) : (
+            <>
+              <Users className="h-3 w-3" />
+              <span>{conv.participantCount}</span>
+            </>
+          )}
         </div>
       </div>
     </Link>

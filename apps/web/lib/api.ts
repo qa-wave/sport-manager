@@ -333,7 +333,13 @@ export type ConversationSummary = {
     createdAt: string;
   } | null;
   hasUnread: boolean;
+  unreadCount: number;
   muted: boolean;
+};
+
+export type MessageReaction = {
+  emoji: string;
+  memberId: string;
 };
 
 export type MessageResponse = {
@@ -342,8 +348,10 @@ export type MessageResponse = {
   senderName: string;
   senderAvatar: string | null;
   body: string;
+  reactions: MessageReaction[];
   createdAt: string;
   editedAt: string | null;
+  readBy: string[]; // memberIds who have read this message
 };
 
 export type ConversationDetail = {

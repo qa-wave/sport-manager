@@ -63,6 +63,19 @@ export function Sidebar({
     { key: 'tools' as const, label: 'Nástroje' },
   ];
 
+  // Prefetch high-frequency routes; disable for rarely visited pages
+  const LOW_PREFETCH_HREFS = new Set([
+    '/admin/audit-log',
+    '/admin/platform-analytics',
+    '/admin/season-report',
+    '/admin/federation-sync',
+    '/admin/import',
+  ]);
+
+  function shouldPrefetch(href: string): boolean {
+    return !LOW_PREFETCH_HREFS.has(href);
+  }
+
   function renderNavLink(item: typeof nav[number], onItemClick?: () => void) {
     const active =
       item.href === '/admin'
@@ -75,6 +88,7 @@ export function Sidebar({
         key={item.href}
         href={item.href}
         onClick={onItemClick}
+        prefetch={shouldPrefetch(item.href)}
         className={cn(
           'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
           active
@@ -172,6 +186,7 @@ export function Sidebar({
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={shouldPrefetch(item.href)}
                       className={cn(
                         'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200',
                         active

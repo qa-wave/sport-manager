@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,8 +32,14 @@ import { PAYMENT_VARIANT, RSVP_VARIANT } from '@/lib/role-colors';
 import { formatDate } from '@/lib/date-utils';
 import { MemberHeader } from '@/components/admin/member/member-header';
 import { MemberStatsTab } from '@/components/admin/member/member-stats-tab';
-import { MemberBadgesTab } from '@/components/admin/member/member-badges-tab';
-import { MemberTeamsTab } from '@/components/admin/member/member-teams-tab';
+const MemberBadgesTab = dynamic(
+  () => import('@/components/admin/member/member-badges-tab').then((m) => m.MemberBadgesTab),
+  { ssr: false },
+);
+const MemberTeamsTab = dynamic(
+  () => import('@/components/admin/member/member-teams-tab').then((m) => m.MemberTeamsTab),
+  { ssr: false },
+);
 
 type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ARCHIVED';
 

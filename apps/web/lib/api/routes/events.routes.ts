@@ -15,7 +15,11 @@ import {
   requireRole,
   canActOnBehalfOf,
 } from '../middleware/rbac.middleware';
-import { sendEmail, rsvpReminderEmail } from '../services/email.service';
+import { sendEmail, rsvpReminderEmail, getNotifiableMembers } from '../services/email.service';
+import {
+  newEventEmail as buildNewEventEmail,
+  rsvpReminderEmail as buildRsvpReminderEmail,
+} from '../services/email-templates';
 import { sendPushToUser } from '../services/push.service';
 import { generateEventSummary } from '../services/ai-summary.service';
 import type { HonoEnv } from '../../types/hono';
@@ -255,19 +259,36 @@ events.post(
       return { id: event.id, teamId: event.teamId };
     });
 
-    // Send RSVP reminder emails to guardians of team members (fire-and-forget)
+    // Send new-event emails to notifiable team members (fire-and-forget)
     if (result.teamId) {
+      const startsAt = new Date(input.startsAt);
+      const endsAt = new Date(input.endsAt);
+      const eventDateLabel = startsAt.toLocaleDateString('cs-CZ', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const eventTimeLabel = `${startsAt.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })} – ${endsAt.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}`;
+
+      void sendNewEventEmailsForTeam({
+        eventId: result.id,
+        teamId: result.teamId,
+        clubId: member.clubId,
+        eventTitle: input.title,
+        eventType: input.type,
+        eventDate: eventDateLabel,
+        eventTime: eventTimeLabel,
+        location: input.location ?? null,
+      });
+
+      // Legacy: RSVP emails to guardians with canRsvp
       void sendRsvpEmailsForEvent({
         eventId: result.id,
         teamId: result.teamId,
         clubId: member.clubId,
         eventTitle: input.title,
-        eventDate: new Date(input.startsAt).toLocaleDateString('cs-CZ', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }),
+        eventDate: eventDateLabel,
       });
 
       // Push notification to all team members (fire-and-forget)
@@ -688,6 +709,78 @@ events.patch(
 );
 
 // ---------------------------------------------------------------------------
+// Internal helper — send new-event notification emails to team members.
+// Uses getNotifiableMembers to respect emailEvents preference.
+// Called fire-and-forget after event creation.
+// ---------------------------------------------------------------------------
+async function sendNewEventEmailsForTeam(opts: {
+  eventId: string;
+  teamId: string;
+  clubId: string;
+  eventTitle: string;
+  eventType: string;
+  eventDate: string;
+  eventTime: string;
+  location?: string | null;
+}): Promise<void> {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) return;
+
+  try {
+    // Fetch club name for email branding
+    const club = await prisma.club.findUnique({
+      where: { id: opts.clubId },
+      select: { name: true, slug: true },
+    });
+    const clubName = club?.name ?? 'Sport Manager';
+
+    // Fetch team name
+    const team = await prisma.team.findUnique({
+      where: { id: opts.teamId },
+      select: { name: true },
+    });
+    const teamName = team?.name ?? null;
+
+    const notifiable = await getNotifiableMembers(opts.clubId, opts.teamId, 'emailEvents');
+    const eventUrl = `${APP_BASE_URL}/admin/events/${opts.eventId}`;
+
+    for (const member of notifiable) {
+      // Generate member-specific magic RSVP tokens
+      const [tokenYes, tokenNo] = await Promise.all([
+        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'YES', purpose: 'rsvp' })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('7d')
+          .sign(new TextEncoder().encode(secret)),
+        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'NO', purpose: 'rsvp' })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('7d')
+          .sign(new TextEncoder().encode(secret)),
+      ]);
+
+      const { subject, html } = buildNewEventEmail({
+        recipientName: member.firstName,
+        clubName,
+        eventTitle: opts.eventTitle,
+        eventType: opts.eventType,
+        eventDate: opts.eventDate,
+        eventTime: opts.eventTime,
+        location: opts.location,
+        teamName,
+        eventUrl,
+        rsvpYesUrl: `${APP_BASE_URL}/rsvp/${tokenYes}`,
+        rsvpNoUrl: `${APP_BASE_URL}/rsvp/${tokenNo}`,
+      });
+
+      await sendEmail({ to: member.email, subject, html });
+    }
+  } catch (err) {
+    console.error('[email] Failed to send new-event emails:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Internal helper — send RSVP emails to guardians of team members.
 // Called fire-and-forget after event creation.
 // ---------------------------------------------------------------------------
@@ -742,13 +835,33 @@ async function sendRsvpEmailsForEvent(opts: {
       // Send to each verified guardian with canRsvp
       for (const link of member.childLinks) {
         const guardianEmail = link.guardian.user.email;
-        const emailPayload = rsvpReminderEmail({
+
+        // Generate NO-RSVP token for this member
+        const noToken = await new SignJWT({
+          eventId: opts.eventId,
+          memberId: member.id,
+          status: 'NO',
+          purpose: 'rsvp',
+        })
+          .setProtectedHeader({ alg: 'HS256' })
+          .setIssuedAt()
+          .setExpirationTime('7d')
+          .sign(new TextEncoder().encode(secret));
+        const rsvpNoUrl = `${APP_BASE_URL}/rsvp/${noToken}`;
+
+        const { subject, html } = buildRsvpReminderEmail({
+          recipientName: playerName,
           playerName,
+          clubName: '',
           eventTitle: opts.eventTitle,
           eventDate: opts.eventDate,
-          rsvpUrl,
+          eventTime: '',
+          rsvpYesUrl: rsvpUrl,
+          rsvpNoUrl,
+          eventUrl: rsvpUrl,
         });
-        await sendEmail({ ...emailPayload, to: guardianEmail });
+
+        await sendEmail({ to: guardianEmail, subject, html });
       }
     }
   } catch (err) {

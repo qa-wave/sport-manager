@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/federation-sync",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/rsvp-reminder",
+      "schedule": "0 8 * * *"
     }
   ]
 }

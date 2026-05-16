@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   Calendar,
@@ -385,12 +386,14 @@ export default function LandingPage() {
                   &ldquo;{t.text}&rdquo;
                 </blockquote>
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src={t.avatar}
                     alt={t.author}
                     width={36}
                     height={36}
                     className="h-9 w-9 rounded-full shrink-0"
+                    loading="lazy"
+                    unoptimized
                   />
                   <div>
                     <p className="text-xs font-semibold">{t.author}, {t.role}</p>
