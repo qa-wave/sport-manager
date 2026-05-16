@@ -326,6 +326,8 @@ assert "SEC-AUTH-015b: Forgot-password pro neexistující email → také 200 (a
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 3s...)"
+sleep 3
 echo "━━━ SEKCE 2: Authorization / RBAC ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -427,6 +429,8 @@ assert "SEC-RBAC-012: Coach může GET /events → 200" "200" "$COACH_EVENTS"
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 3s...)"
+sleep 3
 echo "━━━ SEKCE 3: Input Validation & Injection ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -543,6 +547,8 @@ assert "SEC-INJ-012: Nevalidní UUID jako member ID → 400 nebo 404 (ne 500)" "
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 5s to avoid rate limit...)"
+sleep 5
 echo "━━━ SEKCE 4: Multi-Tenant Isolation ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -603,6 +609,8 @@ fi
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 5s...)"
+sleep 5
 echo "━━━ SEKCE 5: Rate Limiting ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -703,6 +711,8 @@ assert "SEC-COOKIE-007: CORS preflight na /auth/login → 200 nebo 204" "true" \
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 3s...)"
+sleep 3
 echo "━━━ SEKCE 7: API Security Headers ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -763,6 +773,8 @@ assert "SEC-HDR-007: Chybové API odpovědi vrací JSON (ne HTML)" "true" \
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""
+echo "  (pausing 3s...)"
+sleep 3
 echo "━━━ SEKCE 8: Bonus — Information Disclosure ━━━"
 # ═══════════════════════════════════════════════════════════════════════════
 
