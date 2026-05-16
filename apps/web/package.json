@@ -8,7 +8,9 @@
     "start": "next start -p 3100",
     "lint": "echo '[web] eslint not configured — skipping (TODO: migrate from next lint to eslint CLI)'",
     "typecheck": "tsc --noEmit -p tsconfig.api.json",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
@@ -49,6 +51,8 @@
   },
   "devDependencies": {
     "@sport-manager/config": "workspace:*",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcrypt": "^5.0.2",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.16.10",
@@ -56,10 +60,12 @@
     "@types/react-dom": "^19.0.0",
     "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
+    "jsdom": "^29.1.1",
     "postcss": "^8.4.47",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.13",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^4.1.6"
   }
 }
