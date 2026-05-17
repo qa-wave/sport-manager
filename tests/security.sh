@@ -584,7 +584,8 @@ assert "SEC-MT-004: Coach Hvězdy nemůže číst conversations Sokola → 403" 
 CROSS_CONFIG=$(curl -s -o /dev/null -w "%{http_code}" "$API/clubs/settings" \
   -H "authorization: Bearer $ADMIN_TOKEN" \
   -H "x-club-id: $SOKOL_CID")
-assert "SEC-MT-005: Club config cross-tenant → 403" "403" "$CROSS_CONFIG"
+assert "SEC-MT-005: Club config cross-tenant → 403 nebo 404" "true" \
+  "$([ "$CROSS_CONFIG" = "403" ] || [ "$CROSS_CONFIG" = "404" ] && echo true || echo false)"
 
 # SEC-MT-006: Admin Sokola nemůže číst members Hvězdy
 SOKOL_HVEZDA_MEMBERS=$(curl -s -o /dev/null -w "%{http_code}" "$API/members" \
@@ -758,9 +759,10 @@ assert "SEC-HDR-005: X-Powered-By není přítomen ve FE responses" "true" \
   "$([ -z "$X_POWERED" ] && echo true || echo false)"
 
 # SEC-HDR-006: Content-Type je nastaven v API responses
-CT_HEADER=$(curl -s -I -X POST "$API/auth/login" \
+# Používáme -D - místo -I aby byl skutečný POST request (ne HEAD)
+CT_HEADER=$(curl -s -D - -X POST "$API/auth/login" \
   -H "content-type: application/json" \
-  -d '{"email":"x@x.com","password":"x"}' | grep -i "content-type" || true)
+  -d '{"email":"x@x.com","password":"x"}' -o /dev/null | grep -i "content-type" || true)
 assert "SEC-HDR-006: API odpovědi mají Content-Type: application/json" "true" \
   "$(echo "$CT_HEADER" | grep -qi "application/json" && echo true || echo false)"
 

@@ -238,6 +238,9 @@ events.post(
     const member = c.get('member')!;
     const input = c.req.valid('json');
 
+    // Strip null bytes — PostgreSQL rejects strings containing \u0000
+    const sanitizeStr = (s: string | undefined) => s?.replace(/\u0000/g, '') ?? s;
+
     const result = await prisma.withClub(member.clubId, async (tx) => {
       const event = await tx.event.create({
         data: {
@@ -245,8 +248,8 @@ events.post(
           createdById: member.memberId,
           teamId: input.teamId ?? null,
           type: input.type as EventType,
-          title: input.title,
-          description: input.description,
+          title: sanitizeStr(input.title) ?? input.title,
+          description: sanitizeStr(input.description),
           startsAt: new Date(input.startsAt),
           endsAt: new Date(input.endsAt),
           location: input.location,

@@ -18,19 +18,40 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: { default: 'Sport Manager', template: '%s | Sport Manager' },
-  description: 'Kalendář, docházka, komunikace, platby — vše v jedné platformě pro sportovní kluby.',
+  title: {
+    default: 'Sport Manager — Správa sportovního klubu zdarma',
+    template: '%s | Sport Manager',
+  },
+  description:
+    'Kalendář, docházka, RSVP, komunikace a platby — vše v jedné platformě pro sportovní kluby. Začněte zdarma, bez kreditní karty.',
   metadataBase: new URL('https://sport-manager.qawave.ai'),
+  keywords: [
+    'správa sportovního klubu',
+    'aplikace pro trenéry',
+    'sportovní klub software',
+    'RSVP trénink',
+    'docházka hráčů',
+    'komunikace s rodiči',
+    'mládežnický sport',
+  ],
   openGraph: {
-    title: 'Sport Manager',
-    description: 'Kalendář, docházka, komunikace, platby — vše v jedné platformě pro sportovní kluby.',
+    title: 'Sport Manager — Správa sportovního klubu zdarma',
+    description:
+      'Kalendář, docházka, RSVP, komunikace a platby — vše v jedné platformě pro sportovní kluby. Začněte zdarma.',
     siteName: 'Sport Manager',
     type: 'website',
+    locale: 'cs_CZ',
   },
   twitter: {
-    card: 'summary',
-    title: 'Sport Manager',
-    description: 'Řízení sportovního klubu — jednoduše.',
+    card: 'summary_large_image',
+    title: 'Sport Manager — Správa sportovního klubu zdarma',
+    description:
+      'Kalendář, docházka, RSVP, komunikace a platby pro sportovní kluby. Začněte zdarma.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
   },
   appleWebApp: {
     capable: true,

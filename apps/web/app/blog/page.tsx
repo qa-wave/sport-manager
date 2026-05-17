@@ -4,12 +4,18 @@ import { ArrowRight, Clock, Tag, Trophy } from 'lucide-react';
 import { BLOG_POSTS } from '@/lib/blog';
 
 export const metadata: Metadata = {
-  title: 'Blog | Sport Manager',
+  title: 'Blog',
   description:
     'Tipy, návody a novinky pro správce sportovních klubů. RSVP, docházka, komunikace s rodiči a digitalizace mládežnického sportu.',
+  openGraph: {
+    title: 'Blog — Sport Manager',
+    description:
+      'Tipy, návody a novinky pro správce sportovních klubů. Digitalizace mládežnického sportu.',
+  },
   alternates: {
     canonical: 'https://sport-manager.qawave.ai/blog',
   },
+  robots: { index: true, follow: true },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {

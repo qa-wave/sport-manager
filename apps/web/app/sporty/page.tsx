@@ -4,9 +4,14 @@ import { ArrowRight, Trophy } from 'lucide-react';
 import { SPORTS } from '@/lib/sports-data';
 
 export const metadata: Metadata = {
-  title: 'Sport Manager pro všechny sporty | Správa sportovního klubu',
+  title: 'Sport Manager pro všechny sporty',
   description:
     'Sport Manager funguje pro fotbal, florbal, hokej, basketbal, volejbal, tenis i atletiku. Jeden nástroj pro všechny sporty — kalendář, docházka, RSVP, komunikace.',
+  openGraph: {
+    title: 'Sport Manager pro všechny sporty',
+    description:
+      'Fotbal, florbal, hokej, basketbal, volejbal, tenis i atletika — jeden nástroj pro správu každého sportovního klubu.',
+  },
   alternates: {
     canonical: 'https://sport-manager.qawave.ai/sporty',
   },
@@ -17,6 +22,7 @@ export const metadata: Metadata = {
     'mládežnický sport',
     'sportovní klub software',
   ],
+  robots: { index: true, follow: true },
 };
 
 const jsonLd = {

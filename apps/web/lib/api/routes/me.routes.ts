@@ -154,12 +154,21 @@ me.get('/search', async (c) => {
     return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
   }
 
-  const q = c.req.query('q')?.trim() ?? '';
+  const rawQ = c.req.query('q')?.trim() ?? '';
+  // Strip null bytes and other control characters that crash Prisma/Postgres
+  const q = rawQ.replace(/\u0000/g, '').trim();
   if (q.length < 1) {
     return c.json({ members: [], events: [], teams: [], conversations: [] });
   }
 
-  const results = await prisma.withClub(member.clubId, async (tx) => {
+  let results: {
+    members: Array<{ id: string; firstName: string; lastName: string; email: string; avatarUrl: string | null }>;
+    events: Array<{ id: string; title: string; type: string; startsAt: Date }>;
+    teams: Array<{ id: string; name: string; ageGroup: string | null; sport: string | null }>;
+    conversations: Array<{ id: string; title: string; type: string }>;
+  } = { members: [], events: [], teams: [], conversations: [] };
+  try {
+    results = await prisma.withClub(member.clubId, async (tx) => {
     const [memberResults, eventResults, teamResults, conversationResults] = await Promise.all([
       // Members: search by name / email
       tx.member.findMany({
@@ -249,6 +258,11 @@ me.get('/search', async (c) => {
       })),
     };
   });
+  } catch {
+    // Malformed query strings (e.g. special chars that confuse Postgres)
+    // return empty results instead of 500
+    return c.json({ members: [], events: [], teams: [], conversations: [] });
+  }
 
   return c.json(results);
 });

@@ -1,4 +1,10 @@
-# ─── CI (pnpm monorepo): Lint (non-blocking) → Typecheck → Build ─────────────
+# ─── CI/CD Pipeline: sport-manager monorepo ───────────────────────────────────
+# Jobs:
+#   quality    — Lint (non-blocking) + Typecheck (non-blocking) — vždy
+#   unit-tests — Vitest (pnpm --filter @sport-manager/web test) — vždy
+#   build      — Next.js production build — po unit-tests
+#   api-tests  — Regression + E2E testy proti produkci — jen main po buildu
+
 name: CI
 
 on:
@@ -15,27 +21,129 @@ env:
   NODE_VERSION: "22"
   PNPM_VERSION: "9.12.0"
 
+# ─── JOB 1: Lint + Typecheck ───────────────────────────────────────────────────
 jobs:
   quality:
-    name: "Lint · Typecheck · Build (pnpm)"
+    name: "Lint · Typecheck"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
-      - name: Install
+
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Prisma generate (if present)
+
+      - name: Build contracts
+        run: pnpm --filter @sport-manager/contracts build
+
+      - name: Prisma generate
         run: pnpm --filter @sport-manager/db run prisma:generate || true
+
       - name: Lint (non-blocking)
         continue-on-error: true
         run: pnpm lint || true
-      - name: Typecheck
+
+      - name: Typecheck (non-blocking)
+        # TypeScript errors kvůli React 19 + @types/react duplicates jsou known issues
+        # Suprimováno v next.config.ts — necháme neblokující
+        continue-on-error: true
         run: pnpm typecheck || true
+
+# ─── JOB 2: Unit testy (Vitest) ────────────────────────────────────────────────
+  unit-tests:
+    name: "Unit Tests (Vitest)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm --filter @sport-manager/contracts build
+
+      - name: Prisma generate
+        run: pnpm --filter @sport-manager/db run prisma:generate || true
+
+      - name: Run unit tests
+        run: pnpm --filter @sport-manager/web test
+
+# ─── JOB 3: Production build (HARD GATE) ──────────────────────────────────────
+  build:
+    name: "Build (Next.js)"
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm --filter @sport-manager/contracts build
+
+      - name: Prisma generate
+        run: pnpm --filter @sport-manager/db run prisma:generate || true
+
       - name: Build web (HARD GATE)
         run: pnpm --filter @sport-manager/web run build
+        env:
+          # Fake DB URL pro build — Prisma nevyžaduje živé připojení při build
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          # Sentry DSN není v CI — Next.js build to přežije
+          NEXT_PUBLIC_SENTRY_DSN: ""
+
+# ─── JOB 4: API testy proti produkci ──────────────────────────────────────────
+# Spouští se pouze při push na main (po úspěšném buildu).
+# Vercel deploy probíhá přes vlastní Vercel GitHub integration mimo tento workflow.
+# Tento job ověří, že produkce je zdravá po deployi.
+  api-tests:
+    name: "API Tests (production)"
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make test scripts executable
+        run: chmod +x ./tests/regression.sh ./tests/e2e.sh
+
+      - name: Wait for Vercel deploy to finish
+        # Vercel deploy trvá ~2 min — čekáme před spuštěním testů
+        run: sleep 120
+
+      - name: Regression tests (59 testů) against production
+        run: ./tests/regression.sh https://sport-manager.qawave.ai
+
+      - name: Wait for rate limit reset (100 req/min/IP)
+        # Rate limit je 100 req/min — po regression testech počkáme
+        run: sleep 90
+
+      - name: E2E flow tests (22 testů) against production
+        run: ./tests/e2e.sh https://sport-manager.qawave.ai

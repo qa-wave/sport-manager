@@ -109,12 +109,19 @@ members.get('/', async (c) => {
  * GET /v1/members/:memberId
  * Full member detail with attendance history, payments, waivers.
  */
+// UUID v4 regex — Prisma uses CUIDs but accepts UUIDs too; reject obviously invalid IDs early
+const CUID_OR_UUID_RE = /^[a-z0-9]{20,}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 members.get('/:memberId', async (c) => {
   const clubId = c.get('clubId');
   if (!clubId) {
     return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
   }
   const memberId = c.req.param('memberId');
+
+  if (!CUID_OR_UUID_RE.test(memberId)) {
+    return c.json({ error: 'Bad Request', message: 'Invalid member ID format' }, 400);
+  }
 
   const result = await prisma.withClub(clubId, async (tx) => {
     const m = await tx.member.findUnique({

@@ -20,6 +20,7 @@
     "db:seed": "pnpm --filter @sport-manager/db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
+    "ci:test": "pnpm --filter @sport-manager/web test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
