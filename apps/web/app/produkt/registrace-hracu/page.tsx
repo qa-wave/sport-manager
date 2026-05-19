@@ -84,7 +84,7 @@ export default function RegistraceHracuPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             Registrace nových hráčů?{' '}
-            <span className="bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-500 to-blue-500 bg-clip-text text-transparent">
               Online za 2 minuty.
             </span>
           </h1>
@@ -95,7 +95,7 @@ export default function RegistraceHracuPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
             >
               Registrace zdarma <ArrowRight className="h-4 w-4" />
             </Link>
@@ -138,7 +138,7 @@ export default function RegistraceHracuPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {steps.map((s) => (
               <div key={s.step} className="flex gap-4 rounded-xl border border-border p-5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-sm font-bold text-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 text-sm font-bold text-white">
                   {s.step}
                 </span>
                 <div>
@@ -158,7 +158,7 @@ export default function RegistraceHracuPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="rounded-xl border border-border bg-background p-5">
-                <f.icon className="h-5 w-5 text-violet-500" />
+                <f.icon className="h-5 w-5 text-emerald-500" />
                 <h3 className="mt-3 font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.description}</p>
               </div>
@@ -169,9 +169,9 @@ export default function RegistraceHracuPage() {
 
       {/* Social proof */}
       <section className="px-6 py-16">
-        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-violet-50 to-blue-50 p-8 dark:from-violet-950/50 dark:to-blue-950/50">
+        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-emerald-50 to-blue-50 p-8 dark:from-emerald-950/50 dark:to-blue-950/50">
           <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-lg font-bold text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 text-lg font-bold text-white">
               M
             </div>
             <div>
@@ -183,7 +183,7 @@ export default function RegistraceHracuPage() {
               </p>
               <div className="mt-3 flex gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <CheckCircle key={i} className="h-4 w-4 text-violet-500" />
+                  <CheckCircle key={i} className="h-4 w-4 text-emerald-500" />
                 ))}
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function RegistraceHracuPage() {
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
           >
             Začít zdarma <ArrowRight className="h-4 w-4" />
           </Link>

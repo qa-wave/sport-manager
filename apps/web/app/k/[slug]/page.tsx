@@ -57,8 +57,8 @@ const ROLES = [
   {
     role: 'Owner / Admin',
     icon: UserCog,
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
     loginHint: 'admin@hvezda.cz',
     capabilities: [
       { icon: Users, text: 'Kompletní správa členů — přidávání, role, statusy' },

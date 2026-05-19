@@ -89,7 +89,7 @@ function StepIndicator({ current }: { current: number }) {
       {/* Progress bar */}
       <div className="w-full max-w-xs h-1 rounded-full bg-muted overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-primary to-violet-400 transition-all duration-500"
+          className="h-full bg-gradient-to-r from-primary to-emerald-400 transition-all duration-500"
           style={{ width: `${((current - 1) / TOTAL_STEPS) * 100}%` }}
         />
       </div>
@@ -111,7 +111,7 @@ function StepWelcome({ clubName, onNext }: { clubName: string; onNext: () => voi
         </p>
       </div>
       <Button
-        className="w-full bg-gradient-to-r from-primary to-violet-500 hover:opacity-90"
+        className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
         onClick={onNext}
       >
         Začít <ChevronRight className="ml-1 h-4 w-4" />
@@ -211,7 +211,7 @@ function StepInvite({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: ()
 
       <div className="flex gap-3 pt-2">
         <Button
-          className="flex-1 bg-gradient-to-r from-primary to-violet-500 hover:opacity-90"
+          className="flex-1 bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
           onClick={handleInvite}
           disabled={submitting}
         >
@@ -300,7 +300,7 @@ function StepTeam({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: () =
 
       <div className="flex gap-3 pt-2">
         <Button
-          className="flex-1 bg-gradient-to-r from-primary to-violet-500 hover:opacity-90"
+          className="flex-1 bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
           onClick={handleSubmit}
           disabled={mutation.isPending}
         >
@@ -414,7 +414,7 @@ function StepTraining({ onNext, onSkip, onPrev }: { onNext: () => void; onSkip: 
 
       <div className="flex gap-3 pt-2">
         <Button
-          className="flex-1 bg-gradient-to-r from-primary to-violet-500 hover:opacity-90"
+          className="flex-1 bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
           onClick={handleSubmit}
           disabled={mutation.isPending}
         >
@@ -459,7 +459,7 @@ function StepDone({ clubName }: { clubName: string }) {
         </a>
       </div>
       <Button
-        className="w-full bg-gradient-to-r from-primary to-violet-500 hover:opacity-90"
+        className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90"
         onClick={() => {
           completeOnboarding();
           router.push('/admin');
@@ -495,7 +495,7 @@ export default function OnboardingPage() {
       {/* Subtle mesh gradient */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-violet-500/5 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-emerald-500/5 blur-3xl" />
       </div>
 
       <Card className="relative w-full max-w-lg mx-4 border-border/50 shadow-2xl">

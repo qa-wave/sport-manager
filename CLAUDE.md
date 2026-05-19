@@ -1,6 +1,6 @@
 # Sport manager — Claude Code Context
 
-> Stav k 2026-05-12. Kompletní SaaS portál — 30+ stránek, 25+ API endpointů, 5 jazyků, Stripe, SSE real-time, 81 testů.
+> Stav k 2026-05-12. Kompletní SaaS portál — 30+ stránek, 25+ API endpointů, 2 jazyky (cs/en), Stripe, SSE real-time, 81 testů.
 
 ---
 
@@ -40,7 +40,7 @@ Nikdy:
 | Hosting | **Vercel** (`sport-manager.qawave.ai`) |
 | Platby | **Stripe Connect** (Express accounts, Checkout sessions, webhooks) |
 | Email | **Resend** (console.log fallback bez API key) |
-| i18n | Custom hook `useTranslation()` — 5 jazyků (cs/en/es/pt/ar), 354 klíčů |
+| i18n | Custom hook `useTranslation()` — 2 jazyky (cs/en, stejné jako projekt qawave), 453 klíčů |
 | Monitoring | **Sentry** (client + server config, vyžaduje DSN) |
 | Testy | Shell-based regression (59 testů) + E2E flow testy (22 testů) |
 
@@ -164,7 +164,7 @@ apps/web/components/
 │   └── api-status.tsx          # API health indicator
 ├── ui/                         # shadcn/ui primitives (card, button, input, badge, ...)
 ├── command-palette.tsx         # Cmd+K global search
-├── language-switcher.tsx       # 90+ jazyků s vlajkami
+├── language-switcher.tsx       # cs/en přepínač (stejné lokalizace jako qawave)
 ├── theme-toggle.tsx            # Light/dark switch
 ├── auth-guard.tsx              # Redirect to login if unauthenticated
 ├── auth-redirect.tsx           # Redirect to /admin if authenticated
@@ -294,7 +294,7 @@ vercel --prod --yes
 ✅ Audit log UI
 ✅ Notification preferences
 ✅ Referral system
-✅ i18n (5 jazyků, 354 klíčů, language switcher 90+ jazyků)
+✅ i18n (2 jazyky cs/en — stejné lokalizace jako qawave, 453 klíčů)
 ✅ Rate limiting (100 req/min/IP)
 ✅ PWA manifest
 ✅ Sentry error tracking (config ready)

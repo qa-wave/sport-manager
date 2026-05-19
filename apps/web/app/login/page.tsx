@@ -30,7 +30,7 @@ const accentClasses: Record<typeof DEMO_ACCOUNTS[number]['accent'], string> = {
   primary: 'bg-primary/10 text-primary border-primary/20',
   amber:   'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-  violet:  'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/20',
+  violet:  'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
 };
 
 function LoginForm() {

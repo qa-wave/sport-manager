@@ -84,7 +84,7 @@ export default function SouhlasyPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             Digitální souhlasy.{' '}
-            <span className="bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-500 to-blue-500 bg-clip-text text-transparent">
               Žádný papír.
             </span>
           </h1>
@@ -95,7 +95,7 @@ export default function SouhlasyPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
             >
               Registrace zdarma <ArrowRight className="h-4 w-4" />
             </Link>
@@ -147,7 +147,7 @@ export default function SouhlasyPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{c.type}</h3>
                   {c.required && (
-                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900 dark:text-violet-300">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                       Povinný
                     </span>
                   )}
@@ -206,7 +206,7 @@ export default function SouhlasyPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="rounded-xl border border-border bg-background p-5">
-                <f.icon className="h-5 w-5 text-violet-500" />
+                <f.icon className="h-5 w-5 text-emerald-500" />
                 <h3 className="mt-3 font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.description}</p>
               </div>
@@ -224,7 +224,7 @@ export default function SouhlasyPage() {
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
           >
             Začít zdarma <ArrowRight className="h-4 w-4" />
           </Link>

@@ -41,7 +41,7 @@ const TYPE_COLOR: Record<string, string> = {
   TEAM: 'bg-emerald-500/15 text-emerald-500',
   COACHES: 'bg-amber-500/15 text-amber-500',
   PARENTS: 'bg-blue-500/15 text-blue-500',
-  DM: 'bg-violet-500/15 text-violet-500',
+  DM: 'bg-emerald-500/15 text-emerald-500',
   GROUP: 'bg-pink-500/15 text-pink-500',
   ANNOUNCEMENT: 'bg-red-500/15 text-red-500',
 };

@@ -86,8 +86,8 @@ const FEATURE_KEYS = [
     icon: Users,
     titleKey: 'landing.feature.members.title',
     descKey: 'landing.feature.members.desc',
-    gradient: 'from-violet-500/20 to-purple-500/20',
-    iconColor: 'text-violet-500',
+    gradient: 'from-emerald-500/20 to-emerald-500/20',
+    iconColor: 'text-emerald-500',
   },
   {
     icon: MessageSquare,

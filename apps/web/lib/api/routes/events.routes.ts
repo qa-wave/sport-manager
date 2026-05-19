@@ -49,6 +49,23 @@ function buildRsvpSummary(
   return summary;
 }
 
+function canManageEventAttendance(
+  member: MemberContext,
+  event: { teamId: string | null },
+): boolean {
+  if (member.clubRoles.some((r) => ['ADMIN', 'OWNER'].includes(r))) {
+    return true;
+  }
+
+  if (!event.teamId) return false;
+
+  return member.teamRoles.some(
+    (tr) =>
+      tr.teamId === event.teamId &&
+      ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'].includes(tr.role),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // GET /v1/events
 // ---------------------------------------------------------------------------
@@ -419,19 +436,18 @@ events.post('/:eventId/rsvp', requireAuth(), async (c) => {
     ? [REASON_LABEL[input.reason] ?? input.reason, input.note].filter(Boolean).join(' — ')
     : (input.note ?? null);
 
-  // Check authorization: self or guardian with canRsvp
-  if (member.memberId !== input.memberId) {
-    if (!canActOnBehalfOf(member as MemberContext, input.memberId, 'canRsvp')) {
-      return c.json(
-        { error: 'Forbidden', message: 'You cannot RSVP on behalf of this member' },
-        403,
-      );
-    }
-  }
-
   const result = await prisma.withClub(clubId, async (tx) => {
     const event = await tx.event.findUnique({ where: { id: eventId } });
     if (!event) return null;
+
+    // Authorization: self, verified guardian, club admin, or coach/manager
+    // for this event's team. The last case powers coach bulk RSVP.
+    if (member.memberId !== input.memberId) {
+      const canManage = canManageEventAttendance(member as MemberContext, event);
+      if (!canManage && !canActOnBehalfOf(member as MemberContext, input.memberId, 'canRsvp')) {
+        return { forbidden: true as const };
+      }
+    }
 
     if (event.rsvpDeadline && new Date() > event.rsvpDeadline) {
       throw Object.assign(new Error('RSVP deadline has passed'), {
@@ -460,6 +476,13 @@ events.post('/:eventId/rsvp', requireAuth(), async (c) => {
     return { ok: true };
   });
 
+  if (result?.forbidden) {
+    return c.json(
+      { error: 'Forbidden', message: 'You cannot RSVP on behalf of this member' },
+      403,
+    );
+  }
+
   if (!result) {
     return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
   }
@@ -483,13 +506,17 @@ events.patch(
       const event = await tx.event.findUnique({ where: { id: eventId } });
       if (!event) return null;
 
+      if (!canManageEventAttendance(member as MemberContext, event)) {
+        return { forbidden: true as const };
+      }
+
       for (const { memberId, attended } of attendances) {
         await tx.eventAttendance.upsert({
           where: { eventId_memberId: { eventId, memberId } },
           create: {
             eventId,
             memberId,
-            respondedById: memberId,
+            respondedById: member.memberId,
             status: 'PENDING',
             attended,
           },
@@ -499,6 +526,10 @@ events.patch(
 
       return { ok: true };
     });
+
+    if (result?.forbidden) {
+      return c.json({ error: 'Forbidden', message: 'Insufficient role for this event' }, 403);
+    }
 
     if (!result) {
       return c.json({ error: 'Not Found', message: 'Event not found' }, 404);

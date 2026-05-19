@@ -34,7 +34,7 @@ const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string }> = {
   MESSAGE: { icon: MessageSquare, color: 'text-blue-500 bg-blue-500/15' },
   PAYMENT_DUE: { icon: CreditCard, color: 'text-red-500 bg-red-500/15' },
   PAYMENT_RECEIVED: { icon: CreditCard, color: 'text-emerald-500 bg-emerald-500/15' },
-  ANNOUNCEMENT: { icon: Megaphone, color: 'text-violet-500 bg-violet-500/15' },
+  ANNOUNCEMENT: { icon: Megaphone, color: 'text-emerald-500 bg-emerald-500/15' },
   WAIVER_PENDING: { icon: FileText, color: 'text-orange-500 bg-orange-500/15' },
   GENERAL: { icon: AlertCircle, color: 'text-muted-foreground bg-secondary' },
 };

@@ -722,7 +722,7 @@ clubs.patch(
 // GET /v1/clubs/usage
 // Returns current plan + member/team usage counts for the upgrade banner.
 // ---------------------------------------------------------------------------
-clubs.get('/usage', requireAuth, async (c) => {
+clubs.get('/usage', requireAuth(), async (c) => {
   const clubId = c.get('clubId');
   if (!clubId) {
     return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);

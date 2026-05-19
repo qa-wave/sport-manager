@@ -3,85 +3,96 @@
 @tailwind utilities;
 
 @layer base {
-  /* ── Light — warm, luminous ─── */
+  /* ── Light — Livesport/Flashscore: světlý obsah, ostré hrany, hustá data ─── */
   :root {
-    --background: 40 20% 99%;
-    --foreground: 240 10% 6%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 6%;
+    --background: 240 5% 96%;          /* page gutter #f4f4f5 */
+    --foreground: 0 0% 12%;            /* #1f1f1f */
+    --card: 0 0% 100%;                 /* white rows/cards */
+    --card-foreground: 0 0% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 6%;
-    --primary: 250 85% 60%;
+    --popover-foreground: 0 0% 12%;
+    --primary: 136 54% 40%;            /* Flashscore green ~#2e9d44 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 8% 95%;
-    --secondary-foreground: 240 10% 30%;
-    --muted: 240 8% 95%;
-    --muted-foreground: 240 8% 38%;
-    --accent: 170 70% 42%;
+    --secondary: 240 5% 93%;
+    --secondary-foreground: 0 0% 25%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 136 54% 40%;             /* stejná zelená */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --destructive: 2 100% 44%;         /* LIVE červená #e10600 */
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 250 85% 60%;
-    --radius: 0.625rem;
+    --border: 0 0% 89%;                /* tenké #e3e3e3 oddělovače */
+    --input: 0 0% 89%;
+    --ring: 136 54% 40%;
+    --radius: 0.25rem;                 /* ostré, téměř ploché */
+
+    /* Dark chrome — Flashscore signature near-black header/sidebar */
+    --chrome: 0 0% 11%;                /* #1d1d1d */
+    --chrome-foreground: 0 0% 93%;
+    --chrome-muted: 0 0% 62%;
+    --chrome-border: 0 0% 18%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 14%;
-    --info: 210 100% 52%;
+    --info: 210 100% 45%;
     --info-foreground: 0 0% 100%;
-    --success: 152 69% 40%;
+    --success: 136 54% 40%;
     --success-foreground: 0 0% 100%;
 
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
-    --shadow-lg: 0 12px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
-    --shadow-xl: 0 24px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-xs: 0 1px 0 rgba(0,0,0,0.04);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-lg: 0 2px 8px rgba(0,0,0,0.10);
+    --shadow-xl: 0 4px 16px rgba(0,0,0,0.14);
 
-    --gradient-brand: linear-gradient(135deg, hsl(250 85% 60%), hsl(200 100% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(170 70% 42%), hsl(200 80% 50%));
-    --gradient-surface: linear-gradient(180deg, hsl(40 20% 99%) 0%, hsl(240 10% 97%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(136 54% 40%), hsl(136 60% 30%));
+    --gradient-accent: linear-gradient(135deg, hsl(136 54% 40%), hsl(150 55% 34%));
+    --gradient-surface: linear-gradient(180deg, hsl(240 5% 97%) 0%, hsl(240 5% 94%) 100%);
   }
 
-  /* ── Dark — deep, rich, immersive ─── */
+  /* ── Dark — Flashscore noční režim: hluboká čerň, zelený akcent ─── */
   .dark {
-    --background: 240 12% 5%;
-    --foreground: 220 15% 90%;
-    --card: 240 10% 8%;
-    --card-foreground: 220 15% 90%;
-    --popover: 240 10% 10%;
-    --popover-foreground: 220 15% 90%;
-    --primary: 250 85% 67%;
-    --primary-foreground: 240 12% 5%;
-    --secondary: 240 8% 12%;
-    --secondary-foreground: 220 10% 65%;
-    --muted: 240 8% 12%;
-    --muted-foreground: 220 8% 50%;
-    --accent: 170 65% 50%;
-    --accent-foreground: 240 12% 5%;
-    --destructive: 0 84% 65%;
+    --background: 0 0% 9%;             /* #171717 */
+    --foreground: 0 0% 88%;
+    --card: 0 0% 13%;                  /* #212121 řádky */
+    --card-foreground: 0 0% 88%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 136 50% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 0 0% 70%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 136 50% 46%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 2 90% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 14%;
-    --input: 240 8% 14%;
-    --ring: 250 85% 67%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 136 50% 46%;
+
+    --chrome: 0 0% 8%;                 /* ještě tmavší než obsah */
+    --chrome-foreground: 0 0% 93%;
+    --chrome-muted: 0 0% 60%;
+    --chrome-border: 0 0% 16%;
 
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 100% 65%;
-    --info-foreground: 240 12% 5%;
-    --success: 152 69% 50%;
-    --success-foreground: 240 12% 5%;
+    --info: 210 100% 60%;
+    --info-foreground: 0 0% 100%;
+    --success: 136 50% 46%;
+    --success-foreground: 0 0% 100%;
 
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.3), 0 0 1px rgba(0,0,0,0.4);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.5);
-    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.6);
-    --shadow-xl: 0 24px 48px rgba(0,0,0,0.6), 0 0 1px rgba(0,0,0,0.7);
+    --shadow-xs: 0 1px 0 rgba(0,0,0,0.5);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.6);
+    --shadow-lg: 0 2px 8px rgba(0,0,0,0.7);
+    --shadow-xl: 0 4px 16px rgba(0,0,0,0.8);
 
-    --gradient-brand: linear-gradient(135deg, hsl(250 85% 67%), hsl(200 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(170 65% 50%), hsl(200 80% 55%));
-    --gradient-surface: linear-gradient(180deg, hsl(240 12% 5%) 0%, hsl(240 14% 7%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(136 50% 46%), hsl(136 55% 32%));
+    --gradient-accent: linear-gradient(135deg, hsl(136 50% 46%), hsl(150 50% 38%));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 9%) 0%, hsl(0 0% 11%) 100%);
   }
 }
 
@@ -208,9 +219,9 @@
   /* Mesh gradient bg */
   .mesh-gradient {
     background:
-      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(250 85% 60% / 0.15) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 60% at 80% 20%, hsl(200 100% 50% / 0.1) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 80% at 50% 90%, hsl(170 70% 42% / 0.08) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(136 54% 40% / 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 60% at 80% 20%, hsl(150 55% 34% / 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 80% at 50% 90%, hsl(160 50% 45% / 0.08) 0%, transparent 60%);
   }
 
   /* Noise texture overlay */

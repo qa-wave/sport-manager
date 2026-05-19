@@ -45,12 +45,12 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
     : '';
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-border/50 bg-card/80 backdrop-blur-sm px-5 pt-[env(safe-area-inset-top)]">
+    <header className="relative flex h-14 items-center justify-between border-b border-chrome-border bg-chrome text-chrome-foreground px-5 pt-[env(safe-area-inset-top)]">
       <div className="flex items-center gap-2.5 text-sm">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground md:hidden"
+          className="h-8 w-8 text-chrome-muted hover:text-chrome-foreground md:hidden"
           onClick={onMobileOpen}
           aria-label="Open navigation"
         >
@@ -90,8 +90,8 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
             {clubName ?? 'Bez klubu'}
           </span>
         )}
-        <span className="hidden sm:inline text-border">/</span>
-        <span className="hidden sm:inline text-xs font-medium text-muted-foreground">{roleLabel ?? 'Admin'}</span>
+        <span className="hidden sm:inline text-chrome-border">/</span>
+        <span className="hidden sm:inline text-xs font-medium text-chrome-muted">{roleLabel ?? 'Admin'}</span>
       </div>
 
       <div className="flex items-center gap-3">
@@ -104,12 +104,12 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
               new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
             );
           }}
-          className="hidden sm:flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+          className="hidden sm:flex items-center gap-2 rounded border border-chrome-border bg-white/[0.06] px-3 py-1.5 text-xs text-chrome-muted transition-colors hover:border-primary/50 hover:text-chrome-foreground"
           aria-label="Otevřít vyhledávání"
         >
           <Search className="h-3.5 w-3.5" />
           <span>Hledat</span>
-          <kbd className="ml-1 rounded border border-border bg-background px-1 py-0.5 text-[10px]">
+          <kbd className="ml-1 rounded border border-chrome-border bg-white/10 px-1 py-0.5 text-[10px]">
             ⌘K
           </kbd>
         </button>
@@ -118,7 +118,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
         {auth.isAuthenticated && me.data ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-1 ring-border/50 transition-all hover:ring-primary/30">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-1 ring-chrome-border transition-all hover:ring-primary/60">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                     {initials}

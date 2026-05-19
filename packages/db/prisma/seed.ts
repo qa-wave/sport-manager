@@ -1,9 +1,13 @@
 /**
  * Seed script — Sport manager dev data (FULL VARIANT COVERAGE).
  *
- * 2 fictional clubs:
- *   1. FC Hvězda Strašnice (fotbal, U13 + U15) — modrá / zlatá  | tier: pro
- *   2. TJ Sokol Měcholupy  (florbal, U11)      — zelená / oranžová | tier: free
+ * 2 fiktivní kluby + 1 reálný:
+ *   1. FC Hvězda Strašnice (fotbal, U13 + U15)      — modrá / zlatá     | tier: pro  (fiktivní)
+ *   2. TJ Sokol Měcholupy  (florbal, U11)           — zelená / oranžová | tier: free (fiktivní)
+ *   3. ABC Braník fotbal, z.s. — REÁLNÝ klub (zal. 1914, Praha 4-Braník) | tier: pro
+ *                          Ženské kategorie: Přípravka / WU13 / WU15 / WU18 / Ženy A
+ *                          Reálná data (klub, kategorie, trenéři, hřiště) z abcbranik.cz;
+ *                          hráčky / rodiče / rozpis / přiřazení cvičení = simulováno.
  *
  * Demonstrates EVERY enum value + edge case from the schema:
  *   - MemberStatus: ACTIVE, INACTIVE, SUSPENDED, ARCHIVED
@@ -34,6 +38,9 @@
  *   parent@hvezda.cz      Lucie Pekařová     — Hvězda parent (Mom of Anna)
  *   admin@sokoli.cz       Jana Procházková   — Sokol OWNER
  *   tomas@example.com     Tomáš Mertin       — multi-tenant: Hvězda parent + Sokol HEAD_COACH
+ *   admin@branik.cz       Markéta Svobodová  — ABC Braník OWNER+ADMIN+FINANCE (simulováno)
+ *   maly@abcbranik.cz     Lukáš Malý         — ABC Braník šéftrenér žen + Ženy A HEAD_COACH (reálný)
+ *   kapitanka@branik.cz   (simulovaná hráčka)— ABC Braník Ženy A kapitánka
  *   platform@example.com  Petr Platforma     — SaaS platform admin
  */
 import {
@@ -75,6 +82,16 @@ function avatarUrl(email: string, isMinor = false): string {
   return `https://i.pravatar.cc/128?u=${encodeURIComponent(email)}`;
 }
 
+// Deterministic REAL portrait photo with a fixed gender (randomuser.me).
+// Used for ABC Bráník (ženský klub) — skutečné fotky hráček/trenérek,
+// otcové dostanou mužský portrét. Stejný email → stejná fotka.
+function photoUrl(email: string, gender: 'women' | 'men'): string {
+  let h = 0;
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) | 0;
+  const idx = Math.abs(h) % 100; // randomuser.me má 0–99 portrétů na pohlaví
+  return `https://randomuser.me/api/portraits/${gender}/${idx}.jpg`;
+}
+
 function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length]!;
 }
@@ -87,6 +104,10 @@ const HVEZDA_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10
 
 const SOKOL_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#16a34a" stroke="#ea580c" stroke-width="3"/><path d="M50 22 C32 36 30 58 38 76 C45 80 50 76 50 70 C50 76 55 80 62 76 C70 58 68 36 50 22 Z" fill="#fff"/><circle cx="44" cy="48" r="2.5" fill="#16a34a"/><path d="M50 60 L46 66 L54 66 Z" fill="#ea580c"/></svg>`;
 
+// ABC Braník (reálný klub, zal. 1914) — klubové barvy světle modrá + bílá.
+// Monogram "ABC" + rok založení 1914 nad stylizovaným míčem.
+const BRANIK_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#0284c7" stroke="#ffffff" stroke-width="3"/><text x="50" y="40" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">ABC</text><circle cx="50" cy="58" r="12" fill="#ffffff"/><path d="M50 49 l4 2.9 -1.5 4.8 -5 0 -1.5 -4.8 z" fill="#0284c7"/><text x="50" y="86" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" fill="#bae6fd" text-anchor="middle" letter-spacing="2">1914</text></svg>`;
+
 // ----------------------------------------------------------------------------
 // Czech names
 // ----------------------------------------------------------------------------
@@ -95,6 +116,68 @@ const CHILD_FIRST    = ['Tomáš', 'Jakub', 'Filip', 'David', 'Vojtěch', 'Adam'
 const SURNAMES       = ['Novák', 'Svoboda', 'Novotný', 'Dvořák', 'Černý', 'Procházka', 'Kučera', 'Veselý', 'Horák', 'Němec', 'Pokorný', 'Pospíšil', 'Hájek', 'Marek', 'Růžička', 'Beneš', 'Fiala', 'Sedláček'];
 const PARENT_FIRST_M = ['Petr', 'Martin', 'Pavel', 'Jiří', 'Tomáš', 'Michal', 'David', 'Marek'];
 const PARENT_FIRST_F = ['Lucie', 'Hana', 'Jana', 'Kateřina', 'Eva', 'Zuzana', 'Tereza', 'Barbora'];
+// ABC Bráník — ženské kategorie: dívčí křestní jména + přechýlená příjmení.
+const GIRL_FIRST     = ['Eliška', 'Tereza', 'Adéla', 'Natálie', 'Karolína', 'Kristýna', 'Barbora', 'Anežka', 'Viktorie', 'Nela', 'Sofie', 'Ema', 'Laura', 'Klára', 'Julie', 'Rozálie', 'Amálie', 'Magdaléna', 'Veronika', 'Denisa'];
+const FEM_SURNAMES   = ['Nováková', 'Svobodová', 'Novotná', 'Dvořáková', 'Černá', 'Procházková', 'Kučerová', 'Veselá', 'Horáková', 'Němcová', 'Pokorná', 'Pospíšilová', 'Hájková', 'Marková', 'Růžičková', 'Benešová', 'Fialová', 'Sedláčková', 'Kratochvílová', 'Urbanová'];
+
+// ----------------------------------------------------------------------------
+// Tréninkové plány — přiřazení cvičení z knihovny (apps/web/lib/training-library.ts)
+// do naplánovaných tréninkových slotů. Drilly se ukládají do Event.description
+// markerem `<!-- drills: id1,id2 -->` (viz components/admin/event/event-drills-tab.tsx).
+// Reálné rozpisy ABC Braník nejsou veřejné → simulováno dle úrovně kategorie.
+// ----------------------------------------------------------------------------
+
+type SessionPlan = { title: string; drills: string[] };
+
+const SESSION_PLANS: Record<'mini' | 'youth' | 'women', SessionPlan[]> = {
+  // Přípravka — hravé, koordinace, dribling
+  mini: [
+    { title: 'Hra s míčem a koordinace', drills: ['w5', 'd2', 'd1', 'g3'] },
+    { title: 'Vedení míče a zakončení', drills: ['w6', 'd1', 'g2'] },
+    { title: 'Pohybové hry', drills: ['w5', 'w6', 'd2', 'g3'] },
+  ],
+  // WU13 / WU15 / WU18 — technika, herní situace
+  youth: [
+    { title: 'Přihrávka a držení míče', drills: ['w1', 'p1', 'p4', 't2', 'g1'] },
+    { title: 'Obranné chování 1v1', drills: ['w7', 'def1', 's1', 'g1'] },
+    { title: 'Přechodová fáze a zakončení', drills: ['w1', 'p4', 's1', 't2', 'g1'] },
+  ],
+  // Ženy A — intenzita, kondice, taktika
+  women: [
+    { title: 'Vysoký presink a rychlý přechod', drills: ['w7', 'def2', 'p9', 't1', 'g1'] },
+    { title: 'Kondice a zakončení pod tlakem', drills: ['f1', 's4', 'p10', 't1'] },
+    { title: 'Budování útoku přes stopera', drills: ['w7', 'p10', 'p9', 's4', 'g1'] },
+  ],
+};
+
+function planDescription(p: SessionPlan): string {
+  return (
+    `Tréninková jednotka — ${p.title}\n\n` +
+    `1) Rozcvička a aktivace (15 min)\n` +
+    `2) Hlavní nácvikový blok (40 min)\n` +
+    `3) Herní část (25 min)\n` +
+    `4) Vyklusání a strečink (10 min)\n\n` +
+    `Cvičení z knihovny zařazená do tréninku níže.\n` +
+    `<!-- drills: ${p.drills.join(',')} -->`
+  );
+}
+
+// Přiřadí rotující tréninkové plány (drilly z knihovny) všem PRACTICE eventům týmu.
+async function assignDrillPlans(teamId: string, level: 'mini' | 'youth' | 'women') {
+  const plans = SESSION_PLANS[level];
+  const practices = await prisma.event.findMany({
+    where: { teamId, type: EventType.PRACTICE },
+    orderBy: { startsAt: 'asc' },
+    select: { id: true },
+  });
+  for (let i = 0; i < practices.length; i++) {
+    await prisma.event.update({
+      where: { id: practices[i]!.id },
+      data: { description: planDescription(plans[i % plans.length]!) },
+    });
+  }
+  return practices.length;
+}
 
 // ============================================================================
 // MAIN
@@ -521,6 +604,453 @@ async function main() {
   });
 
   // ==========================================================================
+  // CLUB 3: ABC Braník fotbal, z.s. — REÁLNÝ klub (zal. 1914, Praha 4-Braník)
+  //
+  //   Reálná data z abcbranik.cz / abcbranikdivky.websnadno.cz:
+  //     - klub: název, IČO 05650241, adresa, rok 1914, barvy (světle modrá/bílá)
+  //     - ženské kategorie: Přípravka / WU13 / WU15 / WU18 / Ženy A
+  //     - reálné hlavní trenérky/trenéři + šéftrenér + patronka Simona Necidová
+  //   Simulováno (není veřejné): hráčky, rodiče, realizační podpora, rozpis
+  //     tréninků, přiřazení cvičení z knihovny do slotů, RSVP, platby, zprávy.
+  // ==========================================================================
+
+  console.log('  ⚽️ ABC Braník fotbal, z.s. (reálný klub — ženské kategorie)…');
+
+  const branik = await prisma.club.create({
+    data: {
+      slug: 'abc-branik', name: 'ABC Braník',
+      country: 'CZ', timezone: 'Europe/Prague',
+      features: {
+        messages: true, notifications: true, trainingTemplates: true,
+        payments: true, waivers: true, calendar: true, gallery: true,
+        springCup: true,
+      },
+      config: {
+        tier: 'pro', limits: { maxMembers: 300, maxTeams: 12 },
+        logoSvg: BRANIK_LOGO_SVG,
+        // Reálné klubové barvy: světle modrá + bílá
+        theme: { primary: '#0284c7', secondary: '#38bdf8', tertiary: '#0c4a6e', styleId: 1 },
+        description:
+          'ABC Braník fotbal, z.s. — tradiční pražský klub založený v roce 1914 ' +
+          '(Za mlýnem 1774/12, Praha 4 – Braník). Ženský a dívčí fotbal zastřešuje ' +
+          'Simona Necidová (SK Slavia Praha, reprezentace ČR). Kategorie: Přípravka, ' +
+          'WU13, WU15, WU18 a Ženy A.',
+        // Reálné rejstříkové / kontaktní údaje klubu
+        legalName: 'ABC Braník fotbal, z.s.',
+        ico: '05650241',
+        address: 'Za mlýnem 1774/12, Praha 4 – Braník, 147 00',
+        founded: 1914,
+        kit: 'Adidas',
+        publicEmail: 'info@abcbranik.cz',
+      },
+    },
+  });
+
+  const brBrand = '#0284c7';
+  // Reálný areál ABC Braník — přírodní tráva + 2× umělá tráva
+  const brVenues = {
+    home: 'Areál Za mlýnem (Za mlýnem 1774/12, Praha 4 – Braník)',
+    away: 'Hřiště soupeře',
+    neutral: 'Stadion Strahov',
+    social: 'Klubovna ABC Braník',
+  };
+
+  // --- Reálné ženské kategorie (názvy + ročníky dle abcbranikdivky) ---
+  const prip = await prisma.team.create({
+    data: { clubId: branik.id, name: 'Přípravka dívky', sport: 'Fotbal', ageGroup: 'Přípravka (2015 a ml.)', season: '2025/26' },
+  });
+  const wu13 = await prisma.team.create({
+    data: { clubId: branik.id, name: 'WU13', sport: 'Fotbal', ageGroup: 'WU13 (2013–2014)', season: '2025/26' },
+  });
+  const wu15 = await prisma.team.create({
+    data: { clubId: branik.id, name: 'WU15', sport: 'Fotbal', ageGroup: 'WU15 (2011–2012)', season: '2025/26' },
+  });
+  const wu18 = await prisma.team.create({
+    data: { clubId: branik.id, name: 'WU18', sport: 'Fotbal', ageGroup: 'WU18 (2008–2010)', season: '2025/26' },
+  });
+  const zenyA = await prisma.team.create({
+    data: { clubId: branik.id, name: 'Ženy A', sport: 'Fotbal', ageGroup: 'Ženy', season: '2025/26' },
+  });
+
+  // --- Vedení: OWNER simulován (jméno kanceláře není veřejné) ---
+  const ownerB = await createUserMember({
+    email: 'admin@branik.cz', firstName: 'Markéta', lastName: 'Svobodová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    clubRoles: [ClubRoleType.OWNER, ClubRoleType.ADMIN, ClubRoleType.FINANCE],
+  });
+  // Reálný klubový kontakt (sekretariát) — info@abcbranik.cz
+  const officeB = await createUserMember({
+    email: 'info@abcbranik.cz', firstName: 'Sekretariát', lastName: 'klubu',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    clubRoles: [ClubRoleType.COMMUNICATIONS, ClubRoleType.FACILITY],
+  });
+  // Reálná patronka dívčího/ženského fotbalu — Simona Necidová (Slavia + repre)
+  const patronB = await createUserMember({
+    email: 'simona.necidova@abcbranik.cz', firstName: 'Simona', lastName: 'Necidová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    position: 'Patronka dívčího fotbalu (SK Slavia Praha)',
+    clubRoles: [ClubRoleType.COMMUNICATIONS],
+  });
+
+  // --- Reální hlavní trenéři kategorií + šéftrenér (jména a e-maily z webu) ---
+  const coachZenyA = await createUserMember({
+    email: 'maly@abcbranik.cz', firstName: 'Lukáš', lastName: 'Malý',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'men',
+    position: 'Šéftrenér ženských týmů',
+    teamRoles: [{ teamId: zenyA.id, role: TeamRole.HEAD_COACH }],
+  });
+  const coachWU18 = await createUserMember({
+    email: 'martin@hauft.cz', firstName: 'Martin', lastName: 'Hauft',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'men',
+    teamRoles: [{ teamId: wu18.id, role: TeamRole.HEAD_COACH }],
+  });
+  const coachWU15 = await createUserMember({
+    email: 'mata.9977@gmail.com', firstName: 'Matěj', lastName: 'Sedláček',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'men',
+    teamRoles: [{ teamId: wu15.id, role: TeamRole.HEAD_COACH }],
+  });
+  const coachWU13 = await createUserMember({
+    email: 'jirikratoska@centrum.cz', firstName: 'Jiří', lastName: 'Krátoška',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'men',
+    teamRoles: [{ teamId: wu13.id, role: TeamRole.HEAD_COACH }],
+  });
+  const coachPrip = await createUserMember({
+    email: 'palkova010@seznam.cz', firstName: 'Aneta', lastName: 'Jindrová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    teamRoles: [{ teamId: prip.id, role: TeamRole.HEAD_COACH }],
+  });
+
+  // --- Realizační podpora — SIMULOVÁNO (asistentka, manažerka, lékařka) ---
+  const assistantWU15 = await createUserMember({
+    email: 'asistentka.wu15@branik.cz', firstName: 'Klára', lastName: 'Benešová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    teamRoles: [{ teamId: wu15.id, role: TeamRole.ASSISTANT_COACH }],
+  });
+  const mgrWU18 = await createUserMember({
+    email: 'manazerka.wu18@branik.cz', firstName: 'Lucie', lastName: 'Marková',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    teamRoles: [{ teamId: wu18.id, role: TeamRole.TEAM_MANAGER }],
+  });
+  await createUserMember({
+    email: 'lekarka@branik.cz', firstName: 'Eva', lastName: 'Fialová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    teamRoles: [
+      { teamId: zenyA.id, role: TeamRole.MEDIC },
+      { teamId: wu18.id, role: TeamRole.MEDIC },
+      { teamId: wu15.id, role: TeamRole.MEDIC },
+    ],
+  });
+
+  // --- Hráčky + rodiče — SIMULOVÁNO (privátní data nejsou veřejná) ---
+  // Pomocná f-ce: vytvoří dívku (nezletilá) + 1 primárního zástupce.
+  async function seedGirl(args: {
+    team: string; idx: number; jersey: number; status?: MemberStatus;
+    legalGuardian?: boolean;
+  }) {
+    const firstName = pick(GIRL_FIRST, args.idx);
+    const surname = pick(FEM_SURNAMES, args.idx + 2);
+    const child = await createUserMember({
+      email: `${firstName.toLowerCase()}.${surname.toLowerCase()}.${args.team}@kid.branik`,
+      firstName, lastName: surname,
+      clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+      isMinor: true, status: args.status ?? MemberStatus.ACTIVE,
+      jerseyNumber: args.jersey, position: pick(['ÚT', 'ZÁL', 'OBR', 'BR'], args.idx),
+      teamRoles: [{ teamId: args.team === 'prip' ? prip.id : args.team === 'wu13' ? wu13.id : args.team === 'wu15' ? wu15.id : wu18.id, role: TeamRole.PLAYER }],
+    });
+    if (args.legalGuardian) {
+      const lg = await createUserMember({
+        email: `babicka.${surname.toLowerCase()}.${args.team}@parent.branik`,
+        firstName: 'Marie', lastName: surname,
+        clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+      });
+      await prisma.guardianLink.create({
+        data: {
+          guardianId: lg.memberId, childId: child.memberId,
+          relationship: GuardianRelationship.LEGAL_GUARDIAN, isPrimary: true,
+          canViewSchedule: true, canRsvp: true, canViewPayments: true,
+          canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+          verifiedAt: new Date(),
+        },
+      });
+    } else {
+      const isMom = args.idx % 2 === 0;
+      const gFirst = isMom ? pick(PARENT_FIRST_F, args.idx) : pick(PARENT_FIRST_M, args.idx);
+      const gSurname = isMom ? surname : surname.replace(/ová$/, '').replace(/á$/, 'ý');
+      const guardian = await createUserMember({
+        email: `${gFirst.toLowerCase()}.${gSurname.toLowerCase()}.${args.team}@parent.branik`,
+        firstName: gFirst, lastName: gSurname,
+        clubId: branik.id, brandColor: brBrand, devHash,
+        realPhoto: isMom ? 'women' : 'men',
+      });
+      await prisma.guardianLink.create({
+        data: {
+          guardianId: guardian.memberId, childId: child.memberId,
+          relationship: GuardianRelationship.PARENT, isPrimary: true,
+          canViewSchedule: true, canRsvp: true, canViewPayments: true,
+          canMakePayments: true, canViewMedical: true, canSignWaivers: true,
+          verifiedAt: new Date(),
+        },
+      });
+    }
+    return { id: child.memberId, firstName, surname };
+  }
+
+  const pripChildren: Array<{ id: string }> = [];
+  for (let i = 0; i < 9; i++) pripChildren.push(await seedGirl({ team: 'prip', idx: i, jersey: 2 + i }));
+
+  const wu13Children: Array<{ id: string }> = [];
+  for (let i = 0; i < 11; i++) wu13Children.push(await seedGirl({ team: 'wu13', idx: i + 1, jersey: 4 + i }));
+
+  const wu15Children: Array<{ id: string }> = [];
+  for (let i = 0; i < 12; i++) {
+    wu15Children.push(await seedGirl({
+      team: 'wu15', idx: i + 3, jersey: 6 + i,
+      status: i === 11 ? MemberStatus.INACTIVE : MemberStatus.ACTIVE, // dlouhodobé zranění
+    }));
+  }
+
+  const wu18Children: Array<{ id: string }> = [];
+  for (let i = 0; i < 12; i++) {
+    wu18Children.push(await seedGirl({
+      team: 'wu18', idx: i + 5, jersey: 8 + i,
+      status: i === 10 ? MemberStatus.SUSPENDED : MemberStatus.ACTIVE,
+      legalGuardian: i === 4, // edge case: opatrovnictví babičky
+    }));
+  }
+
+  // --- Ženy A: dospělé hráčky — SIMULOVÁNO + kapitánka s loginem ---
+  const zenyAPlayers: Array<{ id: string; firstName: string; surname: string }> = [];
+  const captain = await createUserMember({
+    email: 'kapitanka@branik.cz', firstName: 'Kristýna', lastName: 'Urbanová',
+    clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+    jerseyNumber: 10, position: 'ÚT',
+    teamRoles: [{ teamId: zenyA.id, role: TeamRole.PLAYER }],
+  });
+  zenyAPlayers.push({ id: captain.memberId, firstName: 'Kristýna', surname: 'Urbanová' });
+  for (let i = 0; i < 15; i++) {
+    const firstName = pick(GIRL_FIRST, i + 5);
+    const surname = pick(FEM_SURNAMES, i + 7);
+    const status =
+      i === 13 ? MemberStatus.INACTIVE :   // dlouhodobé zranění
+      i === 14 ? MemberStatus.ARCHIVED :   // ukončila kariéru
+      MemberStatus.ACTIVE;
+    const player = await createUserMember({
+      email: `${firstName.toLowerCase()}.${surname.toLowerCase()}@zena.branik`,
+      firstName, lastName: surname,
+      clubId: branik.id, brandColor: brBrand, devHash, realPhoto: 'women',
+      status, jerseyNumber: 3 + i, position: pick(['ÚT', 'ZÁL', 'OBR', 'BR'], i),
+      teamRoles: [{ teamId: zenyA.id, role: TeamRole.PLAYER }],
+    });
+    if (status === MemberStatus.ACTIVE) zenyAPlayers.push({ id: player.memberId, firstName, surname });
+  }
+
+  // --- Eventy pro všech 5 ženských týmů (simulovaný rozpis) ---
+  const zenyAEvents = await seedRichEvents({
+    clubId: branik.id, teamId: zenyA.id, coachId: coachZenyA.memberId,
+    playerIds: zenyAPlayers.map(p => p.id), label: 'Ženy A ABC Braník', venues: brVenues,
+  });
+  const wu15Events = await seedRichEvents({
+    clubId: branik.id, teamId: wu15.id, coachId: coachWU15.memberId,
+    playerIds: wu15Children.map(c => c.id), label: 'WU15 ABC Braník', venues: brVenues,
+  });
+  await seedRichEvents({
+    clubId: branik.id, teamId: wu18.id, coachId: coachWU18.memberId,
+    playerIds: wu18Children.map(c => c.id), label: 'WU18 ABC Braník', venues: brVenues,
+  });
+  await seedRichEvents({
+    clubId: branik.id, teamId: wu13.id, coachId: coachWU13.memberId,
+    playerIds: wu13Children.map(c => c.id), label: 'WU13 ABC Braník', venues: brVenues,
+  });
+  await seedRichEvents({
+    clubId: branik.id, teamId: prip.id, coachId: coachPrip.memberId,
+    playerIds: pripChildren.map(c => c.id), label: 'Přípravka ABC Braník', venues: brVenues,
+  });
+
+  // --- Přiřazení cvičení z knihovny do naplánovaných tréninků (simulováno) ---
+  console.log('  🏋️  Plánování tréninků — cvičení z knihovny do slotů…');
+  await assignDrillPlans(zenyA.id, 'women');
+  await assignDrillPlans(wu18.id, 'youth');
+  await assignDrillPlans(wu15.id, 'youth');
+  await assignDrillPlans(wu13.id, 'youth');
+  await assignDrillPlans(prip.id, 'mini');
+
+  // --- Šablony opakujících se tréninků (simulovaný rozpis dle úrovně) ---
+  await prisma.trainingTemplate.create({
+    data: {
+      clubId: branik.id, teamId: wu15.id,
+      name: 'WU15 — Po + St 17:30 (Za mlýnem)',
+      eventType: EventType.PRACTICE, daysOfWeek: [1, 3],
+      startTime: '17:30', endTime: '19:00', location: brVenues.home,
+      description: 'Pravidelný trénink WU15 (simulovaný rozpis).',
+      validFrom: offset(-30), validUntil: offset(60), active: true,
+      createdById: coachWU15.memberId,
+    },
+  });
+  await prisma.trainingTemplate.create({
+    data: {
+      clubId: branik.id, teamId: zenyA.id,
+      name: 'Ženy A — Út + Čt 19:00 (Za mlýnem)',
+      eventType: EventType.PRACTICE, daysOfWeek: [2, 4],
+      startTime: '19:00', endTime: '20:30', location: brVenues.home,
+      description: 'Pravidelný trénink A-týmu žen (simulovaný rozpis).',
+      validFrom: offset(-30), validUntil: offset(60), active: true,
+      createdById: coachZenyA.memberId,
+    },
+  });
+
+  // --- Poplatky + platby (simulováno, všechny PaymentStatus) ---
+  const brFeeWU15 = await prisma.fee.create({
+    data: {
+      clubId: branik.id, teamId: wu15.id,
+      name: 'Členský příspěvek — jaro 2026',
+      description: 'Pololetní příspěvek WU15 (leden–červen)',
+      amountCents: 300000, currency: 'CZK', dueDate: offset(-20),
+    },
+  });
+  await prisma.fee.create({
+    data: {
+      clubId: branik.id, teamId: zenyA.id,
+      name: 'Příspěvek Ženy A 2026',
+      description: 'Roční příspěvek hráček A-týmu žen',
+      amountCents: 400000, currency: 'CZK', dueDate: offset(35),
+    },
+  });
+  const brStatuses: PaymentStatus[] = [
+    PaymentStatus.PAID, PaymentStatus.PENDING, PaymentStatus.PROCESSING,
+    PaymentStatus.FAILED, PaymentStatus.REFUNDED,
+  ];
+  for (let i = 0; i < 5; i++) {
+    const child = wu15Children[i];
+    if (!child) continue;
+    const link = await prisma.guardianLink.findFirst({ where: { childId: child.id, isPrimary: true } });
+    if (!link) continue;
+    await prisma.payment.create({
+      data: {
+        clubId: branik.id, feeId: brFeeWU15.id,
+        payerId: link.guardianId, onBehalfOfId: child.id,
+        amountCents: 300000, currency: 'CZK', status: brStatuses[i]!,
+        stripePaymentIntentId: brStatuses[i] === PaymentStatus.PAID ? `pi_demo_br_${i}` : null,
+        paidAt: brStatuses[i] === PaymentStatus.PAID ? offset(-18) : null,
+      },
+    });
+  }
+
+  // --- Waivery + podpisy (simulováno) ---
+  for (const w of [
+    { type: WaiverType.GDPR,          title: 'Souhlas se zpracováním osobních údajů', body: 'Souhlasím se zpracováním osobních údajů hráčky ve smyslu GDPR.' },
+    { type: WaiverType.MEDIA_CONSENT, title: 'Souhlas s focením a zveřejněním fotek',  body: 'Souhlasím s pořizováním a zveřejněním fotografií hráčky v týmovém rámci.' },
+  ]) {
+    const waiver = await prisma.waiver.create({
+      data: { clubId: branik.id, title: w.title, body: w.body, version: 1, type: w.type, requiredForMinors: true },
+    });
+    for (let i = 0; i < 3; i++) {
+      const child = wu15Children[i];
+      if (!child) continue;
+      const link = await prisma.guardianLink.findFirst({ where: { childId: child.id, isPrimary: true } });
+      if (!link) continue;
+      await prisma.waiverSignature.create({
+        data: { waiverId: waiver.id, subjectId: child.id, signedById: link.guardianId, ipAddress: '10.0.3.' + (20 + i) },
+      });
+    }
+  }
+
+  // --- Konverzace (TEAM / COACHES / PARENTS / DM / ANNOUNCEMENT) ---
+  const brTeamChat = await prisma.conversation.create({
+    data: {
+      clubId: branik.id, teamId: zenyA.id, type: ConversationType.TEAM,
+      title: 'Ženy A — týmový chat',
+      participants: { create: [
+        { memberId: coachZenyA.memberId },
+        ...zenyAPlayers.map(p => ({ memberId: p.id })),
+      ] },
+    },
+  });
+  await prisma.message.createMany({
+    data: [
+      { conversationId: brTeamChat.id, senderId: coachZenyA.memberId, body: 'Holky, jarní část začíná! Trénink Út+Čt 19:00 na Za mlýnem. 💪', createdAt: offset(-9, 9) },
+      { conversationId: brTeamChat.id, senderId: captain.memberId, body: 'Těšíme se! Kdo veze dresy na sobotu, napište mi.', createdAt: offset(-2, 19) },
+    ],
+  });
+
+  const brCoachesChat = await prisma.conversation.create({
+    data: {
+      clubId: branik.id, type: ConversationType.COACHES,
+      title: 'Trenéři ženských kategorií',
+      participants: { create: [
+        { memberId: coachZenyA.memberId },
+        { memberId: coachWU18.memberId },
+        { memberId: coachWU15.memberId },
+        { memberId: coachWU13.memberId },
+        { memberId: coachPrip.memberId },
+        { memberId: patronB.memberId },
+      ] },
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: brCoachesChat.id, senderId: coachZenyA.memberId, body: 'Sjednoťme si metodiku přechodu WU18 → Ženy A. Návrh pošlu do pátku.', createdAt: offset(-1, 21) },
+  });
+
+  const brParentsChat = await prisma.conversation.create({
+    data: {
+      clubId: branik.id, teamId: wu13.id, type: ConversationType.PARENTS,
+      title: 'WU13 — rodiče',
+      participants: { create: [{ memberId: ownerB.memberId }, { memberId: officeB.memberId }] },
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: brParentsChat.id, senderId: officeB.memberId, body: 'Milí rodiče, jarní rozpis WU13 je v kalendáři. Dotazy sem. ⚽', createdAt: offset(-6, 10) },
+  });
+
+  const brDm = await prisma.conversation.create({
+    data: {
+      clubId: branik.id, type: ConversationType.DM,
+      participants: { create: [{ memberId: coachZenyA.memberId }, { memberId: captain.memberId }] },
+    },
+  });
+  await prisma.message.createMany({
+    data: [
+      { conversationId: brDm.id, senderId: coachZenyA.memberId, body: 'Kristýno, vezmeš kapitánskou pásku i na pohár?', createdAt: offset(-3, 18) },
+      { conversationId: brDm.id, senderId: captain.memberId, body: 'Jasně, spolehni se! 🅰️', createdAt: offset(-3, 18, 12) },
+    ],
+  });
+
+  const brAnnChat = await prisma.conversation.create({
+    data: {
+      clubId: branik.id, type: ConversationType.ANNOUNCEMENT,
+      title: 'Klubová oznámení — ABC Braník dívky',
+      participants: { create: [{ memberId: ownerB.memberId }, { memberId: officeB.memberId }, { memberId: patronB.memberId }] },
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: brAnnChat.id, senderId: patronB.memberId, body: '📢 Holky, vítejte v ABC Braník! Dívčí fotbal u nás roste — přiveď kamarádku na trénink nazkoušku zdarma. — Simona Necidová', createdAt: offset(-5, 9) },
+  });
+
+  // --- Notifikace ---
+  const brSampleEvent = zenyAEvents.future[0]?.id ?? null;
+  await prisma.notification.createMany({
+    data: [
+      { clubId: branik.id, memberId: ownerB.memberId,    type: NotificationType.EVENT_CREATED,    title: 'Nový zápas v kalendáři', body: 'Sobota — Ženy A', link: brSampleEvent ? `/admin/events/${brSampleEvent}` : null, read: false, createdAt: offset(-1, 8) },
+      { clubId: branik.id, memberId: coachZenyA.memberId, type: NotificationType.RSVP_REMINDER,    title: '4 hráčky nepotvrdily účast', read: false, createdAt: offset(-1, 14) },
+      { clubId: branik.id, memberId: coachZenyA.memberId, type: NotificationType.MESSAGE,          title: 'Nová zpráva v týmovém chatu', read: false, createdAt: offset(-1, 19) },
+      { clubId: branik.id, memberId: ownerB.memberId,    type: NotificationType.PAYMENT_RECEIVED, title: 'Nová platba 3 000 Kč', body: 'Příspěvek WU15 — jaro 2026.', read: true, createdAt: offset(-18) },
+      { clubId: branik.id, memberId: ownerB.memberId,    type: NotificationType.WAIVER_PENDING,   title: 'Souhlasy čekají na podpis', read: false, createdAt: offset(-2) },
+      { clubId: branik.id, memberId: ownerB.memberId,    type: NotificationType.ANNOUNCEMENT,     title: 'Vítejte v Sport manageru!', read: true, createdAt: offset(-25) },
+    ],
+  });
+
+  // --- Feature audit (platform admin zapnul Pro/platby Bráníku) ---
+  await prisma.clubFeatureAudit.create({
+    data: {
+      clubId: branik.id,
+      changedByUserId: platformAdmin.id,
+      reason: 'ABC Braník upgradoval na Pro tarif (ženské kategorie + platby).',
+      before: { features: { ...(branik.features as object), payments: false }, config: branik.config },
+      after:  { features: branik.features, config: branik.config },
+      changedAt: offset(-22),
+    },
+  });
+
+  // ==========================================================================
   // EVENTS — every EventType + every HomeAway + multi-team
   // ==========================================================================
 
@@ -864,6 +1394,9 @@ async function main() {
     { email: 'simon.assist@hvezda.cz',  name: 'Šimon Růžička',    role: 'multi-role: U15 PLAYER + U13 ASSISTANT_COACH' },
     { email: 'admin@sokoli.cz',         name: 'Jana Procházková', role: 'Sokol OWNER' },
     { email: 'tomas@example.com',       name: 'Tomáš Mertin',     role: 'multi-tenant: Hvězda parent + Sokol HEAD_COACH' },
+    { email: 'admin@branik.cz',         name: 'Markéta Svobodová', role: 'ABC Braník OWNER+ADMIN+FINANCE (simulováno)' },
+    { email: 'maly@abcbranik.cz',       name: 'Lukáš Malý',       role: 'ABC Braník šéftrenér žen + Ženy A HEAD_COACH (reálný)' },
+    { email: 'kapitanka@branik.cz',     name: 'Kristýna Urbanová', role: 'ABC Braník Ženy A kapitánka (simulovaná hráčka)' },
     { email: 'platform@example.com',    name: 'Petr Platforma',   role: 'Platform admin' },
   ]);
 }
@@ -885,6 +1418,8 @@ type CreateUserMemberArgs = {
   position?: string;
   clubRoles?: ClubRoleType[];
   teamRoles?: { teamId: string; role: TeamRole }[];
+  /** Skutečná portrétní fotka daného pohlaví místo pravatar/dicebear (ABC Bráník). */
+  realPhoto?: 'women' | 'men';
 };
 
 async function createUserMember(args: CreateUserMemberArgs) {
@@ -893,7 +1428,9 @@ async function createUserMember(args: CreateUserMemberArgs) {
     data: {
       email: args.email, passwordHash: args.devHash,
       firstName: args.firstName, lastName: args.lastName, locale: 'cs',
-      avatarUrl: avatarUrl(args.email, args.isMinor ?? false),
+      avatarUrl: args.realPhoto
+        ? photoUrl(args.email, args.realPhoto)
+        : avatarUrl(args.email, args.isMinor ?? false),
     },
   });
 
@@ -932,13 +1469,15 @@ async function seedRichEvents(args: {
   coachId: string;
   playerIds: string[];
   label: string;
+  venues?: { home: string; away: string; neutral: string; social?: string };
 }) {
   const past: Array<{ id: string }> = [];
   const future: Array<{ id: string }> = [];
   const isHvezda = args.label.includes('Hvězda');
-  const venueHome = isHvezda ? 'UMT Strahov' : 'Sokolovna Měcholupy';
-  const venueAway = isHvezda ? 'Eden Aréna' : 'Hala TJ JM Chodov';
-  const venueNeutral = 'Strahovský stadion';
+  const venueHome = args.venues?.home ?? (isHvezda ? 'UMT Strahov' : 'Sokolovna Měcholupy');
+  const venueAway = args.venues?.away ?? (isHvezda ? 'Eden Aréna' : 'Hala TJ JM Chodov');
+  const venueNeutral = args.venues?.neutral ?? 'Strahovský stadion';
+  const venueSocial = args.venues?.social ?? 'Pizza Coloseum Strašnice';
 
   // Past trainings (PRACTICE, no homeAway)
   for (let d = -28; d <= -1; d += 4) {
@@ -1003,7 +1542,7 @@ async function seedRichEvents(args: {
       clubId: args.clubId, teamId: args.teamId, type: EventType.SOCIAL,
       title: `Týmové posezení — ${args.label}`,
       startsAt: offset(20, 18, 0), endsAt: offset(20, 21, 0),
-      location: 'Pizza Coloseum Strašnice', createdById: args.coachId,
+      location: venueSocial, createdById: args.coachId,
     },
   });
   future.push({ id: social.id });

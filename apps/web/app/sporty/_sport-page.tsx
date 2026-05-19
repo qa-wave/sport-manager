@@ -73,7 +73,7 @@ export function SportPage({ sport }: SportPageProps) {
       <main className="pt-14">
         {/* Hero */}
         <section className="relative px-6 py-20 sm:py-28 border-b border-border/40 overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-violet-500/5" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-emerald-500/5" />
           <div className="relative mx-auto max-w-4xl">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
@@ -122,7 +122,7 @@ export function SportPage({ sport }: SportPageProps) {
                     label: `Kalendář ${sport.eventTerm} a ${sport.trainingTerm}`,
                     color: 'text-blue-500',
                   },
-                  { icon: Users, label: `Správa ${sport.teamTerm}u a hráčů`, color: 'text-violet-500' },
+                  { icon: Users, label: `Správa ${sport.teamTerm}u a hráčů`, color: 'text-emerald-500' },
                   { icon: CheckCircle, label: 'RSVP jedním klikem', color: 'text-emerald-500' },
                 ].map((item) => (
                   <div
@@ -158,7 +158,7 @@ export function SportPage({ sport }: SportPageProps) {
                   key={i}
                   className="rounded-2xl border border-border/50 bg-card p-6 hover:border-border hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 text-lg">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-emerald-500/20 text-lg">
                     {['📅', '✅', '📊', '💬', '👥', '🔗'][i % 6]}
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const CATEGORY_COLORS: Record<string, string> = {
   Návody: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   Tipy: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  Privacy: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+  Privacy: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   Tréninky: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   Migrace: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
   Funkce: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',

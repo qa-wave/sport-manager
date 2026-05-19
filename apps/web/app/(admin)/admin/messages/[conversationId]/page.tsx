@@ -115,7 +115,7 @@ function getAvatarColor(senderId: string): string {
     'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
     'bg-blue-500/20 text-blue-600 dark:text-blue-400',
     'bg-amber-500/20 text-amber-600 dark:text-amber-400',
-    'bg-violet-500/20 text-violet-600 dark:text-violet-400',
+    'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
     'bg-pink-500/20 text-pink-600 dark:text-pink-400',
     'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400',
     'bg-orange-500/20 text-orange-600 dark:text-orange-400',

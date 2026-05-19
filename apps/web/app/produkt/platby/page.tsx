@@ -34,8 +34,8 @@ const FEATURES = [
     icon: CreditCard,
     title: 'Online platby přes Stripe',
     desc: 'Rodič zaplatí kartou nebo Apple Pay přímo v aplikaci. Peníze jdou přímo na účet klubu přes Stripe Connect.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
   },
   {
     icon: Eye,

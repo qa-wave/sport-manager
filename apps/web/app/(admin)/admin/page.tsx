@@ -41,7 +41,7 @@ const EVENT_BORDER: Record<string, string> = {
   PRACTICE: 'border-l-emerald-500',
   MATCH: 'border-l-amber-500',
   TOURNAMENT: 'border-l-blue-500',
-  MEETING: 'border-l-violet-500',
+  MEETING: 'border-l-emerald-500',
   SOCIAL: 'border-l-pink-500',
 };
 

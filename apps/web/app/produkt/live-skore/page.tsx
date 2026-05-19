@@ -73,7 +73,7 @@ export default function LiveSkorePage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             Rodiče sledují zápas.{' '}
-            <span className="bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-500 to-blue-500 bg-clip-text text-transparent">
               Z domova.
             </span>
           </h1>
@@ -84,7 +84,7 @@ export default function LiveSkorePage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
             >
               Registrace zdarma <ArrowRight className="h-4 w-4" />
             </Link>
@@ -126,7 +126,7 @@ export default function LiveSkorePage() {
           <h2 className="mb-6 text-center text-xl font-bold sm:text-2xl">Jak to vypadá</h2>
           <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-lg">
             {/* Match header */}
-            <div className="bg-gradient-to-r from-violet-600 to-blue-600 px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-emerald-600 to-blue-600 px-6 py-4 text-white">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium opacity-80">Přátelský zápas · U13</span>
                 <span className="flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold">
@@ -159,7 +159,7 @@ export default function LiveSkorePage() {
                   </span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-                      e.team === 'home' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'
+                      e.team === 'home' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     &#9917;
@@ -198,7 +198,7 @@ export default function LiveSkorePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="rounded-xl border border-border bg-background p-5">
-                <f.icon className="h-5 w-5 text-violet-500" />
+                <f.icon className="h-5 w-5 text-emerald-500" />
                 <h3 className="mt-3 font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.description}</p>
               </div>
@@ -216,7 +216,7 @@ export default function LiveSkorePage() {
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
           >
             Začít zdarma <ArrowRight className="h-4 w-4" />
           </Link>

@@ -41,8 +41,8 @@ const FEATURES = [
     icon: MessageCircle,
     title: 'Přímé zprávy',
     desc: 'DM mezi trenérem a rodičem, nebo mezi hráči. Soukromé, bez zbytečného sdílení s celou skupinou.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
   },
   {
     icon: Zap,

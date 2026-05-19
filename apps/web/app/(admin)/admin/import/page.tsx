@@ -619,7 +619,7 @@ function ICalSection() {
     <Card>
       <CardContent className="p-5 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
             <CalendarDays className="h-5 w-5" />
           </div>
           <div>

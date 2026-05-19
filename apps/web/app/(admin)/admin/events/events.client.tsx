@@ -87,7 +87,7 @@ const EVENT_BORDER_COLOR: Record<string, string> = {
   PRACTICE: 'border-l-emerald-500',
   MATCH: 'border-l-amber-500',
   TOURNAMENT: 'border-l-blue-500',
-  MEETING: 'border-l-violet-500',
+  MEETING: 'border-l-emerald-500',
   SOCIAL: 'border-l-pink-500',
 };
 
@@ -95,7 +95,7 @@ const EVENT_BG_COLOR: Record<string, string> = {
   PRACTICE: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400',
   MATCH: 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400',
   TOURNAMENT: 'bg-blue-500/15 border-blue-500/30 text-blue-700 dark:text-blue-400',
-  MEETING: 'bg-violet-500/15 border-violet-500/30 text-violet-700 dark:text-violet-400',
+  MEETING: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400',
   SOCIAL: 'bg-pink-500/15 border-pink-500/30 text-pink-700 dark:text-pink-400',
 };
 

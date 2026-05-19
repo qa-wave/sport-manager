@@ -28,7 +28,7 @@ const EVENT_TYPE_BG: Record<string, string> = {
   PRACTICE: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400',
   MATCH: 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400',
   TOURNAMENT: 'bg-primary/15 text-primary border-primary/30',
-  MEETING: 'bg-violet-500/15 text-violet-600 border-violet-500/30 dark:text-violet-400',
+  MEETING: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400',
   SOCIAL: 'bg-pink-500/15 text-pink-600 border-pink-500/30 dark:text-pink-400',
 };
 
@@ -36,7 +36,7 @@ const EVENT_TYPE_DOT: Record<string, string> = {
   PRACTICE: 'bg-emerald-500',
   MATCH: 'bg-amber-500',
   TOURNAMENT: 'bg-primary',
-  MEETING: 'bg-violet-500',
+  MEETING: 'bg-emerald-500',
   SOCIAL: 'bg-pink-500',
 };
 

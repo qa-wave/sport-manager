@@ -84,7 +84,7 @@ function AiSummaryCard({ eventId, isVisible }: { eventId: string; isVisible: boo
       <Card className="overflow-hidden border-primary/20">
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-semibold">AI shrnutí</span>
@@ -104,7 +104,7 @@ function AiSummaryCard({ eventId, isVisible }: { eventId: string; isVisible: boo
     <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.03] via-transparent to-cyan-500/[0.02]">
       <CardContent className="p-5">
         <div className="mb-4 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-sm">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>

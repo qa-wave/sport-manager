@@ -34,8 +34,8 @@ const FEATURES = [
     icon: BookOpen,
     title: '30+ hotových cvičení',
     desc: 'Rozcvičky, technická cvičení, taktika, herní formy. Okamžitě použitelné, přizpůsobitelné.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
   },
   {
     icon: Play,

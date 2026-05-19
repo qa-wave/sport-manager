@@ -49,8 +49,8 @@ const FEATURES = [
     icon: Link2,
     title: 'Magic link bez loginu',
     desc: 'Odkaz v SMS nebo emailu otevře RSVP formulář přímo. Funguje i pro prarodiče bez smartphonu.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
   },
   {
     icon: Send,

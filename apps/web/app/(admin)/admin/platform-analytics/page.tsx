@@ -167,7 +167,7 @@ export default function PlatformAnalyticsPage() {
               label="Uzivatele"
               value={data.totalUsers}
               sub={`+${data.newUsersLast30Days} za 30 dni`}
-              color="bg-violet-500/10 text-violet-600"
+              color="bg-emerald-500/10 text-emerald-600"
             />
             <StatCard
               icon={UserCheck}
@@ -244,7 +244,7 @@ export default function PlatformAnalyticsPage() {
           {/* New users trend */}
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="rounded-lg bg-violet-500/10 p-2 text-violet-600">
+              <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600">
                 <TrendingUp className="h-4 w-4" />
               </div>
               <div>
@@ -253,7 +253,7 @@ export default function PlatformAnalyticsPage() {
                   Pocet novych registraci v poslednim mesici
                 </div>
               </div>
-              <div className="ml-auto font-mono text-2xl font-bold text-violet-600">
+              <div className="ml-auto font-mono text-2xl font-bold text-emerald-600">
                 +{data.newUsersLast30Days}
               </div>
             </CardContent>

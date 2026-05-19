@@ -34,8 +34,8 @@ const FEATURES = [
     icon: Shield,
     title: '5 rolí s granulárními právy',
     desc: 'Owner, Admin, Coach, Parent, Player. Každá role vidí jen to, co má vidět. Nastavíte jednou.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
   },
   {
     icon: EyeOff,
@@ -75,7 +75,7 @@ const FEATURES = [
 ];
 
 const ROLES = [
-  { role: 'Owner', popis: 'Zakladatel klubu. Plný přístup, billing, nastavení.', color: 'text-violet-500' },
+  { role: 'Owner', popis: 'Zakladatel klubu. Plný přístup, billing, nastavení.', color: 'text-emerald-500' },
   { role: 'Admin', popis: 'Správa členů, událostí a financí. Může přidávat adminy.', color: 'text-blue-500' },
   { role: 'Coach', popis: 'Tréninkový plán, docházka, komunikace s rodiči.', color: 'text-emerald-500' },
   { role: 'Parent', popis: 'RSVP za dítě, platby, chat s trenérem. Privacy-isolated.', color: 'text-amber-500' },
@@ -94,15 +94,15 @@ export default function SpravaClenůPage() {
     <main>
       {/* Hero */}
       <section className="relative overflow-hidden px-6 py-24 text-center">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-violet-500/8 to-transparent" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-500/8 to-transparent" />
         <div className="mx-auto max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-500">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-500">
             <Users className="h-3 w-3" />
             Správa členů
           </div>
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
             Všichni vaši lidé{' '}
-            <span className="bg-gradient-to-r from-violet-500 to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-500 to-emerald-500 bg-clip-text text-transparent">
               na jednom místě
             </span>
           </h1>
@@ -113,7 +113,7 @@ export default function SpravaClenůPage() {
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 hover:opacity-90"
+              className="rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:opacity-90"
             >
               Začít zdarma
             </Link>
@@ -202,14 +202,14 @@ export default function SpravaClenůPage() {
 
       {/* CTA */}
       <section className="px-6 py-20">
-        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-violet-500/15 to-purple-500/15 border border-violet-500/20 p-12 text-center">
+        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-500/15 border border-emerald-500/20 p-12 text-center">
           <h2 className="mb-3 text-2xl font-bold">Pořádek v evidenci za jeden víkend</h2>
           <p className="mb-8 text-muted-foreground">
             Importujte stávající data, nastavte role a klub je ready na sezónu.
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:opacity-90"
           >
             Začít zdarma
             <ChevronRight className="h-4 w-4" />

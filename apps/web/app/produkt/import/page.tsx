@@ -112,12 +112,12 @@ export default function ImportPage() {
       {/* Hero */}
       <section className="px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-4 inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300">
+          <div className="mb-4 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
             Migrace bez bolesti hlavy
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             Přechod z konkurence?{' '}
-            <span className="bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-500 to-blue-500 bg-clip-text text-transparent">
               10 minut.
             </span>
           </h1>
@@ -128,7 +128,7 @@ export default function ImportPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
             >
               Migrovat zdarma <ArrowRight className="h-4 w-4" />
             </Link>
@@ -177,7 +177,7 @@ export default function ImportPage() {
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </div>
             ))}
-            <span className="rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-4 py-2 text-sm font-bold text-white shadow">
+            <span className="rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-4 py-2 text-sm font-bold text-white shadow">
               Sport Manager
             </span>
           </div>
@@ -191,7 +191,7 @@ export default function ImportPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {steps.map((s) => (
               <div key={s.step} className="flex gap-4 rounded-xl border border-border bg-background p-5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-sm font-bold text-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 text-sm font-bold text-white">
                   {s.step}
                 </span>
                 <div>
@@ -211,7 +211,7 @@ export default function ImportPage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="rounded-xl border border-border bg-background p-5">
-                <f.icon className="h-5 w-5 text-violet-500" />
+                <f.icon className="h-5 w-5 text-emerald-500" />
                 <h3 className="mt-3 font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.description}</p>
               </div>
@@ -222,7 +222,7 @@ export default function ImportPage() {
 
       {/* Reassurance */}
       <section className="px-6 py-16">
-        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-violet-50 to-blue-50 p-8 dark:from-violet-950/50 dark:to-blue-950/50">
+        <div className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-br from-emerald-50 to-blue-50 p-8 dark:from-emerald-950/50 dark:to-blue-950/50">
           <h3 className="text-lg font-bold">Vaše data jsou v bezpečí</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
             {[
@@ -232,7 +232,7 @@ export default function ImportPage() {
               'Rollback dostupný do 24 hodin po importu přes admin panel.',
             ].map((item, i) => (
               <li key={i} className="flex gap-2">
-                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                 {item}
               </li>
             ))}
@@ -249,7 +249,7 @@ export default function ImportPage() {
           </p>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:opacity-90"
           >
             Začít zdarma <ArrowRight className="h-4 w-4" />
           </Link>

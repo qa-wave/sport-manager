@@ -58,6 +58,13 @@ const config: Config = {
           DEFAULT: 'hsl(var(--success))',
           foreground: 'hsl(var(--success-foreground))',
         },
+        /* Flashscore/Livesport tmavý chrome (header + sidebar) */
+        chrome: {
+          DEFAULT: 'hsl(var(--chrome))',
+          foreground: 'hsl(var(--chrome-foreground))',
+          muted: 'hsl(var(--chrome-muted))',
+          border: 'hsl(var(--chrome-border))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

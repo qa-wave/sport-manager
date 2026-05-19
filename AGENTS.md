@@ -262,7 +262,6 @@ DATABASE_URL="$DATABASE_URL_UNPOOLED" \
 - **Vercel deployment protection** je `all_except_custom_domains` — direct `*.vercel.app` URLs vrací 401, jen `sport-manager.qawave.ai` je public
 - **`projekty/per-tenant/architektura.md`** používá „branik" jako sample slug v anti-pattern code samples — historická ilustrace, neaktuální naming
 - **TypeScript build chyby v UI komponentách** (React 19 + @types/react duplicate) jsou suprimované v `next.config.ts` (`ignoreBuildErrors: true`) a `apps/web/typecheck` skriptu (scoped jen na `lib/api/**` přes `tsconfig.api.json`). Nezačínej řešit, pokud na to nejsi explicitně poslán.
-- **Worktree path pro Codex workflow:** `/Users/tm/workspaces/projects/sport-manager/.Codex/worktrees/thirsty-visvesvaraya-8d1c4a` — branch `feature/rebrand-sport-manager` byla mergnuta do `main` jako `128dbc6`
 
 ---
 

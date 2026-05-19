@@ -48,7 +48,7 @@ const WAIVER_TYPE_COLORS: Record<string, string> = {
   GDPR: 'bg-blue-500/10 text-blue-600 border-blue-200',
   HEALTH: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
   LIABILITY: 'bg-amber-500/10 text-amber-600 border-amber-200',
-  MEDIA_CONSENT: 'bg-violet-500/10 text-violet-600 border-violet-200',
+  MEDIA_CONSENT: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
 };
 
 export default function WaiversClient() {

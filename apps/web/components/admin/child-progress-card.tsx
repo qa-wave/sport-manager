@@ -61,7 +61,7 @@ const EVENT_TYPE_COLOR: Record<string, string> = {
   PRACTICE: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   MATCH: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
   TOURNAMENT: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
-  MEETING: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
+  MEETING: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   SOCIAL: 'bg-pink-500/15 text-pink-700 dark:text-pink-400',
 };
 
