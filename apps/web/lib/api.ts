@@ -545,3 +545,237 @@ export type MemberDetail = MemberSummary & {
     signedBy: string;
   }>;
 };
+
+// ---------- Exercises (training drills + physio) ----------
+export type ExerciseType = 'TRAINING' | 'PHYSIO';
+export type ExerciseSource = 'BUILTIN' | 'CUSTOM';
+
+export type ExerciseDto = {
+  id: string;
+  source: ExerciseSource;
+  type: ExerciseType;
+  clubId: string | null;
+  categoryId: string | null;
+  categorySlug: string | null;
+  categoryName: string | null;
+  name: string;
+  description: string | null;
+  instructions: string[];
+  coachingPoints: string[];
+  equipment: string[];
+  difficulty: string | null;
+  ageGroups: string[];
+  sports: string[];
+  bodyAreas: string[];
+  physioType: string | null;
+  durationMinutes: number | null;
+  playersMin: number | null;
+  playersMax: number | null;
+  fieldSize: string | null;
+  imageUrls: string[];
+  youtubeId: string | null;
+  videoUrl: string | null;
+  diagramKey: string | null;
+  icon: string | null;
+  tags: string[];
+  createdById: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  usageCount: number;
+};
+
+export type ExerciseListResponse = {
+  exercises: ExerciseDto[];
+};
+
+export type ExerciseCategoryDto = {
+  id: string;
+  type: ExerciseType;
+  slug: string;
+  name: string;
+  icon: string | null;
+  colorKey: string | null;
+  clubId: string | null;
+  isBuiltin: boolean;
+  sortOrder: number;
+};
+
+export type ExerciseCategoryListResponse = {
+  categories: ExerciseCategoryDto[];
+};
+
+export type CreateExerciseBody = {
+  type: ExerciseType;
+  name: string;
+  description?: string | null;
+  categoryId?: string | null;
+  instructions?: string[];
+  coachingPoints?: string[];
+  equipment?: string[];
+  difficulty?: 'easy' | 'medium' | 'hard' | null;
+  ageGroups?: string[];
+  sports?: string[];
+  bodyAreas?: string[];
+  physioType?: string | null;
+  durationMinutes?: number | null;
+  playersMin?: number | null;
+  playersMax?: number | null;
+  fieldSize?: string | null;
+  imageUrls?: string[];
+  youtubeId?: string | null;
+  videoUrl?: string | null;
+  icon?: string | null;
+  tags?: string[];
+};
+
+export type UpdateExerciseBody = Partial<CreateExerciseBody>;
+
+// ---------- Strategies (taktické strategie) ----------
+export type StrategyCategory =
+  | 'OFFENSE'
+  | 'DEFENSE'
+  | 'TRANSITION'
+  | 'SET_PIECE'
+  | 'SPECIAL';
+
+export type StrategyRole = {
+  name: string;
+  description: string;
+};
+
+export type StrategyDto = {
+  id: string;
+  source: ExerciseSource;
+  clubId: string | null;
+  category: StrategyCategory;
+  name: string;
+  description: string | null;
+  whenToUse: string | null;
+  counterTo: string | null;
+  reasoning: string | null;
+  roles: StrategyRole[];
+  keyPoints: string[];
+  formation: string | null;
+  sports: string[];
+  difficulty: string | null;
+  ageGroups: string[];
+  videoUrl: string | null;
+  posterUrl: string | null;
+  imageUrls: string[];
+  icon: string | null;
+  tags: string[];
+  createdById: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  usageCount: number;
+};
+
+export type StrategyListResponse = { strategies: StrategyDto[] };
+
+export type CreateStrategyBody = {
+  category: StrategyCategory;
+  name: string;
+  description?: string | null;
+  whenToUse?: string | null;
+  counterTo?: string | null;
+  reasoning?: string | null;
+  roles?: StrategyRole[];
+  keyPoints?: string[];
+  formation?: string | null;
+  sports?: string[];
+  difficulty?: 'easy' | 'medium' | 'hard' | null;
+  ageGroups?: string[];
+  videoUrl?: string | null;
+  posterUrl?: string | null;
+  imageUrls?: string[];
+  icon?: string | null;
+  tags?: string[];
+};
+
+export type UpdateStrategyBody = Partial<CreateStrategyBody>;
+
+export type UploadResponse = { url: string };
+
+// ---------- Newsletter ----------
+export type NewsletterStatus = 'DRAFT' | 'SCHEDULED' | 'SENT';
+
+export type NewsletterItem = {
+  id: string;
+  title: string;
+  status: NewsletterStatus;
+  scheduledFor: string | null;
+  sentAt: string | null;
+  recipientCount: number;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NewsletterDetail = NewsletterItem & {
+  clubId: string;
+  body: string;
+  createdById: string | null;
+};
+
+export type NewsletterListResponse = {
+  items: NewsletterItem[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+};
+
+export type NewsletterCreateBody = {
+  title: string;
+  body: string;
+  scheduledFor?: string | null;
+};
+
+export type NewsletterUpdateBody = {
+  title?: string;
+  body?: string;
+  scheduledFor?: string | null;
+  status?: 'DRAFT' | 'SCHEDULED';
+};
+
+export type NewsletterSendResult = {
+  id: string;
+  status: 'SENT';
+  sentAt: string;
+  recipientCount: number;
+};
+
+// Newsletter API helpers
+export const newsletterApi = {
+  list: (params?: { status?: NewsletterStatus; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const query = qs.toString();
+    return apiFetch<NewsletterListResponse>(`/newsletter${query ? `?${query}` : ''}`);
+  },
+  get: (id: string) => apiFetch<NewsletterDetail>(`/newsletter/${id}`),
+  create: (body: NewsletterCreateBody) =>
+    apiFetch<NewsletterItem>('/newsletter', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  update: (id: string, body: NewsletterUpdateBody) =>
+    apiFetch<NewsletterItem>(`/newsletter/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/newsletter/${id}`, { method: 'DELETE' }),
+  send: (id: string) =>
+    apiFetch<NewsletterSendResult>(`/newsletter/${id}/send`, { method: 'POST' }),
+  preview: (id: string, previewEmail?: string) =>
+    apiFetch<{ ok: boolean; sentTo: string }>(`/newsletter/${id}/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ previewEmail }),
+    }),
+};
+

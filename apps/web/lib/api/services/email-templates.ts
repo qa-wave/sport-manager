@@ -502,6 +502,63 @@ export function welcomeEmail(params: WelcomeEmailParams): { subject: string; htm
 }
 
 // ---------------------------------------------------------------------------
+// F) newsletterEmail
+// ---------------------------------------------------------------------------
+
+export interface NewsletterEmailParams {
+  recipientName: string;
+  clubName: string;
+  clubSlug: string;
+  title: string;
+  bodyHtml: string;   // already-rendered HTML (simple markdown → HTML by caller)
+  clubUrl?: string | null;
+  unsubscribeUrl?: string | null;
+}
+
+export function newsletterEmail(params: NewsletterEmailParams): { subject: string; html: string } {
+  const clubWebUrl = params.clubUrl ?? `${APP_BASE_URL}/k/${params.clubSlug}`;
+  const unsubUrl = params.unsubscribeUrl ?? `${APP_BASE_URL}/admin/account#notifications`;
+
+  const content = `
+    <!-- Title -->
+    <h1 style="margin:0 0 8px;font-size:26px;font-weight:700;color:#1a1a2e;font-family:Arial,Helvetica,sans-serif;line-height:1.3;">
+      ${escHtml(params.title)}
+    </h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#8b8b9e;font-family:Arial,Helvetica,sans-serif;">
+      Newsletter od <strong>${escHtml(params.clubName)}</strong>
+    </p>
+
+    ${divider()}
+
+    <!-- Body -->
+    <div style="font-size:15px;color:#1a1a2e;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+      ${params.bodyHtml}
+    </div>
+
+    ${divider()}
+
+    <!-- Footer links -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="text-align:center;">
+          <p style="margin:0 0 8px;font-size:13px;color:#8b8b9e;font-family:Arial,Helvetica,sans-serif;">
+            <a href="${clubWebUrl}" style="color:#6B48F5;text-decoration:none;">${escHtml(params.clubName)}</a>
+          </p>
+          <p style="margin:0;font-size:12px;color:#a0a0b0;font-family:Arial,Helvetica,sans-serif;">
+            Nechcete dostávat newslettery? <a href="${unsubUrl}" style="color:#6B48F5;text-decoration:underline;">Odhlásit odběr</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return {
+    subject: `${params.title} — ${params.clubName}`,
+    html: wrapEmail(content, params.title),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Utility helpers
 // ---------------------------------------------------------------------------
 

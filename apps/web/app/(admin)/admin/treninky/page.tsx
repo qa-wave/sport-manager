@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Clock, Users, GripVertical, CalendarPlus, ChevronLeft, ChevronRight, X, PlayCircle, BookOpen, Repeat, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
+import { LibraryTabs } from '@/components/admin/library-tabs';
 import { DrillDiagram } from '@/components/admin/drill-diagram';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Card, CardContent } from '@/components/ui/card';
@@ -104,6 +105,7 @@ export default function TrainingLibraryPage() {
 
   return (
     <>
+      <LibraryTabs />
       <PageHeader
         title={view === 'library' ? 'Knihovna tréninků' : 'Opakované tréninky'}
         subtitle={
@@ -140,14 +142,22 @@ export default function TrainingLibraryPage() {
             </div>
 
             {view === 'library' && (
-              <Button
-                variant={plannerOpen ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPlannerOpen(!plannerOpen)}
-              >
-                <CalendarPlus className="mr-1.5 h-4 w-4" />
-                {plannerOpen ? 'Zavřít plánovač' : 'Otevřít plánovač'}
-              </Button>
+              <>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={'/admin/exercises/new?type=TRAINING' as never}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Vlastní drill
+                  </Link>
+                </Button>
+                <Button
+                  variant={plannerOpen ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPlannerOpen(!plannerOpen)}
+                >
+                  <CalendarPlus className="mr-1.5 h-4 w-4" />
+                  {plannerOpen ? 'Zavřít plánovač' : 'Otevřít plánovač'}
+                </Button>
+              </>
             )}
             {view === 'recurring' && (
               <Button size="sm" asChild>

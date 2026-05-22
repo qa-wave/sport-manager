@@ -6,6 +6,7 @@ import { prisma } from '../prisma';
 import {
   rsvpReminderEmail as buildRsvpReminderEmail,
   newEventEmail as buildNewEventEmail,
+  newsletterEmail as buildNewsletterEmail,
 } from './email-templates';
 
 type EmailPayload = {
@@ -106,6 +107,29 @@ export async function getNotifiableMembers(
   }
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// sendNewsletterEmail
+// Sends a newsletter to a single recipient. Caller is responsible for looping.
+// bodyHtml: simple HTML from markdown conversion by caller.
+// ---------------------------------------------------------------------------
+export async function sendNewsletterEmail(opts: {
+  to: string;
+  recipientName: string;
+  clubName: string;
+  clubSlug: string;
+  title: string;
+  bodyHtml: string;
+}): Promise<void> {
+  const { subject, html } = buildNewsletterEmail({
+    recipientName: opts.recipientName,
+    clubName: opts.clubName,
+    clubSlug: opts.clubSlug,
+    title: opts.title,
+    bodyHtml: opts.bodyHtml,
+  });
+  await sendEmail({ to: opts.to, subject, html });
 }
 
 // ---------------------------------------------------------------------------

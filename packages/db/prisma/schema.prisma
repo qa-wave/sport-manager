@@ -52,6 +52,10 @@ model Club {
   trainingTemplates       TrainingTemplate[]
   featureAudit            ClubFeatureAudit[]
   notificationPreferences NotificationPreference[]
+  exercises               Exercise[]
+  exerciseCategories      ExerciseCategory[]
+  strategies              Strategy[]
+  newsletters             Newsletter[]
 }
 
 // ============================================================================
@@ -156,6 +160,9 @@ model Member {
   createdEvents              Event[]                   @relation("EventCreator")
   notifications              Notification[]
   createdTrainingTemplates   TrainingTemplate[]        @relation("TemplateCreator")
+  createdExercises           Exercise[]                @relation("ExerciseCreator")
+  createdStrategies          Strategy[]                @relation("StrategyCreator")
+  createdNewsletters         Newsletter[]              @relation("NewsletterCreator")
 
   @@unique([userId, clubId])
   @@index([clubId])
@@ -610,4 +617,181 @@ model ClubFeatureAudit {
   changedBy User @relation("AuditChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict)
 
   @@index([clubId, changedAt])
+}
+
+// ============================================================================
+// EXERCISES — Training drills & physio exercises (unified model)
+// ----------------------------------------------------------------------------
+// `type` = TRAINING (sportovní cvičení) | PHYSIO (rehab, mobility, prevence).
+// `source` = BUILTIN (system-wide, clubId=null, read-only, seeded) | CUSTOM
+// (per-klub, clubId required, editovatelné ADMIN/HEAD_COACH).
+// Categories follow the same dual model — built-in shared + per-klub custom.
+// ============================================================================
+enum ExerciseType {
+  TRAINING
+  PHYSIO
+}
+
+enum ExerciseSource {
+  BUILTIN
+  CUSTOM
+}
+
+model ExerciseCategory {
+  id        String       @id @default(cuid())
+  type      ExerciseType
+  slug      String // e.g. "warmup", "mobility", "prevence-koleno"
+  name      String // localized label, e.g. "Rozcvičení"
+  icon      String? // emoji or icon key
+  colorKey  String? // matches CATEGORY_COLORS frontend map
+  clubId    String? // null => built-in shared category
+  isBuiltin Boolean      @default(false)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  club      Club?      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@unique([slug, clubId, type])
+  @@index([clubId, type])
+}
+
+model Exercise {
+  id              String         @id @default(cuid())
+  source          ExerciseSource @default(CUSTOM)
+  type            ExerciseType   @default(TRAINING)
+  clubId          String? // null => BUILTIN, otherwise CUSTOM scoped to club
+  categoryId      String?
+
+  // Content
+  name            String
+  description     String?
+  instructions    String[] // ordered steps
+  coachingPoints  String[] // tips/cues
+  equipment       String[] // required gear
+  difficulty      String? // easy | medium | hard
+  ageGroups       String[] // U7..senior (mostly TRAINING)
+  sports          String[] // fotbal | florbal | universal (TRAINING)
+  bodyAreas       String[] // koleno, kotnik, zada, ramena, boky, cele-telo (PHYSIO)
+  physioType      String? // mobility | strength | balance | flexibility | recovery
+  durationMinutes Int?
+  playersMin      Int?
+  playersMax      Int?
+  fieldSize       String?
+
+  // Media
+  imageUrls       String[] // base64 data URLs from /upload (single primary in MVP)
+  youtubeId       String?
+  videoUrl        String?
+  diagramKey      String? // SVG diagram key for built-in trainings
+
+  // Discoverability
+  icon            String? // emoji
+  tags            String[]
+
+  // Meta
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  usageCount      Int            @default(0) // increment on drag-to-calendar
+
+  club      Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  category  ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy Member?           @relation("ExerciseCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([clubId, type])
+  @@index([source, type])
+  @@index([categoryId])
+}
+
+// ============================================================================
+// STRATEGIES — Taktické strategie (Library/Strategie)
+// ----------------------------------------------------------------------------
+// Cílem je sdílet a popsat strategie / herní systémy daného sportu:
+//   - kdy strategii nasadit (whenToUse)
+//   - proti jaké soupeřově strategii to funguje (counterTo)
+//   - proč (reasoning)
+//   - role + úkoly hráčů (roles JSON: [{ name, description }])
+//   - animované video (videoUrl) — NIKOLI lidské, ale animovaná taktika
+// `source` = BUILTIN (system-wide, clubId=null) / CUSTOM (per-klub).
+// ============================================================================
+enum StrategyCategory {
+  OFFENSE       // útok
+  DEFENSE       // obrana
+  TRANSITION    // přechod (counter / re-press)
+  SET_PIECE     // standardní situace
+  SPECIAL       // power play, oslabení, …
+}
+
+model Strategy {
+  id              String           @id @default(cuid())
+  source          ExerciseSource   @default(CUSTOM)
+  clubId          String?          // null => BUILTIN
+  category        StrategyCategory @default(OFFENSE)
+
+  // Content
+  name            String
+  description     String?          // krátký popis / shrnutí
+  whenToUse       String?          // kdy strategii nasadit
+  counterTo       String?          // proti jaké strategii / formaci to hrát
+  reasoning       String?          // proč to funguje
+  roles           Json             @default("[]") // [{ name, description }]
+  keyPoints       String[]         // krátké teze (3–7 bodů)
+  formation       String?          // např. "4-3-3", "1-2-2" pro florbal
+  sports          String[]         // fotbal | florbal | universal
+  difficulty      String?          // easy | medium | hard
+  ageGroups       String[]         // U13..senior
+
+  // Media — animované video (NE s lidmi)
+  videoUrl        String?          // mp4 / webm / youtube embed odkaz
+  posterUrl       String?          // náhled videa
+  imageUrls       String[]         // dodatečné taktické diagramy (statické)
+
+  // Discoverability
+  icon            String?          // emoji
+  tags            String[]
+
+  // Meta
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  usageCount      Int              @default(0)
+
+  club      Club?   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdBy Member? @relation("StrategyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([clubId, category])
+  @@index([source, category])
+}
+
+// ============================================================================
+// NEWSLETTER
+// Club-wide email newsletters sent to all active members.
+// Only ADMIN/OWNER/COMMUNICATIONS can create/send.
+// ============================================================================
+enum NewsletterStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
+model Newsletter {
+  id             String           @id @default(cuid())
+  clubId         String
+  title          String
+  body           String           // Markdown / plain HTML
+  status         NewsletterStatus @default(DRAFT)
+  scheduledFor   DateTime?        // filled when status=SCHEDULED
+  sentAt         DateTime?        // filled when status=SENT
+  recipientCount Int              @default(0)
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  club      Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdBy Member? @relation("NewsletterCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([clubId, status])
+  @@index([clubId, createdAt])
 }

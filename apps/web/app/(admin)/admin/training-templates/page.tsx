@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Repeat } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
+import { LibraryTabs } from '@/components/admin/library-tabs';
 import { EmptyState } from '@/components/admin/empty-state';
 import { apiFetch, ApiError, type TrainingTemplateListItem } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
@@ -57,6 +58,7 @@ export default function TrainingTemplatesPage() {
 
   return (
     <>
+      <LibraryTabs />
       <PageHeader
         title="Šablony tréninků"
         subtitle={data ? `${data.length} šablon` : undefined}

@@ -17,6 +17,9 @@ import { conversationsRoutes } from './routes/conversations.routes';
 import { notificationsRoutes } from './routes/notifications.routes';
 import { dashboardRoutes } from './routes/dashboard.routes';
 import { trainingTemplatesRoutes } from './routes/training-templates.routes';
+import { exercisesRoutes } from './routes/exercises.routes';
+import { exerciseCategoriesRoutes } from './routes/exercise-categories.routes';
+import { strategiesRoutes } from './routes/strategies.routes';
 import { platformAdminRoutes } from './routes/platform-admin.routes';
 import { clubsRoutes } from './routes/clubs.routes';
 import { paymentsRoutes } from './routes/payments.routes';
@@ -33,6 +36,7 @@ import { federationRoutes } from './routes/federation.routes';
 import { pushRoutes } from './routes/push.routes';
 import { reportsRoutes } from './routes/reports.routes';
 import { notificationPrefsRoutes } from './routes/notification-prefs.routes';
+import { newsletterRoutes } from './routes/newsletter.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -98,6 +102,9 @@ app.route('/v1/conversations', conversationsRoutes);
 app.route('/v1/notifications', notificationsRoutes);
 app.route('/v1/dashboard', dashboardRoutes);
 app.route('/v1/training-templates', trainingTemplatesRoutes);
+app.route('/v1/exercises', exercisesRoutes);
+app.route('/v1/exercise-categories', exerciseCategoriesRoutes);
+app.route('/v1/strategies', strategiesRoutes);
 app.route('/v1/platform-admin/clubs', platformAdminRoutes);
 app.route('/v1/clubs', clubsRoutes);
 app.route('/v1/payments', paymentsRoutes);
@@ -114,6 +121,7 @@ app.route('/v1/federation', federationRoutes);
 app.route('/v1/push', pushRoutes);
 app.route('/v1/reports', reportsRoutes);
 app.route('/v1/notification-preferences', notificationPrefsRoutes);
+app.route('/v1/newsletter', newsletterRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

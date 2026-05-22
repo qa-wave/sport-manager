@@ -21,6 +21,9 @@ import {
   FileBarChart2,
   Upload,
   Globe,
+  HeartPulse,
+  Library,
+  Mail,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -94,6 +97,15 @@ export const ADMIN_NAV: NavItem[] = [
     group: 'manage',
   },
   {
+    href: '/admin/newsletter',
+    label: 'Newsletter',
+    labelKey: 'newsletter',
+    description: 'Emailové newslettery pro členy klubu',
+    icon: Mail,
+    access: 'admin',
+    group: 'manage',
+  },
+  {
     href: '/admin/payments',
     label: 'Platby',
     labelKey: 'payments',
@@ -124,13 +136,12 @@ export const ADMIN_NAV: NavItem[] = [
   },
   // ── tools ─────────────────────────────────────────────────────────────
   {
-    href: '/admin/treninky',
-    label: 'Tréninky',
-    labelKey: 'training',
-    description: 'Knihovna cvičení a tréninků',
-    icon: Repeat,
+    href: '/admin/library',
+    label: 'Library',
+    labelKey: 'library',
+    description: 'Tréninky, fyzio a taktické strategie',
+    icon: Library,
     access: 'admin_or_coach',
-    feature: 'trainingTemplates',
     group: 'tools',
   },
   {
