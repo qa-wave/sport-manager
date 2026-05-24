@@ -60,16 +60,16 @@ export default function LibraryOverviewPage() {
 
   const templateQuery = useQuery({
     queryKey: ['training-templates'],
-    queryFn: () =>
-      apiFetch<{ templates: TrainingTemplateListItem[] }>(`/training-templates`),
+    queryFn: () => apiFetch<TrainingTemplateListItem[]>(`/training-templates`),
     enabled,
     staleTime: 60_000,
+    retry: false,
   });
 
   const trainingCount = trainingQuery.data?.exercises.length ?? null;
   const physioCount = physioQuery.data?.exercises.length ?? null;
   const strategyCount = strategyQuery.data?.strategies.length ?? null;
-  const templateCount = templateQuery.data?.templates.length ?? null;
+  const templateCount = templateQuery.data?.length ?? null;
 
   const recent = buildRecent(
     trainingQuery.data?.exercises,
