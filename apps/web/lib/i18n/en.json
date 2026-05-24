@@ -22,6 +22,8 @@
   "nav.platformAnalytics": "Platform Analytics",
   "nav.logout": "Log out",
   "nav.newsletter": "Newsletter",
+  "nav.feedback": "Feedback",
+  "nav.teammates": "Teammates",
 
   "dashboard.thisWeek": "This week",
   "dashboard.needsAttention": "Needs attention",

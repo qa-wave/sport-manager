@@ -747,6 +747,64 @@ export type NewsletterSendResult = {
   recipientCount: number;
 };
 
+// ---------- Teammates ----------
+export type TeammateItem = {
+  memberId: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  teams: Array<{ id: string; name: string; role: string }>;
+};
+
+export const teammatesApi = {
+  list: () => apiFetch<{ items: TeammateItem[] }>('/me/teammates'),
+};
+
+// ---------- Player feedback ----------
+export type FeedbackItem = {
+  id: string;
+  rating: number | null;
+  text: string;
+  category: string | null;
+  createdAt: string;
+  playerId: string;
+  authorId: string;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
+  playerName: string | null;
+  playerAvatarUrl: string | null;
+};
+
+export type CoachablePlayer = {
+  memberId: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  teams: Array<{ id: string; name: string }>;
+};
+
+export type CreateFeedbackBody = {
+  playerId: string;
+  text: string;
+  rating?: number;
+  category?: string;
+};
+
+export const feedbackApi = {
+  mine: () => apiFetch<{ items: FeedbackItem[] }>('/feedback/me'),
+  forPlayer: (playerId: string) =>
+    apiFetch<{ items: FeedbackItem[] }>(`/feedback/player/${playerId}`),
+  coachablePlayers: () =>
+    apiFetch<{ items: CoachablePlayer[] }>('/feedback/coachable-players'),
+  create: (body: CreateFeedbackBody) =>
+    apiFetch<{ ok: true; feedback: FeedbackItem }>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) =>
+    apiFetch<{ ok: true }>(`/feedback/${id}`, { method: 'DELETE' }),
+};
+
 // Newsletter API helpers
 export const newsletterApi = {
   list: (params?: { status?: NewsletterStatus; page?: number; limit?: number }) => {

@@ -24,6 +24,8 @@ import {
   HeartPulse,
   Library,
   Mail,
+  Star,
+  UsersRound,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -66,6 +68,23 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Soupiska a realizační tým',
     icon: Users,
     access: 'admin_or_coach',
+    group: 'main',
+  },
+  {
+    href: '/admin/teammates',
+    label: 'Spoluhráči',
+    labelKey: 'teammates',
+    description: 'Mí spoluhráči — chat a profily',
+    icon: UsersRound,
+    access: 'player_only' as NavAccess,
+    group: 'main',
+  },
+  {
+    href: '/admin/feedback',
+    label: 'Zpětná vazba',
+    labelKey: 'feedback',
+    description: 'Trenérská zpětná vazba',
+    icon: Star,
     group: 'main',
   },
   {
@@ -131,7 +150,7 @@ export const ADMIN_NAV: NavItem[] = [
     labelKey: 'polls',
     description: 'Ankety a časová hlasování',
     icon: Vote,
-    access: 'any' as NavAccess,
+    access: 'not_pure_player' as NavAccess,
     group: 'manage',
   },
   // ── tools ─────────────────────────────────────────────────────────────
@@ -151,6 +170,7 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Fotky z tréninků a zápasů',
     icon: Camera,
     feature: 'gallery',
+    access: 'not_pure_player' as NavAccess,
     group: 'tools',
   },
   {

@@ -11,9 +11,12 @@ import {
   ChevronRight,
   Heart,
   MapPin,
+  MessageCircle,
   Plus,
+  Star,
   UserCircle,
   Users,
+  UsersRound,
 } from 'lucide-react';
 import { PageHeader } from '@/components/admin/page-header';
 import { UpgradeBanner } from '@/components/admin/upgrade-banner';
@@ -22,7 +25,8 @@ import { DashboardSkeleton } from '@/components/admin/skeleton-loaders';
 import { apiFetch, ApiError, type DashboardFeed, type MeResponse } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { useTranslation } from '@/lib/i18n';
-import { useMemberContext, isAdmin, isCoach, isGuardian, getPrimaryRoleLabel } from '@/lib/member-context';
+import { useMemberContext, isAdmin, isCoach, isGuardian, isPurePlayer, getPrimaryRoleLabel } from '@/lib/member-context';
+import { feedbackApi, type FeedbackItem } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -124,8 +128,17 @@ export default function DashboardPage() {
   const admin = memberCtx ? isAdmin(memberCtx) : true;
   const coach = memberCtx ? isCoach(memberCtx) : false;
   const guardian = memberCtx ? isGuardian(memberCtx) : false;
+  const purePlayer = memberCtx ? isPurePlayer(memberCtx) : false;
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : 'Admin';
   const firstName = me.data?.firstName;
+
+  // Player-only: pull latest feedback for dashboard card
+  const myFeedback = useQuery<{ items: FeedbackItem[] }, ApiError>({
+    queryKey: ['feedback-me-dashboard'],
+    queryFn: () => feedbackApi.mine(),
+    enabled: purePlayer && auth.isAuthenticated,
+    staleTime: 60_000,
+  });
 
   return (
     <>
@@ -257,6 +270,68 @@ export default function DashboardPage() {
               </div>
             )}
           </section>
+
+          {/* Player section: latest feedback + teammates shortcut */}
+          {purePlayer && (
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  <Star className="h-4 w-4 text-primary" />
+                  Poslední zpětná vazba
+                </h2>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={'/admin/feedback' as any}>
+                    Vše <ChevronRight className="ml-1 h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+
+              {myFeedback.data && myFeedback.data.items.length > 0 ? (
+                <div className="space-y-2">
+                  {myFeedback.data.items.slice(0, 3).map((fb) => (
+                    <Card key={fb.id} className="hover-lift cursor-pointer" onClick={() => router.push('/admin/feedback' as any)}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-primary">{fb.authorName}</span>
+                          {fb.rating !== null && (
+                            <span className="flex items-center gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className={`h-3 w-3 ${i < (fb.rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm line-clamp-2 text-foreground/80">{fb.text}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground">Zatím žádná zpětná vazba.</p>
+                    <p className="mt-1 text-xs text-muted-foreground/70">Jakmile ti trenér něco napíše, uvidíš to tady.</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <QuickAction
+                  href="/admin/teammates"
+                  icon={UsersRound}
+                  title="Spoluhráči"
+                  desc="Lidi z tvého týmu"
+                  primary
+                />
+                <QuickAction
+                  href="/admin/messages"
+                  icon={MessageCircle}
+                  title="Zprávy"
+                  desc="Napiš spoluhráčům nebo trenérovi"
+                />
+              </div>
+            </section>
+          )}
 
           {/* Needs Attention — only shown to admins and coaches */}
           {(admin || coach) && feed.needsAttention.length > 0 && (

@@ -64,14 +64,35 @@ export function isGuardian(ctx: MemberContext): boolean {
   return ctx.guardianOf.length > 0;
 }
 
-export type NavAccess = 'admin' | 'admin_or_finance' | 'admin_or_coach' | 'platform_admin' | 'any';
+export function isPlayer(ctx: MemberContext): boolean {
+  return ctx.teamRoles.some((r) => r.role === 'PLAYER');
+}
+
+/**
+ * Pure player = on at least one team as PLAYER and has no admin, coach,
+ * finance, comms, or guardian role. Used to lock down nav/UX so a 14-year-old
+ * doesn't see payments, members admin, audit logs, etc.
+ */
+export function isPurePlayer(ctx: MemberContext): boolean {
+  return isPlayer(ctx) && !isAdmin(ctx) && !isCoach(ctx) && !isGuardian(ctx)
+    && !ctx.clubRoles.includes('FINANCE')
+    && !ctx.clubRoles.includes('COMMUNICATIONS');
+}
+
+export type NavAccess = 'admin' | 'admin_or_finance' | 'admin_or_coach' | 'platform_admin' | 'any' | 'not_pure_player' | 'player_only';
 
 export function canAccessNavItem(
   ctx: MemberContext,
   access?: NavAccess,
   isPlatformAdmin?: boolean,
 ): boolean {
-  if (!access || access === 'any') return true;
+  if (!access) {
+    // Default: visible to all EXCEPT pure players see a curated subset.
+    // Items without `access` that should also be hidden from pure players
+    // must opt-in via 'not_pure_player'.
+    return true;
+  }
+  if (access === 'any') return true;
   switch (access) {
     case 'admin':
       return isAdmin(ctx);
@@ -79,6 +100,10 @@ export function canAccessNavItem(
       return isAdmin(ctx) || ctx.clubRoles.includes('FINANCE');
     case 'admin_or_coach':
       return isAdmin(ctx) || isCoach(ctx);
+    case 'not_pure_player':
+      return !isPurePlayer(ctx);
+    case 'player_only':
+      return isPurePlayer(ctx);
     case 'platform_admin':
       return isPlatformAdmin === true;
     default:

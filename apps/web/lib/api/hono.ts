@@ -37,6 +37,7 @@ import { pushRoutes } from './routes/push.routes';
 import { reportsRoutes } from './routes/reports.routes';
 import { notificationPrefsRoutes } from './routes/notification-prefs.routes';
 import { newsletterRoutes } from './routes/newsletter.routes';
+import { feedbackRoutes } from './routes/feedback.routes';
 
 /**
  * Map known error codes → HTTP status codes.
@@ -122,6 +123,7 @@ app.route('/v1/push', pushRoutes);
 app.route('/v1/reports', reportsRoutes);
 app.route('/v1/notification-preferences', notificationPrefsRoutes);
 app.route('/v1/newsletter', newsletterRoutes);
+app.route('/v1/feedback', feedbackRoutes);
 
 // ---------------------------------------------------------------------------
 // Global error handler

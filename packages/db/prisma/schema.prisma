@@ -56,6 +56,7 @@ model Club {
   exerciseCategories      ExerciseCategory[]
   strategies              Strategy[]
   newsletters             Newsletter[]
+  feedback                PlayerFeedback[]
 }
 
 // ============================================================================
@@ -163,6 +164,8 @@ model Member {
   createdExercises           Exercise[]                @relation("ExerciseCreator")
   createdStrategies          Strategy[]                @relation("StrategyCreator")
   createdNewsletters         Newsletter[]              @relation("NewsletterCreator")
+  feedbackReceived           PlayerFeedback[]          @relation("FeedbackPlayer")
+  feedbackAuthored           PlayerFeedback[]          @relation("FeedbackAuthor")
 
   @@unique([userId, clubId])
   @@index([clubId])
@@ -794,4 +797,30 @@ model Newsletter {
 
   @@index([clubId, status])
   @@index([clubId, createdAt])
+}
+
+// ============================================================================
+// PLAYER FEEDBACK — Coach gives feedback to player
+// ----------------------------------------------------------------------------
+// Coach (HEAD_COACH/ASSISTANT_COACH/TEAM_MANAGER) writes a private note to a
+// specific player. Visible to: the player, the author, and club admins/owners.
+// Parents do NOT see this — feedback is between coach and player only.
+// ============================================================================
+model PlayerFeedback {
+  id        String   @id @default(cuid())
+  clubId    String
+  playerId  String   // recipient Member.id
+  authorId  String   // coach Member.id
+  rating    Int?     // optional 1-5 stars
+  text      String   // freeform note
+  category  String?  // e.g. "trénink", "zápas", "postoj"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club   Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  player Member @relation("FeedbackPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+  author Member @relation("FeedbackAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, playerId, createdAt])
+  @@index([clubId, authorId, createdAt])
 }

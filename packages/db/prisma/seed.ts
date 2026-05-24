@@ -471,6 +471,14 @@ async function main() {
     status: MemberStatus.ARCHIVED,
   });
 
+  // --- DEDICATED TEST PLAYER (pure player, no admin/coach/parent) ---
+  await createUserMember({
+    email: 'hrac@hvezda.cz', firstName: 'Filip', lastName: 'Novák',
+    clubId: hvezda.id, brandColor: '#0891b2', devHash,
+    isMinor: false, jerseyNumber: 9, position: 'útočník',
+    teamRoles: [{ teamId: u15.id, role: TeamRole.PLAYER }],
+  });
+
   // ==========================================================================
   // CLUB 2: TJ Sokol Měcholupy (florbal, U11)
   // ==========================================================================

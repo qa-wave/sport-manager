@@ -285,4 +285,69 @@ me.get(
   },
 );
 
+/**
+ * GET /v1/me/teammates
+ * Returns members from teams the current user is on (deduped, excluding self).
+ * Powers the "Spoluhráči" page for players — and is useful for any member who
+ * wants a quick people picker.
+ */
+me.get('/teammates', async (c) => {
+  const member = c.get('member');
+  if (!member) {
+    return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
+  }
+
+  const myTeamIds = member.teamRoles.map((r) => r.teamId);
+  if (myTeamIds.length === 0) {
+    return c.json({ items: [] });
+  }
+
+  const result = await prisma.withClub(member.clubId, async (tx) => {
+    const memberships = await tx.teamMembership.findMany({
+      where: {
+        teamId: { in: myTeamIds },
+        leftAt: null,
+        memberId: { not: member.memberId },
+      },
+      include: {
+        member: {
+          include: {
+            user: { select: { firstName: true, lastName: true, avatarUrl: true } },
+          },
+        },
+        team: { select: { id: true, name: true } },
+      },
+      orderBy: [{ role: 'asc' }, { member: { user: { lastName: 'asc' } } }],
+    });
+
+    const map = new Map<string, {
+      memberId: string;
+      firstName: string;
+      lastName: string;
+      avatarUrl: string | null;
+      teams: Array<{ id: string; name: string; role: string }>;
+    }>();
+
+    for (const tm of memberships) {
+      const existing = map.get(tm.memberId);
+      const entry = { id: tm.team.id, name: tm.team.name, role: tm.role };
+      if (existing) {
+        existing.teams.push(entry);
+      } else {
+        map.set(tm.memberId, {
+          memberId: tm.memberId,
+          firstName: tm.member.user.firstName,
+          lastName: tm.member.user.lastName,
+          avatarUrl: tm.member.user.avatarUrl,
+          teams: [entry],
+        });
+      }
+    }
+
+    return { items: [...map.values()] };
+  });
+
+  return c.json(result);
+});
+
 export { me as meRoutes };
