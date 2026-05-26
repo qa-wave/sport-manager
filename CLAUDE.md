@@ -1,3 +1,46 @@
+## Project metadata
+
+| Klíč | Hodnota |
+|---|---|
+| **Name** | `sport-manager` |
+| **Group** | `web-app-saas` |
+| **Team folder** | [./Team/](./Team/) — agenti, ctx2skill wrapper, reporty |
+| **Second brain** | [./second-brain/](./second-brain/) — Karpathy LLM Wiki (raw/ → wiki/) |
+| **Wiki** | [./wiki/](./wiki/) — kurátorovaná dokumentace (DOMAIN, ARCH, ADR, RUNBOOK) |
+| **ctx2skill** | `bash Team/ctx2skill/run.sh` → `/Users/tm/tools/ctx2skill/` |
+| **Inter-project** | viz [Team/MCP-USAGE.md](./Team/MCP-USAGE.md) + [workspace INTER-PROJECT-COMMS.md](/Users/tm/workspaces/INTER-PROJECT-COMMS.md) |
+| **Agents** | viz [Team/PROJECT-ROLES.md](./Team/PROJECT-ROLES.md) — definice v [Team/agents/](./Team/agents/) |
+
+---
+
+## Session start
+
+Před první akcí v této session **přečti** v tomto pořadí:
+
+1. `memory/soul.md` — kdo tento projekt je (identita, mantinely)
+2. `memory/user.md` — kdo je Tomáš v kontextu tohoto projektu
+3. `memory/agents.md` — SOPs (jak se v tomto projektu dělají věci)
+4. `memory/memory.md` — index čerstvé paměti
+5. `wiki/01-DOMAIN.md` — co projekt řeší
+6. `Team/PROJECT-ROLES.md` — kteří agenti jsou k dispozici
+
+Quick slash commands:
+
+- **`/start`** — kompletní onboarding (load all + status report)
+- **`/deploy`** — deploy workflow (dev / preview / prod)
+- **`/test`** — spuštění test stacku
+- **`/memory`** — append do dnešní daily memory
+
+Per-projekt session izolace:
+
+- `.claude/settings.local.json` — allow-list, env, hooks
+- `.claude/commands/` — slash commands
+- `.claude/agents/` — standard Claude Code agenti
+- `memory/` — working memory (soul / user / agents / memory + daily)
+
+---
+
+
 # Sport manager — Claude Code Context
 
 > Stav k 2026-05-12. Kompletní SaaS portál — 30+ stránek, 25+ API endpointů, 2 jazyky (cs/en), Stripe, SSE real-time, 81 testů.
@@ -40,7 +83,7 @@ Nikdy:
 | Hosting | **Vercel** (`sport-manager.qawave.ai`) |
 | Platby | **Stripe Connect** (Express accounts, Checkout sessions, webhooks) |
 | Email | **Resend** (console.log fallback bez API key) |
-| i18n | Custom hook `useTranslation()` — 2 jazyky (cs/en, stejné jako projekt qawave), 453 klíčů |
+| i18n | Custom hook `useTranslation()` — 2 jazyky (cs/en, stejné jako projekt qawave-web), 453 klíčů |
 | Monitoring | **Sentry** (client + server config, vyžaduje DSN) |
 | Testy | Shell-based regression (59 testů) + E2E flow testy (22 testů) |
 
@@ -164,7 +207,7 @@ apps/web/components/
 │   └── api-status.tsx          # API health indicator
 ├── ui/                         # shadcn/ui primitives (card, button, input, badge, ...)
 ├── command-palette.tsx         # Cmd+K global search
-├── language-switcher.tsx       # cs/en přepínač (stejné lokalizace jako qawave)
+├── language-switcher.tsx       # cs/en přepínač (stejné lokalizace jako qawave-web)
 ├── theme-toggle.tsx            # Light/dark switch
 ├── auth-guard.tsx              # Redirect to login if unauthenticated
 ├── auth-redirect.tsx           # Redirect to /admin if authenticated
@@ -294,7 +337,7 @@ vercel --prod --yes
 ✅ Audit log UI
 ✅ Notification preferences
 ✅ Referral system
-✅ i18n (2 jazyky cs/en — stejné lokalizace jako qawave, 453 klíčů)
+✅ i18n (2 jazyky cs/en — stejné lokalizace jako qawave-web, 453 klíčů)
 ✅ Rate limiting (100 req/min/IP)
 ✅ PWA manifest
 ✅ Sentry error tracking (config ready)
