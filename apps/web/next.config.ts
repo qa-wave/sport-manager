@@ -23,7 +23,9 @@ const config: NextConfig = {
   serverExternalPackages: ['@prisma/client', 'ioredis', 'bcrypt'],
   // Standalone output for self-hosted deploy
   output: 'standalone',
-  typescript: { ignoreBuildErrors: true },
+  // TS errors now block the build (dead sentry/arcjet files removed, tests
+  // excluded from build typecheck). ESLint stays ignored until a config is
+  // added — `lint` is currently a no-op (tracked separately).
   eslint: { ignoreDuringBuilds: true },
 };
 
