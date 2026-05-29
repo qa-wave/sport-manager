@@ -403,11 +403,11 @@ clubs.post(
       const { payload: p } = await jwtVerify(body.token, secret);
       payload = p as typeof payload;
     } catch {
-      throw Object.assign(new Error('Invalid or expired invite link'), { statusCode: 400, code: 'INVALID_TIME' });
+      return c.json({ error: 'Bad Request', message: 'Invalid or expired invite link', code: 'INVALID_TOKEN' }, 400);
     }
 
     if (payload.purpose !== 'invite' || !payload.clubId) {
-      throw Object.assign(new Error('Invalid invite token'), { statusCode: 400, code: 'INVALID_TIME' });
+      return c.json({ error: 'Bad Request', message: 'Invalid invite token', code: 'INVALID_TOKEN' }, 400);
     }
 
     const clubId = payload.clubId;
@@ -427,7 +427,7 @@ clubs.post(
     // Optional: attach team role in one step.
     if (body.teamRole && body.teamId) {
       if (!ALLOWED_TEAM_ROLES.has(body.teamRole)) {
-        throw Object.assign(new Error('Invalid team role'), { statusCode: 400, code: 'INVALID_ROLE' });
+        return c.json({ error: 'Bad Request', message: 'Invalid team role', code: 'INVALID_ROLE' }, 400);
       }
 
       // Verify the team actually belongs to the invited club.
@@ -436,7 +436,7 @@ clubs.post(
         select: { id: true },
       });
       if (!team) {
-        throw Object.assign(new Error('Team not found in this club'), { statusCode: 404, code: 'TEAM_NOT_FOUND' });
+        return c.json({ error: 'Not Found', message: 'Team not found in this club', code: 'TEAM_NOT_FOUND' }, 404);
       }
 
       await prisma.teamMembership.upsert({
