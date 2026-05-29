@@ -291,7 +291,7 @@ events.post(
       });
       const eventTimeLabel = `${startsAt.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })} – ${endsAt.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}`;
 
-      void sendNewEventEmailsForTeam({
+      sendNewEventEmailsForTeam({
         eventId: result.id,
         teamId: result.teamId,
         clubId: member.clubId,
@@ -300,24 +300,24 @@ events.post(
         eventDate: eventDateLabel,
         eventTime: eventTimeLabel,
         location: input.location ?? null,
-      });
+      }).catch((err) => console.error('[events] sendNewEventEmailsForTeam failed:', err));
 
       // Legacy: RSVP emails to guardians with canRsvp
-      void sendRsvpEmailsForEvent({
+      sendRsvpEmailsForEvent({
         eventId: result.id,
         teamId: result.teamId,
         clubId: member.clubId,
         eventTitle: input.title,
         eventDate: eventDateLabel,
-      });
+      }).catch((err) => console.error('[events] sendRsvpEmailsForEvent failed:', err));
 
       // Push notification to all team members (fire-and-forget)
-      void sendPushNotificationsForEvent({
+      sendPushNotificationsForEvent({
         eventId: result.id,
         teamId: result.teamId,
         eventTitle: input.title,
         startsAt: new Date(input.startsAt),
-      });
+      }).catch((err) => console.error('[events] sendPushNotificationsForEvent failed:', err));
     }
 
     return c.json({ id: result.id }, 201);

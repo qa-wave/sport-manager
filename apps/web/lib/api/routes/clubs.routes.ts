@@ -770,7 +770,7 @@ clubs.post('/public/:slug/registration', zValidator('json', RegistrationInput), 
   });
 
   // Send confirmation email (fire-and-forget)
-  void sendEmail({
+  sendEmail({
     to: input.parentEmail,
     subject: `Registrace do ${club.name} — potvrzení`,
     html: `
@@ -780,7 +780,7 @@ clubs.post('/public/:slug/registration', zValidator('json', RegistrationInput), 
       <p>Administrátor klubu Vás brzy kontaktuje s dalšími informacemi.</p>
       <p style="color:#666;font-size:12px">Sport Manager</p>
     `,
-  });
+  }).catch((err) => console.error('[clubs/registration] confirmation email failed:', err));
 
   return c.json({ message: 'Registrace byla úspěšně odeslána' }, 201);
 });

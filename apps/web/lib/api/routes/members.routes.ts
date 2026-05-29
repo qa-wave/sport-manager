@@ -1,9 +1,49 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
+import { SignJWT } from 'jose';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/rbac.middleware';
+import { sendEmail } from '../services/email.service';
+import { APP_BASE_URL } from '../../constants';
 import type { HonoEnv } from '../../types/hono';
+
+/**
+ * Fire-and-forget invite email — used by /import for newly created users
+ * (passwordHash is empty so they can't login until they set one).
+ * Sends a magic link that lands on /reset-password with a 14-day JWT.
+ */
+async function sendInviteEmail(opts: {
+  email: string;
+  firstName: string;
+  clubName: string;
+  userId: string;
+}): Promise<void> {
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) return; // Skip silently — local dev without JWT secret
+
+  const token = await new SignJWT({ sub: opts.userId, purpose: 'reset' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('14d')
+    .sign(new TextEncoder().encode(secret));
+
+  const url = `${APP_BASE_URL}/reset-password?token=${token}`;
+
+  await sendEmail({
+    to: opts.email,
+    subject: `Pozvánka do klubu ${opts.clubName} — Sport Manager`,
+    html: `
+      <h2>Vítejte v klubu ${opts.clubName}</h2>
+      <p>Dobrý den ${opts.firstName},</p>
+      <p>Byli jste přidáni jako člen klubu <strong>${opts.clubName}</strong> v Sport Manageru.</p>
+      <p>Pro dokončení registrace si nastavte heslo:</p>
+      <p><a href="${url}" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin:16px 0">Nastavit heslo a přihlásit se</a></p>
+      <p style="color:#666;font-size:12px">Odkaz je platný 14 dní.</p>
+      <p style="color:#666;font-size:12px">Nebo zkopírujte odkaz: ${url}</p>
+    `,
+  });
+}
 
 /**
  * /v1/members — member list, detail, invite, status change.
@@ -656,6 +696,14 @@ members.post(
     const dataLines = lines.slice(1); // skip header
     const imported: number[] = [];
     const errors: string[] = [];
+    const invitesToSend: Array<{ userId: string; email: string; firstName: string }> = [];
+
+    // Resolve club name once for invite emails.
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { name: true },
+    });
+    const clubName = club?.name ?? 'Sport Manager';
 
     for (let i = 0; i < dataLines.length; i++) {
       const rowNum = i + 2; // 1-based, +1 for header
@@ -679,6 +727,7 @@ members.post(
         const result = await prisma.withClub(clubId, async (tx) => {
           // Upsert user
           let user = await tx.user.findUnique({ where: { email: emailNorm } });
+          let wasCreated = false;
           if (!user) {
             user = await tx.user.create({
               data: {
@@ -688,6 +737,7 @@ members.post(
                 passwordHash: '',
               },
             });
+            wasCreated = true;
           }
 
           // Skip if already a member
@@ -741,7 +791,7 @@ members.post(
             });
           }
 
-          return { skipped: false, memberId: member.id };
+          return { skipped: false, memberId: member.id, newUser: wasCreated ? { userId: user.id, email: emailNorm, firstName } : null };
         });
 
         if (result.skipped) {
@@ -751,6 +801,9 @@ members.post(
           if ('warning' in result && result.warning) {
             errors.push(`Řádek ${rowNum} (varování): ${result.warning}`);
           }
+          if ('newUser' in result && result.newUser) {
+            invitesToSend.push(result.newUser);
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'neznámá chyba';
@@ -758,7 +811,23 @@ members.post(
       }
     }
 
-    return c.json({ imported: imported.length, errors }, 200);
+    // Fire invites in parallel — fire-and-forget so the response isn't blocked
+    // on email delivery. Failures are logged but don't fail the import.
+    Promise.all(
+      invitesToSend.map((u) =>
+        sendInviteEmail({
+          email: u.email,
+          firstName: u.firstName,
+          clubName,
+          userId: u.userId,
+        }).catch((err) => console.error(`[members/import] invite to ${u.email} failed:`, err)),
+      ),
+    ).catch(() => { /* unreachable — every inner promise has .catch */ });
+
+    return c.json(
+      { imported: imported.length, invitesQueued: invitesToSend.length, errors },
+      200,
+    );
   },
 );
 

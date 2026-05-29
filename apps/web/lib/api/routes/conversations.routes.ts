@@ -452,13 +452,13 @@ conversations.post(
       messageEmitter.emit(`conversation:${conversationId}`, { type: 'message', data: newMessage });
 
       // Push notification to other participants (fire-and-forget)
-      void sendMessagePushNotifications({
+      sendMessagePushNotifications({
         conversationId,
         senderMemberId: member.memberId,
         senderName: newMessage.senderName,
         body,
         clubId: member.clubId,
-      });
+      }).catch((err) => console.error('[conversations] sendMessagePushNotifications failed:', err));
 
       return newMessage;
     });
