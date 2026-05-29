@@ -90,6 +90,14 @@ stripe.post('/connect', requireRole('OWNER'), async (c) => {
     }
   }
 
+  if (!stripeAccountId) {
+    // Defensive: race-loser fetch couldn't resolve an account id.
+    return c.json(
+      { error: 'Internal Server Error', message: 'Nepodařilo se získat Stripe účet, zkuste to znovu.' },
+      500,
+    );
+  }
+
   // Build return URL — defaults to the account page.
   const returnUrl = `${APP_BASE_URL}/admin/account?stripe=connected`;
 
@@ -132,6 +140,19 @@ stripe.post('/checkout', requireAuth(), async (c) => {
       statusCode: 404,
       code: 'NOT_FOUND',
     });
+  }
+
+  // Authz: only the payer (or a club admin/owner) may start checkout for a
+  // payment. Without this, any club member knowing a paymentId could view
+  // another member's fee amount + name (privacy-by-participation breach).
+  const member = c.get('member')!;
+  const isPayer = payment.payerId === member.memberId;
+  const isAdmin = member.clubRoles.some((r) => ['ADMIN', 'OWNER', 'FINANCE'].includes(r));
+  if (!isPayer && !isAdmin) {
+    return c.json(
+      { error: 'Forbidden', message: 'Tuto platbu může hradit jen plátce nebo správce klubu.' },
+      403,
+    );
   }
 
   if (payment.status !== 'PENDING') {

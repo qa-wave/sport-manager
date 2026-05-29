@@ -315,6 +315,7 @@ events.post(
       sendPushNotificationsForEvent({
         eventId: result.id,
         teamId: result.teamId,
+        clubId: member.clubId,
         eventTitle: input.title,
         startsAt: new Date(input.startsAt),
       }).catch((err) => console.error('[events] sendPushNotificationsForEvent failed:', err));
@@ -779,11 +780,13 @@ async function sendNewEventEmailsForTeam(opts: {
     });
     const clubName = club?.name ?? 'Sport Manager';
 
-    // Fetch team name
-    const team = await prisma.team.findUnique({
-      where: { id: opts.teamId },
-      select: { name: true },
-    });
+    // Fetch team name (withClub — Team is RLS-protected)
+    const team = await prisma.withClub(opts.clubId, (tx) =>
+      tx.team.findUnique({
+        where: { id: opts.teamId },
+        select: { name: true },
+      }),
+    );
     const teamName = team?.name ?? null;
 
     const notifiable = await getNotifiableMembers(opts.clubId, opts.teamId, 'emailEvents');
@@ -840,25 +843,27 @@ async function sendRsvpEmailsForEvent(opts: {
   if (!secret) return;
 
   try {
-    const memberships = await prisma.teamMembership.findMany({
-      where: { teamId: opts.teamId, leftAt: null },
-      select: {
-        member: {
-          select: {
-            id: true,
-            user: { select: { firstName: true, lastName: true } },
-            childLinks: {
-              where: { verifiedAt: { not: null }, canRsvp: true },
-              select: {
-                guardian: {
-                  select: { user: { select: { email: true } } },
+    const memberships = await prisma.withClub(opts.clubId, (tx) =>
+      tx.teamMembership.findMany({
+        where: { teamId: opts.teamId, leftAt: null },
+        select: {
+          member: {
+            select: {
+              id: true,
+              user: { select: { firstName: true, lastName: true } },
+              childLinks: {
+                where: { verifiedAt: { not: null }, canRsvp: true },
+                select: {
+                  guardian: {
+                    select: { user: { select: { email: true } } },
+                  },
                 },
               },
             },
           },
         },
-      },
-    });
+      }),
+    );
 
     for (const { member } of memberships) {
       const playerName = `${member.user.firstName} ${member.user.lastName}`;
@@ -1405,14 +1410,17 @@ events.post('/:eventId/comments', requireAuth(), zValidator('json', CommentInput
 async function sendPushNotificationsForEvent(opts: {
   eventId: string;
   teamId: string;
+  clubId: string;
   eventTitle: string;
   startsAt: Date;
 }): Promise<void> {
   try {
-    const memberships = await prisma.teamMembership.findMany({
-      where: { teamId: opts.teamId, leftAt: null },
-      select: { member: { select: { userId: true } } },
-    });
+    const memberships = await prisma.withClub(opts.clubId, (tx) =>
+      tx.teamMembership.findMany({
+        where: { teamId: opts.teamId, leftAt: null },
+        select: { member: { select: { userId: true } } },
+      }),
+    );
 
     const timeStr = opts.startsAt.toLocaleTimeString('cs-CZ', {
       hour: '2-digit',

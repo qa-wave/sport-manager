@@ -110,7 +110,7 @@ export default function TeammatesPage() {
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-semibold truncate">{fullName}</div>
                           <div className="mt-0.5">
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="outline" className="text-[11px]">
                               {ROLE_LABEL[roleInTeam] ?? roleInTeam}
                             </Badge>
                           </div>

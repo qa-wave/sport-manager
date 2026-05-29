@@ -79,7 +79,7 @@ function FeedbackCard({
                   {showRecipient ? item.playerName : item.authorName}
                 </span>
                 {item.category && (
-                  <Badge variant="secondary" className="text-[10px]">{item.category}</Badge>
+                  <Badge variant="outline" className="text-[11px]">{item.category}</Badge>
                 )}
                 {item.rating !== null && <StarRating value={item.rating} readonly />}
               </div>

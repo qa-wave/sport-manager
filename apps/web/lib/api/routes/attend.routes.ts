@@ -44,16 +44,18 @@ attend.post('/:token', requireAuth(), async (c) => {
     );
   }
 
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, title: true, clubId: true, endsAt: true },
-  });
+  const event = await prisma.withClub(clubId, (tx) =>
+    tx.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true, clubId: true, endsAt: true },
+    }),
+  );
 
   if (!event) {
     return c.json({ error: 'Not Found', message: 'Událost nebyla nalezena' }, 404);
   }
 
-  // Verify the event belongs to the member's club
+  // Defense-in-depth: RLS already scopes to clubId, but verify explicitly.
   if (event.clubId !== clubId) {
     return c.json({ error: 'Forbidden', message: 'Neplatný kód pro tento klub' }, 403);
   }

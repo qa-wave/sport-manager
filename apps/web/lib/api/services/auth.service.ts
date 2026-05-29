@@ -23,6 +23,21 @@ function getRefreshSecret(): Uint8Array {
 }
 
 /**
+ * Secret for password-reset / invite tokens. Dedicated key so a leaked
+ * access token can't be replayed against the reset flow. Falls back to the
+ * access secret (with a warning) so existing deployments keep working until
+ * JWT_RESET_SECRET is provisioned — set it in Vercel to harden.
+ */
+export function getResetSecret(): Uint8Array {
+  const secret = process.env.JWT_RESET_SECRET ?? process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new Error('JWT_RESET_SECRET / JWT_ACCESS_SECRET env var not set');
+  if (!process.env.JWT_RESET_SECRET) {
+    console.warn('[auth] JWT_RESET_SECRET not set — falling back to JWT_ACCESS_SECRET. Set a dedicated reset secret in production.');
+  }
+  return new TextEncoder().encode(secret);
+}
+
+/**
  * Hash the refresh token for at-rest storage.
  * SHA-256 is appropriate because the token itself is already high-entropy
  * (JWT-signed); we're guarding against DB-leak reuse, not offline cracking.
@@ -197,14 +212,11 @@ export async function forgotPassword(email: string): Promise<void> {
   // Always succeed — don't reveal whether the email exists.
   if (!user) return;
 
-  const secret = process.env.JWT_ACCESS_SECRET;
-  if (!secret) throw new Error('JWT_ACCESS_SECRET env var not set');
-
   const resetToken = await new SignJWT({ sub: user.id, purpose: 'reset' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1h')
-    .sign(new TextEncoder().encode(secret));
+    .sign(getResetSecret());
 
   const resetUrl = `${APP_BASE_URL}/reset-password?token=${resetToken}`;
 
@@ -225,12 +237,9 @@ export async function forgotPassword(email: string): Promise<void> {
 // resetPassword — verify reset JWT, update password, invalidate sessions.
 // ---------------------------------------------------------------------------
 export async function resetPassword(token: string, password: string): Promise<void> {
-  const secret = process.env.JWT_ACCESS_SECRET;
-  if (!secret) throw new Error('JWT_ACCESS_SECRET env var not set');
-
   let userId: string;
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jwtVerify(token, getResetSecret());
     if (payload['purpose'] !== 'reset' || !payload.sub) {
       throw new Error('invalid purpose');
     }

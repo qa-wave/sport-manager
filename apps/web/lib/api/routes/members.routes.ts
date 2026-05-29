@@ -5,6 +5,7 @@ import { SignJWT } from 'jose';
 import { prisma } from '../prisma';
 import { requireAuth, requireRole } from '../middleware/rbac.middleware';
 import { sendEmail } from '../services/email.service';
+import { getResetSecret } from '../services/auth.service';
 import { APP_BASE_URL } from '../../constants';
 import type { HonoEnv } from '../../types/hono';
 
@@ -19,14 +20,13 @@ async function sendInviteEmail(opts: {
   clubName: string;
   userId: string;
 }): Promise<void> {
-  const secret = process.env.JWT_ACCESS_SECRET;
-  if (!secret) return; // Skip silently — local dev without JWT secret
+  if (!process.env.JWT_RESET_SECRET && !process.env.JWT_ACCESS_SECRET) return; // local dev without secrets
 
   const token = await new SignJWT({ sub: opts.userId, purpose: 'reset' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('14d')
-    .sign(new TextEncoder().encode(secret));
+    .sign(getResetSecret());
 
   const url = `${APP_BASE_URL}/reset-password?token=${token}`;
 

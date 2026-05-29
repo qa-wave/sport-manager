@@ -63,29 +63,33 @@ export async function getNotifiableMembers(
   teamId: string,
   prefKey: NotifPrefKey,
 ): Promise<NotifiableMember[]> {
-  const memberships = await prisma.teamMembership.findMany({
-    where: { teamId, leftAt: null },
-    select: {
-      member: {
-        select: {
-          id: true,
-          userId: true,
-          status: true,
-          user: {
-            select: {
-              email: true,
-              firstName: true,
-              lastName: true,
-              notificationPreferences: {
-                where: { clubId },
-                select: { [prefKey]: true },
+  // Wrapped in withClub so the RLS-protected TeamMembership table is queried
+  // with app.club_id set — otherwise (RLS FORCE on prod) this returns zero rows.
+  const memberships = await prisma.withClub(clubId, (tx) =>
+    tx.teamMembership.findMany({
+      where: { teamId, leftAt: null },
+      select: {
+        member: {
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+            user: {
+              select: {
+                email: true,
+                firstName: true,
+                lastName: true,
+                notificationPreferences: {
+                  where: { clubId },
+                  select: { [prefKey]: true },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+  );
 
   const result: NotifiableMember[] = [];
 

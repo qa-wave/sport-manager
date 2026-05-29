@@ -111,6 +111,8 @@ model PushToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Web push subscription (VAPID). Each browser/device gets its own endpoint.
@@ -119,8 +121,8 @@ model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
   endpoint  String   @unique
-  p256dh    String   // DH public key (base64url)
-  auth      String   // auth secret (base64url)
+  p256dh    String // DH public key (base64url)
+  auth      String // auth secret (base64url)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -235,6 +237,7 @@ model ClubRole {
   member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([memberId, role])
+  @@index([memberId])
 }
 
 enum ClubRoleType {
@@ -271,6 +274,7 @@ model GuardianLink {
 
   @@unique([guardianId, childId])
   @@index([childId])
+  @@index([guardianId])
 }
 
 enum GuardianRelationship {
@@ -347,6 +351,7 @@ model EventAttendance {
   @@unique([eventId, memberId])
   @@index([eventId])
   @@index([memberId])
+  @@index([respondedById])
 }
 
 enum RSVPStatus {
@@ -398,6 +403,7 @@ model ConversationParticipant {
   member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@id([conversationId, memberId])
+  @@index([memberId])
 }
 
 model Message {
@@ -406,7 +412,7 @@ model Message {
   senderId       String
   body           String
   attachments    Json?
-  reactions      Json?     // Array of { emoji: string; memberId: string }[]
+  reactions      Json? // Array of { emoji: string; memberId: string }[]
   createdAt      DateTime  @default(now())
   editedAt       DateTime?
   deletedAt      DateTime?
@@ -435,6 +441,7 @@ model Fee {
   payments Payment[]
 
   @@index([clubId])
+  @@index([teamId])
 }
 
 model Payment {
@@ -458,6 +465,7 @@ model Payment {
   @@index([clubId, status])
   @@index([payerId])
   @@index([onBehalfOfId])
+  @@index([feeId])
 }
 
 enum PaymentStatus {
@@ -508,6 +516,7 @@ model WaiverSignature {
 
   @@unique([waiverId, subjectId])
   @@index([subjectId])
+  @@index([signedById])
 }
 
 // ============================================================================
@@ -661,11 +670,11 @@ model ExerciseCategory {
 }
 
 model Exercise {
-  id              String         @id @default(cuid())
-  source          ExerciseSource @default(CUSTOM)
-  type            ExerciseType   @default(TRAINING)
-  clubId          String? // null => BUILTIN, otherwise CUSTOM scoped to club
-  categoryId      String?
+  id         String         @id @default(cuid())
+  source     ExerciseSource @default(CUSTOM)
+  type       ExerciseType   @default(TRAINING)
+  clubId     String? // null => BUILTIN, otherwise CUSTOM scoped to club
+  categoryId String?
 
   // Content
   name            String
@@ -684,20 +693,20 @@ model Exercise {
   fieldSize       String?
 
   // Media
-  imageUrls       String[] // base64 data URLs from /upload (single primary in MVP)
-  youtubeId       String?
-  videoUrl        String?
-  diagramKey      String? // SVG diagram key for built-in trainings
+  imageUrls  String[] // base64 data URLs from /upload (single primary in MVP)
+  youtubeId  String?
+  videoUrl   String?
+  diagramKey String? // SVG diagram key for built-in trainings
 
   // Discoverability
-  icon            String? // emoji
-  tags            String[]
+  icon String? // emoji
+  tags String[]
 
   // Meta
-  createdById     String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  usageCount      Int            @default(0) // increment on drag-to-calendar
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  usageCount  Int      @default(0) // increment on drag-to-calendar
 
   club      Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   category  ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -720,46 +729,46 @@ model Exercise {
 // `source` = BUILTIN (system-wide, clubId=null) / CUSTOM (per-klub).
 // ============================================================================
 enum StrategyCategory {
-  OFFENSE       // útok
-  DEFENSE       // obrana
-  TRANSITION    // přechod (counter / re-press)
-  SET_PIECE     // standardní situace
-  SPECIAL       // power play, oslabení, …
+  OFFENSE // útok
+  DEFENSE // obrana
+  TRANSITION // přechod (counter / re-press)
+  SET_PIECE // standardní situace
+  SPECIAL // power play, oslabení, …
 }
 
 model Strategy {
-  id              String           @id @default(cuid())
-  source          ExerciseSource   @default(CUSTOM)
-  clubId          String?          // null => BUILTIN
-  category        StrategyCategory @default(OFFENSE)
+  id       String           @id @default(cuid())
+  source   ExerciseSource   @default(CUSTOM)
+  clubId   String? // null => BUILTIN
+  category StrategyCategory @default(OFFENSE)
 
   // Content
-  name            String
-  description     String?          // krátký popis / shrnutí
-  whenToUse       String?          // kdy strategii nasadit
-  counterTo       String?          // proti jaké strategii / formaci to hrát
-  reasoning       String?          // proč to funguje
-  roles           Json             @default("[]") // [{ name, description }]
-  keyPoints       String[]         // krátké teze (3–7 bodů)
-  formation       String?          // např. "4-3-3", "1-2-2" pro florbal
-  sports          String[]         // fotbal | florbal | universal
-  difficulty      String?          // easy | medium | hard
-  ageGroups       String[]         // U13..senior
+  name        String
+  description String? // krátký popis / shrnutí
+  whenToUse   String? // kdy strategii nasadit
+  counterTo   String? // proti jaké strategii / formaci to hrát
+  reasoning   String? // proč to funguje
+  roles       Json     @default("[]") // [{ name, description }]
+  keyPoints   String[] // krátké teze (3–7 bodů)
+  formation   String? // např. "4-3-3", "1-2-2" pro florbal
+  sports      String[] // fotbal | florbal | universal
+  difficulty  String? // easy | medium | hard
+  ageGroups   String[] // U13..senior
 
   // Media — animované video (NE s lidmi)
-  videoUrl        String?          // mp4 / webm / youtube embed odkaz
-  posterUrl       String?          // náhled videa
-  imageUrls       String[]         // dodatečné taktické diagramy (statické)
+  videoUrl  String? // mp4 / webm / youtube embed odkaz
+  posterUrl String? // náhled videa
+  imageUrls String[] // dodatečné taktické diagramy (statické)
 
   // Discoverability
-  icon            String?          // emoji
-  tags            String[]
+  icon String? // emoji
+  tags String[]
 
   // Meta
-  createdById     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  usageCount      Int              @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  usageCount  Int      @default(0)
 
   club      Club?   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   createdBy Member? @relation("StrategyCreator", fields: [createdById], references: [id], onDelete: SetNull)
@@ -783,10 +792,10 @@ model Newsletter {
   id             String           @id @default(cuid())
   clubId         String
   title          String
-  body           String           // Markdown / plain HTML
+  body           String // Markdown / plain HTML
   status         NewsletterStatus @default(DRAFT)
-  scheduledFor   DateTime?        // filled when status=SCHEDULED
-  sentAt         DateTime?        // filled when status=SENT
+  scheduledFor   DateTime? // filled when status=SCHEDULED
+  sentAt         DateTime? // filled when status=SENT
   recipientCount Int              @default(0)
   createdById    String?
   createdAt      DateTime         @default(now())
@@ -809,11 +818,11 @@ model Newsletter {
 model PlayerFeedback {
   id        String   @id @default(cuid())
   clubId    String
-  playerId  String   // recipient Member.id
-  authorId  String   // coach Member.id
-  rating    Int?     // optional 1-5 stars
-  text      String   // freeform note
-  category  String?  // e.g. "trénink", "zápas", "postoj"
+  playerId  String // recipient Member.id
+  authorId  String // coach Member.id
+  rating    Int? // optional 1-5 stars
+  text      String // freeform note
+  category  String? // e.g. "trénink", "zápas", "postoj"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

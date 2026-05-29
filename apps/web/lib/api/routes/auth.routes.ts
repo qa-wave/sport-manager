@@ -3,7 +3,11 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { LoginInput, RegisterInput } from '@sport-manager/contracts';
 import * as authService from '../services/auth.service';
+import { strictRateLimit } from '../middleware/rate-limit.middleware';
 import type { HonoEnv } from '../../types/hono';
+
+// Brute-force / abuse guards on sensitive auth flows (10 attempts / 5 min / IP).
+const authLimiter = strictRateLimit({ max: 10, windowSeconds: 300, name: 'auth' });
 
 const ForgotPasswordInput = z.object({
   email: z.string().email(),
@@ -62,7 +66,7 @@ const auth = new Hono<HonoEnv>();
 /**
  * POST /v1/auth/register
  */
-auth.post('/register', zValidator('json', RegisterInput), async (c) => {
+auth.post('/register', authLimiter, zValidator('json', RegisterInput), async (c) => {
   const dto = c.req.valid('json');
   const ctx = getRequestCtx(c.req.raw);
 
@@ -75,7 +79,7 @@ auth.post('/register', zValidator('json', RegisterInput), async (c) => {
 /**
  * POST /v1/auth/login
  */
-auth.post('/login', zValidator('json', LoginInput), async (c) => {
+auth.post('/login', authLimiter, zValidator('json', LoginInput), async (c) => {
   const dto = c.req.valid('json');
   const ctx = getRequestCtx(c.req.raw);
 
@@ -123,7 +127,7 @@ auth.post('/logout', async (c) => {
  * POST /v1/auth/forgot-password
  * Always returns 200 to avoid email enumeration.
  */
-auth.post('/forgot-password', zValidator('json', ForgotPasswordInput), async (c) => {
+auth.post('/forgot-password', authLimiter, zValidator('json', ForgotPasswordInput), async (c) => {
   const { email } = c.req.valid('json');
   await authService.forgotPassword(email);
   return c.json({ message: 'Pokud účet existuje, poslali jsme vám email s odkazem pro reset hesla.' });
@@ -132,7 +136,7 @@ auth.post('/forgot-password', zValidator('json', ForgotPasswordInput), async (c)
 /**
  * POST /v1/auth/reset-password
  */
-auth.post('/reset-password', zValidator('json', ResetPasswordInput), async (c) => {
+auth.post('/reset-password', authLimiter, zValidator('json', ResetPasswordInput), async (c) => {
   const { token, password } = c.req.valid('json');
   await authService.resetPassword(token, password);
   return c.json({ message: 'Heslo bylo úspěšně změněno.' });
