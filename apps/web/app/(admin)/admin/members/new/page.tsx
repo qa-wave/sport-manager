@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const TEAM_ROLES = [
-  { value: 'PLAYER', label: 'Hráč' },
+  { value: 'PLAYER', label: 'Hráč / Hráčka' },
   { value: 'HEAD_COACH', label: 'Hlavní trenér' },
   { value: 'ASSISTANT_COACH', label: 'Asistent trenéra' },
   { value: 'TEAM_MANAGER', label: 'Team manager' },

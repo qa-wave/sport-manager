@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { prisma } from '../prisma';
 import { requireAuth } from '../middleware/rbac.middleware';
+import { uploadBlob, isBlobConfigured } from '../services/blob.service';
 import type { HonoEnv } from '../../types/hono';
 
 /**
@@ -8,10 +9,12 @@ import type { HonoEnv } from '../../types/hono';
  *
  * POST /v1/upload
  *   Accepts multipart/form-data with an image file.
- *   Stores the file as a base64 data URL in the DB (simple MVP — no S3 yet).
- *   Returns { url: string }.
+ *   If Vercel Blob is configured → uploads to Blob CDN, returns public URL.
+ *   Otherwise (local dev / preview without token) → returns base64 data URL.
+ *   Either way the returned `url` survives cold starts: Blob is CDN-hosted,
+ *   base64 ends up in DB rows (avatars, gallery JSON, …).
  *
- * PATCH /v1/members/:id/avatar
+ * PATCH /v1/upload/members/:id/avatar
  *   Updates the avatarUrl on the member's User record.
  *   Body: { avatarUrl: string }
  */
@@ -55,15 +58,29 @@ upload.post('/', async (c) => {
     return c.json({ error: 'Bad Request', message: 'File exceeds 2 MB limit' }, 400);
   }
 
-  const buffer = await file.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
-  const dataUrl = `data:${file.type};base64,${base64}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  return c.json({ url: dataUrl });
+  // Production path: upload to Vercel Blob (durable, CDN-served, survives cold starts).
+  if (isBlobConfigured()) {
+    try {
+      const ext = file.type.split('/')[1] ?? 'bin';
+      const filename = `uploads/${member.clubId}/${crypto.randomUUID()}.${ext}`;
+      const url = await uploadBlob(filename, buffer, file.type);
+      return c.json({ url, storage: 'blob' });
+    } catch (err) {
+      console.error('[upload] Blob upload failed, falling back to base64:', err);
+      // fall through to base64 below
+    }
+  }
+
+  // Fallback: base64 data URL (local dev or Blob outage).
+  const base64 = buffer.toString('base64');
+  const dataUrl = `data:${file.type};base64,${base64}`;
+  return c.json({ url: dataUrl, storage: 'base64' });
 });
 
 // ---------------------------------------------------------------------------
-// PATCH /v1/members/:id/avatar
+// PATCH /v1/upload/members/:id/avatar
 // Updates the user's avatarUrl. Only the member themselves, or ADMIN/OWNER.
 // ---------------------------------------------------------------------------
 upload.patch('/members/:id/avatar', async (c) => {
@@ -87,7 +104,6 @@ upload.patch('/members/:id/avatar', async (c) => {
   }
 
   await prisma.withClub(member.clubId, async (tx) => {
-    // Resolve target member to get userId
     const target = await tx.member.findUnique({
       where: { id: targetMemberId },
       select: { id: true, userId: true },
@@ -97,7 +113,6 @@ upload.patch('/members/:id/avatar', async (c) => {
       throw Object.assign(new Error('Member not found'), { statusCode: 404, code: 'NOT_FOUND' });
     }
 
-    // Permission: self OR ADMIN/OWNER
     const isSelf = target.id === member.memberId;
     const isAdminOrOwner = member.clubRoles.some((r) => ['ADMIN', 'OWNER'].includes(r));
 

@@ -50,26 +50,25 @@ async function issueTokens(
     .setExpirationTime(`${ACCESS_TTL_SECONDS}s`)
     .sign(getAccessSecret());
 
-  // Create a session row with placeholder hash, patch it after signing the RT.
-  const session = await prisma.session.create({
-    data: {
-      userId,
-      refreshHash: 'pending',
-      userAgent: ctx.userAgent,
-      ip: ctx.ip,
-      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
-    },
-  });
+  // Pre-generate session id so we can sign the refresh token with `sid`
+  // BEFORE writing the row — no orphan 'pending' sessions if anything fails.
+  const sessionId = randomId();
 
-  const refreshToken = await new SignJWT({ sub: userId, sid: session.id })
+  const refreshToken = await new SignJWT({ sub: userId, sid: sessionId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
     .sign(getRefreshSecret());
 
-  await prisma.session.update({
-    where: { id: session.id },
-    data: { refreshHash: hashRefresh(refreshToken) },
+  await prisma.session.create({
+    data: {
+      id: sessionId,
+      userId,
+      refreshHash: hashRefresh(refreshToken),
+      userAgent: ctx.userAgent,
+      ip: ctx.ip,
+      expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+    },
   });
 
   return { accessToken, refreshToken };

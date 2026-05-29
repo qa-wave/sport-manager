@@ -19,6 +19,20 @@ messageEmitter.setMaxListeners(200);
 // Typing state: conversationId -> Map<memberId, { name, expiresAt }>
 const typingState = new Map<string, Map<string, { name: string; expiresAt: number }>>();
 
+// Periodic cleanup of expired typing entries to prevent unbounded growth.
+// Runs every 60s, removes entries whose 3s window has long passed.
+const typingCleanupRef = (globalThis as { __typingCleanup?: NodeJS.Timeout }).__typingCleanup;
+if (typingCleanupRef) clearInterval(typingCleanupRef);
+(globalThis as { __typingCleanup?: NodeJS.Timeout }).__typingCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [conversationId, perMember] of typingState) {
+    for (const [memberId, entry] of perMember) {
+      if (entry.expiresAt < now - 30_000) perMember.delete(memberId);
+    }
+    if (perMember.size === 0) typingState.delete(conversationId);
+  }
+}, 60_000);
+
 type MessageReaction = { emoji: string; memberId: string };
 
 /**

@@ -59,20 +59,35 @@ stripe.post('/connect', requireRole('OWNER'), async (c) => {
       select: { email: true },
     });
 
-    stripeAccountId = await createConnectedAccount(
+    const newAccountId = await createConnectedAccount(
       club.name,
       user?.email ?? '',
     );
 
-    // Persist account ID in Club.config
-    await prisma.club.update({
-      where: { id: clubId },
-      data: {
-        config: JSON.parse(
-          JSON.stringify({ ...config, stripeAccountId }),
-        ),
-      },
-    });
+    // Atomic conditional update — only sets stripeAccountId if still empty.
+    // Prevents two concurrent requests from each persisting their own account
+    // and orphaning the other on Stripe.
+    const updated = await prisma.$executeRaw`
+      UPDATE "Club"
+      SET config = jsonb_set(coalesce(config, '{}')::jsonb, '{stripeAccountId}', to_jsonb(${newAccountId}::text), true)
+      WHERE id = ${clubId}
+        AND (config->>'stripeAccountId') IS NULL
+    `;
+
+    if (updated === 0) {
+      // Someone else won the race. Use their accountId; log orphan for cleanup.
+      const fresh = await prisma.club.findUnique({
+        where: { id: clubId },
+        select: { config: true },
+      });
+      const freshCfg = (fresh?.config as Record<string, unknown>) ?? {};
+      stripeAccountId = freshCfg.stripeAccountId as string | undefined;
+      console.warn(
+        `[stripe] Race on connect: orphan Stripe account ${newAccountId} for club ${clubId} (using ${stripeAccountId} instead)`,
+      );
+    } else {
+      stripeAccountId = newAccountId;
+    }
   }
 
   // Build return URL — defaults to the account page.
@@ -302,6 +317,9 @@ stripe.post('/webhook', async (c) => {
         console.info(`[stripe/webhook] Club ${clubId} customer ${session.customer} stored`);
       } catch (err) {
         console.error(`[stripe/webhook] Failed to store customer for club ${clubId}:`, err);
+        // Return 500 so Stripe retries — silently dropping leaves the subscription
+        // unlinked and the club permanently broken.
+        return c.json({ error: 'Internal Server Error' }, 500);
       }
     }
   }

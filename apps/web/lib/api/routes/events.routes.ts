@@ -984,11 +984,16 @@ events.get('/:eventId/carpool', async (c) => {
 // Create a new carpool offer.
 // Body: { seats, departureTime, departureLocation, note? }
 // ---------------------------------------------------------------------------
+/** Strip HTML comment terminators so user text can't break the carpool marker. */
+function sanitizeMarkerText(s: string): string {
+  return s.replace(/-->/g, '-- >').replace(/<!--/g, '<!- -');
+}
+
 const CreateCarpoolInput = z.object({
   seats: z.number().int().min(1).max(20),
   departureTime: z.string().min(1),
-  departureLocation: z.string().min(1).max(200),
-  note: z.string().max(300).optional(),
+  departureLocation: z.string().min(1).max(200).transform(sanitizeMarkerText),
+  note: z.string().max(300).optional().transform((v) => (v ? sanitizeMarkerText(v) : v)),
 });
 
 events.post(
@@ -1063,7 +1068,13 @@ events.post('/:eventId/carpool/:offerId/join', requireAuth(), async (c) => {
   const offerId = c.req.param('offerId');
 
   const result = await prisma.withClub(clubId, async (tx) => {
-    const event = await tx.event.findUnique({ where: { id: eventId } });
+    // SELECT ... FOR UPDATE locks the event row for the duration of the
+    // transaction — prevents two concurrent joins from each reading the same
+    // takenSeats array, both passing the capacity check, and overbooking.
+    const rows = await tx.$queryRaw<Array<{ id: string; description: string | null }>>`
+      SELECT id, description FROM "Event" WHERE id = ${eventId} FOR UPDATE
+    `;
+    const event = rows[0];
     if (!event) return null;
 
     const offers = parseCarpoolMarker(event.description);
@@ -1431,24 +1442,29 @@ async function sendPushNotificationsForEvent(opts: {
 // ---------------------------------------------------------------------------
 // GET /v1/events/:eventId/summary
 // Template-based AI summary — generated on-demand after event + attendance.
+// Restricted to admins/coaches/managers (attendance + RSVP data are sensitive).
 // ---------------------------------------------------------------------------
-events.get('/:eventId/summary', async (c) => {
-  const clubId = c.get('clubId');
-  if (!clubId) {
-    return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
-  }
-  const eventId = c.req.param('eventId');
+events.get(
+  '/:eventId/summary',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER'),
+  async (c) => {
+    const clubId = c.get('clubId');
+    if (!clubId) {
+      return c.json({ error: 'Bad Request', message: 'x-club-id header required' }, 400);
+    }
+    const eventId = c.req.param('eventId');
 
-  const summary = await generateEventSummary(eventId, clubId);
+    const summary = await generateEventSummary(eventId, clubId);
 
-  if (!summary) {
-    return c.json(
-      { error: 'Not Found', message: 'Event not found or no attendance data yet' },
-      404,
-    );
-  }
+    if (!summary) {
+      return c.json(
+        { error: 'Not Found', message: 'Event not found or no attendance data yet' },
+        404,
+      );
+    }
 
-  return c.json(summary);
-});
+    return c.json(summary);
+  },
+);
 
 export { events as eventsRoutes };

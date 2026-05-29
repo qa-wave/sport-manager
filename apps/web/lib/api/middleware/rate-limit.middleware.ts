@@ -1,31 +1,41 @@
 import { createMiddleware } from 'hono/factory';
+import { cache } from '../redis';
 import type { HonoEnv } from '../../types/hono';
 
-const store = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 60_000;
+const WINDOW_SECONDS = 60;
 const MAX_REQUESTS = 100;
 
-// Cleanup expired entries every 60 seconds
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of store) {
-    if (val.resetAt < now) store.delete(key);
-  }
-}, 60_000);
-
+/**
+ * Rate limiter — backed by Vercel Runtime Cache (shared per region),
+ * with in-memory fallback. Per-IP, sliding 60s window.
+ *
+ * Cache key: `rl:ip:<ip>` → JSON { count, resetAt }
+ */
 export const rateLimitMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
   try {
     const forwarded = c.req.header('x-forwarded-for');
     const ip = forwarded ? (forwarded.split(',')[0] ?? 'unknown').trim() : 'unknown';
     const now = Date.now();
+    const key = `rl:ip:${ip}`;
 
-    let entry = store.get(ip);
-    if (!entry || entry.resetAt < now) {
-      entry = { count: 0, resetAt: now + WINDOW_MS };
-      store.set(ip, entry);
+    const raw = await cache.get(key);
+    let entry: { count: number; resetAt: number } | null = null;
+    if (raw) {
+      try {
+        entry = JSON.parse(raw);
+      } catch {
+        entry = null;
+      }
     }
 
-    entry.count++;
+    if (!entry || entry.resetAt < now) {
+      entry = { count: 1, resetAt: now + WINDOW_SECONDS * 1000 };
+    } else {
+      entry.count++;
+    }
+
+    const remainingMs = Math.max(entry.resetAt - now, 1000);
+    await cache.set(key, JSON.stringify(entry), Math.ceil(remainingMs / 1000));
 
     if (entry.count > MAX_REQUESTS) {
       return c.json(

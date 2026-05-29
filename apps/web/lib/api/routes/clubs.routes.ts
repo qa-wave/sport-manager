@@ -25,6 +25,61 @@ function asJson(value: unknown): Prisma.InputJsonValue {
 }
 
 /**
+ * GET /v1/clubs/public/invite-info
+ *
+ * Returns club name + active teams from an invite JWT. Public — no auth.
+ * The token itself authorizes access (anyone with the link).
+ *
+ * NOTE: Must be registered BEFORE `/public/:slug` so Hono doesn't match
+ * "invite-info" as a slug.
+ */
+clubs.get('/public/invite-info', async (c) => {
+  const token = c.req.query('token');
+  if (!token) {
+    return c.json({ error: 'Bad Request', message: 'token query param required' }, 400);
+  }
+
+  const { jwtVerify } = await import('jose');
+  const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
+
+  let payload: { clubId?: string; purpose?: string };
+  try {
+    const { payload: p } = await jwtVerify(token, secret);
+    payload = p as typeof payload;
+  } catch {
+    return c.json({ error: 'Bad Request', message: 'Invalid or expired invite link' }, 400);
+  }
+
+  if (payload.purpose !== 'invite' || !payload.clubId) {
+    return c.json({ error: 'Bad Request', message: 'Invalid invite token' }, 400);
+  }
+
+  const club = await prisma.club.findUnique({
+    where: { id: payload.clubId },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      teams: {
+        select: { id: true, name: true, sport: true, ageGroup: true },
+        orderBy: { name: 'asc' },
+      },
+    },
+  });
+
+  if (!club) {
+    return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
+  }
+
+  return c.json({
+    clubId: club.id,
+    clubName: club.name,
+    slug: club.slug,
+    teams: club.teams,
+  });
+});
+
+/**
  * GET /v1/clubs/public/:slug
  *
  * Public club info — no auth required. Returns name, sport, teams, member count.
@@ -322,14 +377,23 @@ clubs.post(
  * POST /v1/clubs/join
  *
  * Join a club using an invite token. Authenticated user is added
- * as a member of the club.
+ * as a member of the club. Optionally takes a team role + team to
+ * create the team membership in a single step (e.g. "I'm a player on U13").
  */
 clubs.post(
   '/join',
   requireAuth(),
   async (c) => {
     const user = c.get('user')!;
-    const body = await c.req.json() as { token: string };
+    const body = await c.req.json() as {
+      token: string;
+      teamRole?: 'PLAYER' | 'HEAD_COACH' | 'ASSISTANT_COACH' | 'TEAM_MANAGER' | 'MEDIC';
+      teamId?: string;
+    };
+
+    const ALLOWED_TEAM_ROLES = new Set([
+      'PLAYER', 'HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'MEDIC',
+    ]);
 
     const { jwtVerify } = await import('jose');
     const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
@@ -346,19 +410,53 @@ clubs.post(
       throw Object.assign(new Error('Invalid invite token'), { statusCode: 400, code: 'INVALID_TIME' });
     }
 
-    // Check if already member
-    const existing = await prisma.member.findUnique({
-      where: { userId_clubId: { userId: user.id, clubId: payload.clubId } },
+    const clubId = payload.clubId;
+
+    // Resolve member: find existing, otherwise create.
+    let member = await prisma.member.findUnique({
+      where: { userId_clubId: { userId: user.id, clubId } },
+      select: { id: true },
     });
-    if (existing) {
-      return c.json({ clubId: payload.clubId, message: 'Already a member' });
+    if (!member) {
+      member = await prisma.member.create({
+        data: { userId: user.id, clubId },
+        select: { id: true },
+      });
     }
 
-    await prisma.member.create({
-      data: { userId: user.id, clubId: payload.clubId },
-    });
+    // Optional: attach team role in one step.
+    if (body.teamRole && body.teamId) {
+      if (!ALLOWED_TEAM_ROLES.has(body.teamRole)) {
+        throw Object.assign(new Error('Invalid team role'), { statusCode: 400, code: 'INVALID_ROLE' });
+      }
 
-    return c.json({ clubId: payload.clubId, message: 'Joined successfully' }, 201);
+      // Verify the team actually belongs to the invited club.
+      const team = await prisma.team.findFirst({
+        where: { id: body.teamId, clubId },
+        select: { id: true },
+      });
+      if (!team) {
+        throw Object.assign(new Error('Team not found in this club'), { statusCode: 404, code: 'TEAM_NOT_FOUND' });
+      }
+
+      await prisma.teamMembership.upsert({
+        where: {
+          memberId_teamId_role: {
+            memberId: member.id,
+            teamId: body.teamId,
+            role: body.teamRole,
+          },
+        },
+        create: {
+          memberId: member.id,
+          teamId: body.teamId,
+          role: body.teamRole,
+        },
+        update: { leftAt: null },
+      });
+    }
+
+    return c.json({ clubId, message: 'Joined successfully' }, 201);
   },
 );
 

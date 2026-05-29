@@ -1,49 +1,31 @@
-import Redis from 'ioredis';
+import { getCache } from '@vercel/functions';
 
 /**
- * Thin Redis wrapper with in-memory fallback.
+ * Cache layer — Vercel Runtime Cache in production, in-memory fallback locally.
  *
- * The API can boot and operate WITHOUT a local Redis. If REDIS_URL is missing
- * or the connection errors, we transparently fall through to a Map-based cache
- * with the same get/set/del semantics. TTL is in seconds (Redis convention).
+ * Runtime Cache:
+ *  - Per-region key-value store shared across function instances
+ *  - Survives cold starts within the region
+ *  - 2 MB per item, LRU eviction when full
+ *  - Tag-based invalidation
+ *
+ * Locally (no Vercel runtime), falls back to a Map so dev keeps working.
  */
 
 type Entry = { value: string; expiresAt: number };
 
 class CacheService {
-  private readonly client: Redis | null;
   private readonly memory = new Map<string, Entry>();
+  private runtimeCache: ReturnType<typeof getCache> | null = null;
   private usingFallback = false;
 
   constructor() {
-    const url = process.env.REDIS_URL;
-    if (!url) {
-      console.warn('[cache] REDIS_URL not set — using in-memory fallback cache');
-      this.client = null;
-      this.usingFallback = true;
-      return;
-    }
-
     try {
-      this.client = new Redis(url, {
-        maxRetriesPerRequest: 2,
-        lazyConnect: false,
-        enableOfflineQueue: true,
-      });
-
-      this.client.on('error', (err: Error) => {
-        if (!this.usingFallback) {
-          console.warn(
-            `[cache] Redis error (falling back to memory): ${err.message}`,
-          );
-          this.usingFallback = true;
-        }
-      });
+      this.runtimeCache = getCache();
     } catch (err) {
       console.warn(
-        `[cache] Redis setup failed (${(err as Error).message}) — using memory`,
+        `[cache] Vercel Runtime Cache unavailable (${(err as Error).message}) — using in-memory fallback`,
       );
-      this.client = null;
       this.usingFallback = true;
     }
   }
@@ -51,41 +33,41 @@ class CacheService {
   async get(key: string): Promise<string | null> {
     if (this.shouldUseMemory()) return this.getFromMemory(key);
     try {
-      return await this.client!.get(key);
+      const value = await this.runtimeCache!.get(key);
+      return typeof value === 'string' ? value : value == null ? null : JSON.stringify(value);
     } catch (err) {
-      console.warn(`[cache] Redis GET failed (${(err as Error).message}) — falling back`);
+      console.warn(`[cache] Runtime Cache GET failed (${(err as Error).message}) — falling back`);
       this.usingFallback = true;
       return this.getFromMemory(key);
     }
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
-    if (this.shouldUseMemory()) {
-      this.memory.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
-      return;
-    }
+    // Always write to memory as a hot-path mirror (cheap)
+    this.memory.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+
+    if (this.shouldUseMemory()) return;
     try {
-      await this.client!.set(key, value, 'EX', ttlSeconds);
+      await this.runtimeCache!.set(key, value, { ttl: ttlSeconds });
     } catch (err) {
-      console.warn(`[cache] Redis SET failed (${(err as Error).message}) — falling back`);
+      console.warn(`[cache] Runtime Cache SET failed (${(err as Error).message}) — using memory only`);
       this.usingFallback = true;
-      this.memory.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
     }
   }
 
   async del(key: string): Promise<void> {
     this.memory.delete(key);
-    if (this.client && !this.usingFallback) {
+    if (this.runtimeCache && !this.usingFallback) {
       try {
-        await this.client.del(key);
+        await this.runtimeCache.delete(key);
       } catch (err) {
-        console.warn(`[cache] Redis DEL failed (${(err as Error).message})`);
+        console.warn(`[cache] Runtime Cache DEL failed (${(err as Error).message})`);
       }
     }
   }
 
   private shouldUseMemory(): boolean {
-    return this.usingFallback || !this.client;
+    return this.usingFallback || !this.runtimeCache;
   }
 
   private getFromMemory(key: string): string | null {
@@ -99,15 +81,11 @@ class CacheService {
   }
 }
 
-/**
- * globalThis singleton so the cache survives hot reloads.
- */
 const globalForCache = globalThis as unknown as {
   cacheService: CacheService | undefined;
 };
 
-export const cache =
-  globalForCache.cacheService ?? new CacheService();
+export const cache = globalForCache.cacheService ?? new CacheService();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForCache.cacheService = cache;
