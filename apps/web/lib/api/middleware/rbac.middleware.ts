@@ -10,26 +10,28 @@ export async function resolveMemberContext(
   userId: string,
   clubId: string,
 ): Promise<MemberContext | null> {
-  const member = await prisma.member.findUnique({
-    where: { userId_clubId: { userId, clubId } },
-    include: {
-      clubRoles: true,
-      teamMemberships: {
-        where: { leftAt: null },
-        select: { teamId: true, role: true },
-      },
-      guardianLinks: {
-        where: { verifiedAt: { not: null } },
-        select: {
-          childId: true,
-          canViewPayments: true,
-          canViewMedical: true,
-          canSignWaivers: true,
-          canRsvp: true,
+  const member = await prisma.withClub(clubId, (tx) =>
+    tx.member.findUnique({
+      where: { userId_clubId: { userId, clubId } },
+      include: {
+        clubRoles: true,
+        teamMemberships: {
+          where: { leftAt: null },
+          select: { teamId: true, role: true },
+        },
+        guardianLinks: {
+          where: { verifiedAt: { not: null } },
+          select: {
+            childId: true,
+            canViewPayments: true,
+            canViewMedical: true,
+            canSignWaivers: true,
+            canRsvp: true,
+          },
         },
       },
-    },
-  });
+    }),
+  );
 
   if (!member) return null;
 

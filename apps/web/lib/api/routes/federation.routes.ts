@@ -406,13 +406,15 @@ export async function runAutoSync(): Promise<{
       }
 
       // Find any club member to use as createdById (prefer owner/admin)
-      const adminMember = await prisma.member.findFirst({
-        where: {
-          clubId: club.id,
-          clubRoles: { some: { role: { in: ['OWNER', 'ADMIN'] } } },
-        },
-        select: { id: true },
-      });
+      const adminMember = await prisma.withClub(club.id, (tx) =>
+        tx.member.findFirst({
+          where: {
+            clubId: club.id,
+            clubRoles: { some: { role: { in: ['OWNER', 'ADMIN'] } } },
+          },
+          select: { id: true },
+        }),
+      );
 
       if (!adminMember) {
         errors.push({ clubId: club.id, error: 'No admin member found for createdById' });

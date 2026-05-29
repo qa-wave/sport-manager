@@ -127,13 +127,15 @@ stripe.post('/checkout', requireAuth(), async (c) => {
   }
 
   // Load payment — ensure it belongs to this club and is still PENDING.
-  const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
-    include: {
-      fee: { select: { name: true } },
-      club: { select: { config: true } },
-    },
-  });
+  const payment = await prisma.withClub(clubId, (tx) =>
+    tx.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        fee: { select: { name: true } },
+        club: { select: { config: true } },
+      },
+    }),
+  );
 
   if (!payment || payment.clubId !== clubId) {
     throw Object.assign(new Error('Payment not found'), {
@@ -306,17 +308,21 @@ stripe.post('/webhook', async (c) => {
     const clubId = session.metadata?.clubId;
     const plan = session.metadata?.plan as 'pro' | 'club' | undefined;
 
-    // One-time payment → mark as PAID
+    // One-time payment → mark as PAID. Signature-verified system callback,
+    // keyed by unique paymentId → platform-admin scope (Payment is RLS-protected
+    // and the webhook has no club context for one-time sessions).
     if (paymentId) {
       try {
-        await prisma.payment.update({
-          where: { id: paymentId },
-          data: {
-            status: 'PAID',
-            paidAt: new Date(),
-            stripePaymentIntentId: session.payment_intent as string | null ?? session.id,
-          },
-        });
+        await prisma.withPlatformAdmin((tx) =>
+          tx.payment.update({
+            where: { id: paymentId },
+            data: {
+              status: 'PAID',
+              paidAt: new Date(),
+              stripePaymentIntentId: session.payment_intent as string | null ?? session.id,
+            },
+          }),
+        );
         console.info(`[stripe/webhook] Payment ${paymentId} marked as PAID`);
       } catch (err) {
         console.error(`[stripe/webhook] Failed to update payment ${paymentId}:`, err);

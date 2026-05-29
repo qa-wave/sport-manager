@@ -42,7 +42,9 @@ waivers.get('/', async (c) => {
   });
 
   // Count total club members for "X/Y signed" stat
-  const memberCount = await prisma.member.count({ where: { clubId } });
+  const memberCount = await prisma.withClub(clubId, (tx) =>
+    tx.member.count({ where: { clubId } }),
+  );
 
   return c.json(
     list.map((w) => ({
@@ -77,15 +79,17 @@ waivers.post(
     const member = c.get('member')!;
     const input = c.req.valid('json');
 
-    const waiver = await prisma.waiver.create({
-      data: {
-        clubId: member.clubId,
-        title: input.title,
-        body: input.body,
-        type: input.type as any,
-        requiredForMinors: input.requiredForMinors,
-      },
-    });
+    const waiver = await prisma.withClub(member.clubId, (tx) =>
+      tx.waiver.create({
+        data: {
+          clubId: member.clubId,
+          title: input.title,
+          body: input.body,
+          type: input.type as any,
+          requiredForMinors: input.requiredForMinors,
+        },
+      }),
+    );
 
     return c.json({ id: waiver.id }, 201);
   },
@@ -162,9 +166,11 @@ waivers.post('/:id/sign', requireAuth(), zValidator('json', SignWaiverInput), as
 
   if (memberId !== member.memberId && !isAdminOrOwner) {
     // Check if signer is guardian of subject with canSignWaivers
-    const link = await prisma.guardianLink.findUnique({
-      where: { guardianId_childId: { guardianId: member.memberId, childId: memberId } },
-    });
+    const link = await prisma.withClub(clubId, (tx) =>
+      tx.guardianLink.findUnique({
+        where: { guardianId_childId: { guardianId: member.memberId, childId: memberId } },
+      }),
+    );
     if (!link || !link.canSignWaivers || !link.verifiedAt) {
       return c.json({ error: 'Forbidden', message: 'You cannot sign on behalf of this member' }, 403);
     }

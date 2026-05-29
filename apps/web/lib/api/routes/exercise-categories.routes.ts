@@ -52,13 +52,15 @@ categories.get('/', async (c) => {
   }
   const type = c.req.query('type');
 
-  const rows = await prisma.exerciseCategory.findMany({
-    where: {
-      clubId,
-      ...(type === 'TRAINING' || type === 'PHYSIO' ? { type } : {}),
-    },
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-  });
+  const rows = await prisma.withClub(clubId, (tx) =>
+    tx.exerciseCategory.findMany({
+      where: {
+        clubId,
+        ...(type === 'TRAINING' || type === 'PHYSIO' ? { type } : {}),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    }),
+  );
 
   return c.json({ categories: rows.map(serialize) });
 });
@@ -78,18 +80,20 @@ categories.post(
     const input = c.req.valid('json');
 
     try {
-      const row = await prisma.exerciseCategory.create({
-        data: {
-          type: input.type,
-          slug: input.slug,
-          name: input.name,
-          icon: input.icon ?? null,
-          colorKey: input.colorKey ?? null,
-          sortOrder: input.sortOrder ?? 100,
-          clubId,
-          isBuiltin: false,
-        },
-      });
+      const row = await prisma.withClub(clubId, (tx) =>
+        tx.exerciseCategory.create({
+          data: {
+            type: input.type,
+            slug: input.slug,
+            name: input.name,
+            icon: input.icon ?? null,
+            colorKey: input.colorKey ?? null,
+            sortOrder: input.sortOrder ?? 100,
+            clubId,
+            isBuiltin: false,
+          },
+        }),
+      );
       return c.json(serialize(row), 201);
     } catch (err: unknown) {
       if (
@@ -121,7 +125,9 @@ categories.delete(
     }
     const id = c.req.param('id');
 
-    const existing = await prisma.exerciseCategory.findFirst({ where: { id, clubId } });
+    const existing = await prisma.withClub(clubId, (tx) =>
+      tx.exerciseCategory.findFirst({ where: { id, clubId } }),
+    );
     if (!existing) {
       return c.json({ error: 'Not Found', message: 'Category not found' }, 404);
     }
@@ -129,7 +135,7 @@ categories.delete(
       return c.json({ error: 'Forbidden', message: 'Built-in categories are read-only' }, 403);
     }
 
-    await prisma.exerciseCategory.delete({ where: { id } });
+    await prisma.withClub(clubId, (tx) => tx.exerciseCategory.delete({ where: { id } }));
     return c.json({ ok: true });
   },
 );

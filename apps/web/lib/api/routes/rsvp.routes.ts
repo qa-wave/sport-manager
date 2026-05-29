@@ -30,7 +30,22 @@ async function decodeRsvpToken(token: string) {
     eventId: payload['eventId'] as string,
     memberId: payload['memberId'] as string,
     status: payload['status'] as string,
+    // clubId embedded in tokens issued after the RLS rollout; older tokens omit it.
+    clubId: typeof payload['clubId'] === 'string' ? (payload['clubId'] as string) : null,
   };
+}
+
+/**
+ * Resolve an event for a signature-verified magic link. Under RLS, Event reads
+ * must be club-scoped. Newer tokens carry clubId → withClub; older tokens fall
+ * back to platform-admin scope (the JWT signature is the credential, and the
+ * lookup is keyed by the token's own eventId).
+ */
+async function findEventByToken<T>(
+  clubId: string | null,
+  fn: (tx: Parameters<Parameters<typeof prisma.withClub>[1]>[0]) => Promise<T>,
+): Promise<T> {
+  return clubId ? prisma.withClub(clubId, fn) : prisma.withPlatformAdmin(fn);
 }
 
 // ---------------------------------------------------------------------------
@@ -42,12 +57,14 @@ rsvp.get('/:token', async (c) => {
   const token = c.req.param('token');
 
   try {
-    const { eventId, status } = await decodeRsvpToken(token);
+    const { eventId, status, clubId } = await decodeRsvpToken(token);
 
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, title: true, startsAt: true, endsAt: true, location: true },
-    });
+    const event = await findEventByToken(clubId, (tx) =>
+      tx.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, title: true, startsAt: true, endsAt: true, location: true },
+      }),
+    );
 
     if (!event) {
       return c.json({ error: 'Not Found', message: 'Událost nebyla nalezena' }, 404);
@@ -77,7 +94,7 @@ rsvp.get('/:token', async (c) => {
 rsvp.post('/:token', async (c) => {
   const token = c.req.param('token');
 
-  let decoded: { eventId: string; memberId: string; status: string };
+  let decoded: Awaited<ReturnType<typeof decodeRsvpToken>>;
   try {
     decoded = await decodeRsvpToken(token);
   } catch {
@@ -98,10 +115,12 @@ rsvp.post('/:token', async (c) => {
     // body is optional — ignore parse errors
   }
 
-  const event = await prisma.event.findUnique({
-    where: { id: decoded.eventId },
-    select: { id: true, title: true, clubId: true },
-  });
+  const event = await findEventByToken(decoded.clubId, (tx) =>
+    tx.event.findUnique({
+      where: { id: decoded.eventId },
+      select: { id: true, title: true, clubId: true },
+    }),
+  );
 
   if (!event) {
     return c.json({ error: 'Not Found', message: 'Událost nebyla nalezena' }, 404);

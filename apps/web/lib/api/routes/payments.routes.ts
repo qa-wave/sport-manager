@@ -31,19 +31,21 @@ payments.get(
       member.clubRoles.includes('FINANCE')
     );
 
-    const rows = await prisma.payment.findMany({
-      where: {
-        clubId,
-        ...(!isAdmin && member ? { payerId: member.memberId } : {}),
-      },
-      include: {
-        fee: { select: { name: true } },
-        payer: { select: { user: { select: { firstName: true, lastName: true } } } },
-        onBehalfOf: { select: { user: { select: { firstName: true, lastName: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+    const rows = await prisma.withClub(clubId, (tx) =>
+      tx.payment.findMany({
+        where: {
+          clubId,
+          ...(!isAdmin && member ? { payerId: member.memberId } : {}),
+        },
+        include: {
+          fee: { select: { name: true } },
+          payer: { select: { user: { select: { firstName: true, lastName: true } } } },
+          onBehalfOf: { select: { user: { select: { firstName: true, lastName: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+    );
 
     const items = rows.map(p => ({
       id: p.id,
@@ -74,11 +76,13 @@ payments.get(
   async (c) => {
     const clubId = c.get('clubId')!;
 
-    const [total, paid, pending] = await Promise.all([
-      prisma.payment.count({ where: { clubId } }),
-      prisma.payment.count({ where: { clubId, status: 'PAID' } }),
-      prisma.payment.count({ where: { clubId, status: 'PENDING' } }),
-    ]);
+    const [total, paid, pending] = await prisma.withClub(clubId, (tx) =>
+      Promise.all([
+        tx.payment.count({ where: { clubId } }),
+        tx.payment.count({ where: { clubId, status: 'PAID' } }),
+        tx.payment.count({ where: { clubId, status: 'PENDING' } }),
+      ]),
+    );
 
     return c.json({ total, paid, pending, failed: total - paid - pending });
   },

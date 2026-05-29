@@ -24,7 +24,25 @@ class ExtendedPrismaClient extends PrismaClient {
       return fn(tx);
     });
   }
+
+  /**
+   * Run `fn` with platform-admin scope — RLS policies treat the sentinel
+   * `app.club_id = '__platform__'` as "see all clubs". MUST only be called
+   * from routes already gated by requirePlatformAdmin(). A real clubId is a
+   * cuid and can never collide with the sentinel.
+   */
+  async withPlatformAdmin<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.club_id', '__platform__', true)`;
+      return fn(tx);
+    });
+  }
 }
+
+/** Sentinel club id that RLS policies recognise as platform-admin bypass. */
+export const PLATFORM_ADMIN_SENTINEL = '__platform__';
 
 /**
  * globalThis pattern ensures a single PrismaClient instance survives

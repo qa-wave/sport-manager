@@ -121,7 +121,7 @@ platformAdmin.patch(
 
     const parsed = FeatureFlags.parse(input.features);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.withClub(clubId, async (tx) => {
       const current = await tx.club.findUnique({
         where: { id: clubId },
         select: { features: true, config: true },
@@ -182,7 +182,7 @@ platformAdmin.patch(
 
     const parsed = ClubConfig.parse(input.config);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.withClub(clubId, async (tx) => {
       const current = await tx.club.findUnique({
         where: { id: clubId },
         select: { features: true, config: true },
@@ -248,17 +248,19 @@ platformAdmin.get('/:clubId/audit', async (c) => {
 
   const limit = Math.min(Math.max(limitParam ? parseInt(limitParam, 10) : 20, 1), 100);
 
-  const rows = await prisma.clubFeatureAudit.findMany({
-    where: { clubId },
-    orderBy: { changedAt: 'desc' },
-    take: limit + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    include: {
-      changedBy: {
-        select: { id: true, email: true, firstName: true, lastName: true },
+  const rows = await prisma.withClub(clubId, (tx) =>
+    tx.clubFeatureAudit.findMany({
+      where: { clubId },
+      orderBy: { changedAt: 'desc' },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        changedBy: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
       },
-    },
-  });
+    }),
+  );
 
   const hasMore = rows.length > limit;
   const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => ({
@@ -290,6 +292,8 @@ platformAdmin.get('/analytics', async (c) => {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+  // Cross-club analytics — Member/Event are RLS-protected, so run under
+  // platform-admin scope (sentinel app.club_id) to see all clubs at once.
   const [
     totalClubs,
     totalUsers,
@@ -298,21 +302,23 @@ platformAdmin.get('/analytics', async (c) => {
     newUsersLast30Days,
     activeClubIds,
     allClubConfigs,
-  ] = await Promise.all([
-    prisma.club.count(),
-    prisma.user.count(),
-    prisma.member.count(),
-    prisma.event.count(),
-    prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.event
-      .findMany({
-        where: { startsAt: { gte: sevenDaysAgo } },
-        select: { clubId: true },
-        distinct: ['clubId'],
-      })
-      .then((rows) => new Set(rows.map((r) => r.clubId))),
-    prisma.club.findMany({ select: { config: true } }),
-  ]);
+  ] = await prisma.withPlatformAdmin((tx) =>
+    Promise.all([
+      tx.club.count(),
+      tx.user.count(),
+      tx.member.count(),
+      tx.event.count(),
+      tx.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      tx.event
+        .findMany({
+          where: { startsAt: { gte: sevenDaysAgo } },
+          select: { clubId: true },
+          distinct: ['clubId'],
+        })
+        .then((rows) => new Set(rows.map((r) => r.clubId))),
+      tx.club.findMany({ select: { config: true } }),
+    ]),
+  );
 
   const clubsByTier: Record<string, number> = { free: 0, pro: 0, enterprise: 0 };
   for (const club of allClubConfigs) {

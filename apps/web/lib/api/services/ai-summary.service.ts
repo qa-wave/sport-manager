@@ -113,22 +113,24 @@ export async function generateEventSummary(
   let topStreak: { name: string; count: number } | undefined;
   if (event.teamId) {
     try {
-      const recentEvents = await prisma.event.findMany({
-        where: {
-          clubId,
-          teamId: event.teamId,
-          endsAt: { lte: event.endsAt },
-        },
-        orderBy: { startsAt: 'desc' },
-        take: 20,
-        select: {
-          id: true,
-          attendances: {
-            where: { attended: true },
-            select: { memberId: true },
+      const recentEvents = await prisma.withClub(clubId, (tx) =>
+        tx.event.findMany({
+          where: {
+            clubId,
+            teamId: event.teamId,
+            endsAt: { lte: event.endsAt },
           },
-        },
-      });
+          orderBy: { startsAt: 'desc' },
+          take: 20,
+          select: {
+            id: true,
+            attendances: {
+              where: { attended: true },
+              select: { memberId: true },
+            },
+          },
+        }),
+      );
 
       // Build streak map: memberId -> consecutive events attended from latest backwards
       const streakMap = new Map<string, number>();

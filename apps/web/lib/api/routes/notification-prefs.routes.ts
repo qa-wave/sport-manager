@@ -29,11 +29,13 @@ notificationPrefs.get('/', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
   if (!member) return c.json({ error: 'Forbidden', message: 'Club membership required' }, 403);
 
-  const prefs = await prisma.notificationPreference.upsert({
-    where: { userId_clubId: { userId: user.id, clubId: member.clubId } },
-    create: { userId: user.id, clubId: member.clubId },
-    update: {},
-  });
+  const prefs = await prisma.withClub(member.clubId, (tx) =>
+    tx.notificationPreference.upsert({
+      where: { userId_clubId: { userId: user.id, clubId: member.clubId } },
+      create: { userId: user.id, clubId: member.clubId },
+      update: {},
+    }),
+  );
 
   return c.json({
     id: prefs.id,
@@ -64,11 +66,13 @@ notificationPrefs.patch('/', async (c) => {
     Object.entries(data).filter(([, v]) => v !== undefined),
   ) as Record<string, boolean>;
 
-  const prefs = await prisma.notificationPreference.upsert({
-    where: { userId_clubId: { userId: user.id, clubId: member.clubId } },
-    create: { userId: user.id, clubId: member.clubId, ...updateData },
-    update: updateData,
-  });
+  const prefs = await prisma.withClub(member.clubId, (tx) =>
+    tx.notificationPreference.upsert({
+      where: { userId_clubId: { userId: user.id, clubId: member.clubId } },
+      create: { userId: user.id, clubId: member.clubId, ...updateData },
+      update: updateData,
+    }),
+  );
 
   return c.json({
     id: prefs.id,

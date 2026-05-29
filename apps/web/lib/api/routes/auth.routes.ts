@@ -6,8 +6,10 @@ import * as authService from '../services/auth.service';
 import { strictRateLimit } from '../middleware/rate-limit.middleware';
 import type { HonoEnv } from '../../types/hono';
 
-// Brute-force / abuse guards on sensitive auth flows (10 attempts / 5 min / IP).
-const authLimiter = strictRateLimit({ max: 10, windowSeconds: 300, name: 'auth' });
+// Brute-force / abuse guards on sensitive auth flows. 30 / 5 min / IP — slow
+// enough to throttle credential stuffing, generous enough for shared/NAT IPs
+// (schools, families) and not trip on normal bursts.
+const authLimiter = strictRateLimit({ max: 30, windowSeconds: 300, name: 'auth' });
 
 const ForgotPasswordInput = z.object({
   email: z.string().email(),

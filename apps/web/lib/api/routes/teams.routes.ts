@@ -464,19 +464,27 @@ teams.patch('/:teamId', async (c) => {
   const teamId = c.req.param('teamId');
   const body = updateTeamSchema.parse(await c.req.json());
 
-  const team = await prisma.team.findFirst({ where: { id: teamId, clubId } });
-  if (!team) return c.json({ error: 'Not Found', message: 'Team not found' }, 404);
+  const updateResult = await prisma.withClub(clubId, async (tx) => {
+    const team = await tx.team.findFirst({ where: { id: teamId, clubId } });
+    if (!team) return { error: 'notFound' as const };
 
-  const updated = await prisma.team.update({
-    where: { id: teamId },
-    data: {
-      ...(body.name !== undefined && { name: body.name }),
-      ...(body.sport !== undefined && { sport: body.sport }),
-      ...(body.ageGroup !== undefined && { ageGroup: body.ageGroup }),
-      ...(body.season !== undefined && { season: body.season }),
-    },
-    select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+    const updated = await tx.team.update({
+      where: { id: teamId },
+      data: {
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.sport !== undefined && { sport: body.sport }),
+        ...(body.ageGroup !== undefined && { ageGroup: body.ageGroup }),
+        ...(body.season !== undefined && { season: body.season }),
+      },
+      select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+    });
+    return { updated };
   });
+
+  if ('error' in updateResult) {
+    return c.json({ error: 'Not Found', message: 'Team not found' }, 404);
+  }
+  const { updated } = updateResult;
 
   return c.json(updated);
 });

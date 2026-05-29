@@ -165,10 +165,12 @@ gallery.post(
     const { url, caption } = c.req.valid('json');
 
     // Fetch uploader name
-    const memberRecord = await prisma.member.findUnique({
-      where: { id: member.memberId },
-      select: { user: { select: { firstName: true, lastName: true } } },
-    });
+    const memberRecord = await prisma.withClub(clubId, (tx) =>
+      tx.member.findUnique({
+        where: { id: member.memberId },
+        select: { user: { select: { firstName: true, lastName: true } } },
+      }),
+    );
     const uploaderName = memberRecord
       ? `${memberRecord.user.firstName} ${memberRecord.user.lastName}`
       : 'Člen';

@@ -40,8 +40,8 @@ vi.mock('web-push', () => ({
   },
 }));
 
-vi.mock('../lib/api/prisma', () => ({
-  prisma: {
+vi.mock('../lib/api/prisma', () => {
+  const client = {
     pushSubscription: {
       findMany: mocks.mockFindManySubscriptions,
       delete: mocks.mockDeleteSubscription,
@@ -49,8 +49,15 @@ vi.mock('../lib/api/prisma', () => ({
     member: {
       findMany: mocks.mockFindManyMembers,
     },
-  },
-}));
+  };
+  return {
+    prisma: {
+      ...client,
+      withClub: (_clubId: string, fn: (tx: typeof client) => unknown) => fn(client),
+      withPlatformAdmin: (fn: (tx: typeof client) => unknown) => fn(client),
+    },
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Import service AFTER mocks are registered

@@ -26,34 +26,40 @@ me.use('/*', requireAuth());
 me.get('/', async (c) => {
   const user = c.get('user')!;
 
-  const full = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      avatarUrl: true,
-      locale: true,
-      isPlatformAdmin: true,
-      members: {
-        select: {
-          id: true,
-          clubId: true,
-          club: {
-            select: {
-              id: true,
-              slug: true,
-              name: true,
-              timezone: true,
-              features: true,
-              config: true,
+  // Cross-club bootstrap: a user's own memberships span multiple clubs, so the
+  // nested (RLS-protected) Member/Club rows are read under platform scope. The
+  // query is keyed by the authenticated user's id, so only their own data is
+  // ever returned — no cross-tenant leak.
+  const full = await prisma.withPlatformAdmin((tx) =>
+    tx.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        locale: true,
+        isPlatformAdmin: true,
+        members: {
+          select: {
+            id: true,
+            clubId: true,
+            club: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+                timezone: true,
+                features: true,
+                config: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+  );
 
   if (!full) {
     return c.json({ error: 'Not Found', message: 'User not found' }, 404);

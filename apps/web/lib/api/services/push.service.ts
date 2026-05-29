@@ -106,10 +106,12 @@ export async function sendPushToClub(
   payload: PushPayload,
 ): Promise<void> {
   // Get all active members in the club
-  const members = await prisma.member.findMany({
-    where: { clubId, status: 'ACTIVE' },
-    select: { userId: true },
-  });
+  const members = await prisma.withClub(clubId, (tx) =>
+    tx.member.findMany({
+      where: { clubId, status: 'ACTIVE' },
+      select: { userId: true },
+    }),
+  );
 
   const userIds = [...new Set(members.map((m) => m.userId))];
 

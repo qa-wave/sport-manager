@@ -551,10 +551,12 @@ conversations.post('/:conversationId/typing', async (c) => {
   }
 
   // Fetch member name for the typing indicator
-  const memberData = await prisma.member.findUnique({
-    where: { id: member.memberId },
-    select: { user: { select: { firstName: true } } },
-  });
+  const memberData = await prisma.withClub(member.clubId, (tx) =>
+    tx.member.findUnique({
+      where: { id: member.memberId },
+      select: { user: { select: { firstName: true } } },
+    }),
+  );
   const name = memberData?.user.firstName ?? 'Někdo';
 
   // Update in-memory typing state (expires in 3s)
@@ -735,14 +737,16 @@ async function sendMessagePushNotifications(opts: {
   clubId: string;
 }): Promise<void> {
   try {
-    const participants = await prisma.conversationParticipant.findMany({
-      where: {
-        conversationId: opts.conversationId,
-        memberId: { not: opts.senderMemberId },
-        muted: false,
-      },
-      select: { member: { select: { userId: true } } },
-    });
+    const participants = await prisma.withClub(opts.clubId, (tx) =>
+      tx.conversationParticipant.findMany({
+        where: {
+          conversationId: opts.conversationId,
+          memberId: { not: opts.senderMemberId },
+          muted: false,
+        },
+        select: { member: { select: { userId: true } } },
+      }),
+    );
 
     const preview = opts.body.length > 80 ? `${opts.body.slice(0, 80)}...` : opts.body;
 

@@ -12,14 +12,22 @@ const mocks = vi.hoisted(() => ({
   teamMembershipUpsert: vi.fn(),
 }));
 
-vi.mock('../lib/api/prisma', () => ({
-  prisma: {
+vi.mock('../lib/api/prisma', () => {
+  const client = {
     club: { findUnique: mocks.clubFindUnique },
     member: { findUnique: mocks.memberFindUnique, create: mocks.memberCreate },
     team: { findFirst: mocks.teamFindFirst },
     teamMembership: { upsert: mocks.teamMembershipUpsert },
-  },
-}));
+  };
+  return {
+    prisma: {
+      ...client,
+      // withClub/withPlatformAdmin run the callback with the same mocked client as `tx`.
+      withClub: (_clubId: string, fn: (tx: typeof client) => unknown) => fn(client),
+      withPlatformAdmin: (fn: (tx: typeof client) => unknown) => fn(client),
+    },
+  };
+});
 
 vi.mock('../lib/api/services/email.service', () => ({
   sendEmail: vi.fn(),

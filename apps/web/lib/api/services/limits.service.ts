@@ -58,7 +58,7 @@ export async function assertMemberLimit(
   if (await isPlatformAdmin(actingUserId)) return;
 
   const { tier, maxMembers } = await getEffectiveLimits(clubId);
-  const current = await prisma.member.count({ where: { clubId } });
+  const current = await prisma.withClub(clubId, (tx) => tx.member.count({ where: { clubId } }));
 
   if (current >= maxMembers) {
     throw Object.assign(
@@ -77,7 +77,7 @@ export async function assertTeamLimit(
   if (await isPlatformAdmin(actingUserId)) return;
 
   const { tier, maxTeams } = await getEffectiveLimits(clubId);
-  const current = await prisma.team.count({ where: { clubId } });
+  const current = await prisma.withClub(clubId, (tx) => tx.team.count({ where: { clubId } }));
 
   if (current >= maxTeams) {
     throw Object.assign(
@@ -151,10 +151,12 @@ export async function getClubUsage(
   teams: { current: number; max: number };
 }> {
   const { tier, maxMembers, maxTeams } = await getEffectiveLimits(clubId);
-  const [members, teams] = await Promise.all([
-    prisma.member.count({ where: { clubId } }),
-    prisma.team.count({ where: { clubId } }),
-  ]);
+  const [members, teams] = await prisma.withClub(clubId, (tx) =>
+    Promise.all([
+      tx.member.count({ where: { clubId } }),
+      tx.team.count({ where: { clubId } }),
+    ]),
+  );
 
   return {
     tier,

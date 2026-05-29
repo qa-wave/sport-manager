@@ -86,28 +86,30 @@ newsletter.get('/', async (c) => {
     ...(status ? { status: status as 'DRAFT' | 'SCHEDULED' | 'SENT' } : {}),
   };
 
-  const [items, total] = await Promise.all([
-    prisma.newsletter.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        scheduledFor: true,
-        sentAt: true,
-        recipientCount: true,
-        createdAt: true,
-        updatedAt: true,
-        createdBy: {
-          select: { user: { select: { firstName: true, lastName: true } } },
+  const [items, total] = await prisma.withClub(clubId, (tx) =>
+    Promise.all([
+      tx.newsletter.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          scheduledFor: true,
+          sentAt: true,
+          recipientCount: true,
+          createdAt: true,
+          updatedAt: true,
+          createdBy: {
+            select: { user: { select: { firstName: true, lastName: true } } },
+          },
         },
-      },
-    }),
-    prisma.newsletter.count({ where }),
-  ]);
+      }),
+      tx.newsletter.count({ where }),
+    ]),
+  );
 
   return c.json({
     items: items.map((n) => ({
@@ -135,12 +137,14 @@ newsletter.get('/:id', async (c) => {
   const clubId = c.get('clubId');
   if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id required' }, 400);
 
-  const row = await prisma.newsletter.findFirst({
-    where: { id: c.req.param('id'), clubId },
-    include: {
-      createdBy: { select: { user: { select: { firstName: true, lastName: true } } } },
-    },
-  });
+  const row = await prisma.withClub(clubId, (tx) =>
+    tx.newsletter.findFirst({
+      where: { id: c.req.param('id'), clubId },
+      include: {
+        createdBy: { select: { user: { select: { firstName: true, lastName: true } } } },
+      },
+    }),
+  );
 
   if (!row) return c.json({ error: 'Not Found', message: 'Newsletter not found' }, 404);
 
@@ -177,16 +181,18 @@ newsletter.post(
     const { title, body: bodyContent, scheduledFor } = parsed.data;
     const status = scheduledFor ? 'SCHEDULED' : 'DRAFT';
 
-    const row = await prisma.newsletter.create({
-      data: {
-        clubId,
-        title,
-        body: bodyContent,
-        status,
-        scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-        createdById: member?.memberId ?? null,
-      },
-    });
+    const row = await prisma.withClub(clubId, (tx) =>
+      tx.newsletter.create({
+        data: {
+          clubId,
+          title,
+          body: bodyContent,
+          status,
+          scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+          createdById: member?.memberId ?? null,
+        },
+      }),
+    );
 
     return c.json({
       id: row.id,
@@ -211,9 +217,9 @@ newsletter.patch(
     const clubId = c.get('clubId');
     if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id required' }, 400);
 
-    const existing = await prisma.newsletter.findFirst({
-      where: { id: c.req.param('id'), clubId },
-    });
+    const existing = await prisma.withClub(clubId, (tx) =>
+      tx.newsletter.findFirst({ where: { id: c.req.param('id'), clubId } }),
+    );
     if (!existing) return c.json({ error: 'Not Found', message: 'Newsletter not found' }, 404);
     if (existing.status === 'SENT') {
       return c.json({ error: 'Conflict', message: 'Cannot edit a sent newsletter' }, 409);
@@ -228,15 +234,17 @@ newsletter.patch(
     const { title, body: bodyContent, scheduledFor, status } = parsed.data;
     const newStatus = status ?? (scheduledFor !== undefined ? (scheduledFor ? 'SCHEDULED' : 'DRAFT') : existing.status);
 
-    const updated = await prisma.newsletter.update({
-      where: { id: existing.id },
-      data: {
-        ...(title !== undefined ? { title } : {}),
-        ...(bodyContent !== undefined ? { body: bodyContent } : {}),
-        ...(scheduledFor !== undefined ? { scheduledFor: scheduledFor ? new Date(scheduledFor) : null } : {}),
-        status: newStatus,
-      },
-    });
+    const updated = await prisma.withClub(clubId, (tx) =>
+      tx.newsletter.update({
+        where: { id: existing.id },
+        data: {
+          ...(title !== undefined ? { title } : {}),
+          ...(bodyContent !== undefined ? { body: bodyContent } : {}),
+          ...(scheduledFor !== undefined ? { scheduledFor: scheduledFor ? new Date(scheduledFor) : null } : {}),
+          status: newStatus,
+        },
+      }),
+    );
 
     return c.json({
       id: updated.id,
@@ -261,15 +269,15 @@ newsletter.delete(
     const clubId = c.get('clubId');
     if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id required' }, 400);
 
-    const existing = await prisma.newsletter.findFirst({
-      where: { id: c.req.param('id'), clubId },
-    });
+    const existing = await prisma.withClub(clubId, (tx) =>
+      tx.newsletter.findFirst({ where: { id: c.req.param('id'), clubId } }),
+    );
     if (!existing) return c.json({ error: 'Not Found', message: 'Newsletter not found' }, 404);
     if (existing.status !== 'DRAFT') {
       return c.json({ error: 'Conflict', message: 'Only DRAFT newsletters can be deleted' }, 409);
     }
 
-    await prisma.newsletter.delete({ where: { id: existing.id } });
+    await prisma.withClub(clubId, (tx) => tx.newsletter.delete({ where: { id: existing.id } }));
     return c.json({ ok: true });
   },
 );
@@ -286,28 +294,23 @@ newsletter.post(
     const clubId = c.get('clubId');
     if (!clubId) return c.json({ error: 'Bad Request', message: 'x-club-id required' }, 400);
 
-    const existing = await prisma.newsletter.findFirst({
-      where: { id: c.req.param('id'), clubId },
-    });
+    const [existing, club, members] = await prisma.withClub(clubId, (tx) =>
+      Promise.all([
+        tx.newsletter.findFirst({ where: { id: c.req.param('id'), clubId } }),
+        tx.club.findUnique({ where: { id: clubId }, select: { name: true, slug: true } }),
+        tx.member.findMany({
+          where: { clubId, status: 'ACTIVE' },
+          select: {
+            user: { select: { email: true, firstName: true, lastName: true } },
+          },
+        }),
+      ]),
+    );
     if (!existing) return c.json({ error: 'Not Found', message: 'Newsletter not found' }, 404);
     if (existing.status === 'SENT') {
       return c.json({ error: 'Conflict', message: 'Newsletter already sent' }, 409);
     }
-
-    // Get the club info for email template
-    const club = await prisma.club.findUnique({
-      where: { id: clubId },
-      select: { name: true, slug: true },
-    });
     if (!club) return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
-
-    // Get all active members of the club
-    const members = await prisma.member.findMany({
-      where: { clubId, status: 'ACTIVE' },
-      select: {
-        user: { select: { email: true, firstName: true, lastName: true } },
-      },
-    });
 
     if (members.length === 0) {
       return c.json(
@@ -336,14 +339,16 @@ newsletter.post(
       }
     }
 
-    const updated = await prisma.newsletter.update({
-      where: { id: existing.id },
-      data: {
-        status: 'SENT',
-        sentAt: new Date(),
-        recipientCount: sent,
-      },
-    });
+    const updated = await prisma.withClub(clubId, (tx) =>
+      tx.newsletter.update({
+        where: { id: existing.id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+          recipientCount: sent,
+        },
+      }),
+    );
 
     return c.json({
       id: updated.id,
@@ -367,15 +372,13 @@ newsletter.post(
     const user = c.get('user');
     if (!user) return c.json({ error: 'Unauthorized', message: 'Authentication required' }, 401);
 
-    const existing = await prisma.newsletter.findFirst({
-      where: { id: c.req.param('id'), clubId },
-    });
+    const [existing, club] = await prisma.withClub(clubId, (tx) =>
+      Promise.all([
+        tx.newsletter.findFirst({ where: { id: c.req.param('id'), clubId } }),
+        tx.club.findUnique({ where: { id: clubId }, select: { name: true, slug: true } }),
+      ]),
+    );
     if (!existing) return c.json({ error: 'Not Found', message: 'Newsletter not found' }, 404);
-
-    const club = await prisma.club.findUnique({
-      where: { id: clubId },
-      select: { name: true, slug: true },
-    });
     if (!club) return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
 
     // Optional: custom preview email from body

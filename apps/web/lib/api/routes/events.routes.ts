@@ -624,6 +624,7 @@ events.post(
       memberId: body.memberId,
       status,
       purpose: 'rsvp',
+      clubId: member.clubId,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -795,12 +796,12 @@ async function sendNewEventEmailsForTeam(opts: {
     for (const member of notifiable) {
       // Generate member-specific magic RSVP tokens
       const [tokenYes, tokenNo] = await Promise.all([
-        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'YES', purpose: 'rsvp' })
+        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'YES', purpose: 'rsvp', clubId: opts.clubId })
           .setProtectedHeader({ alg: 'HS256' })
           .setIssuedAt()
           .setExpirationTime('7d')
           .sign(new TextEncoder().encode(secret)),
-        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'NO', purpose: 'rsvp' })
+        new SignJWT({ eventId: opts.eventId, memberId: member.memberId, status: 'NO', purpose: 'rsvp', clubId: opts.clubId })
           .setProtectedHeader({ alg: 'HS256' })
           .setIssuedAt()
           .setExpirationTime('7d')
@@ -874,6 +875,7 @@ async function sendRsvpEmailsForEvent(opts: {
         memberId: member.id,
         status: 'YES',
         purpose: 'rsvp',
+        clubId: opts.clubId,
       })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()

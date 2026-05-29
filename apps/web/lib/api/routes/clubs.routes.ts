@@ -54,18 +54,21 @@ clubs.get('/public/invite-info', async (c) => {
     return c.json({ error: 'Bad Request', message: 'Invalid invite token' }, 400);
   }
 
-  const club = await prisma.club.findUnique({
-    where: { id: payload.clubId },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      teams: {
-        select: { id: true, name: true, sport: true, ageGroup: true },
-        orderBy: { name: 'asc' },
+  // Nested teams are RLS-protected; this is a token-gated public read of one club.
+  const club = await prisma.withPlatformAdmin((tx) =>
+    tx.club.findUnique({
+      where: { id: payload.clubId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        teams: {
+          select: { id: true, name: true, sport: true, ageGroup: true },
+          orderBy: { name: 'asc' },
+        },
       },
-    },
-  });
+    }),
+  );
 
   if (!club) {
     return c.json({ error: 'Not Found', message: 'Club not found' }, 404);
@@ -87,20 +90,24 @@ clubs.get('/public/invite-info', async (c) => {
 clubs.get('/public/:slug', async (c) => {
   const slug = c.req.param('slug');
 
-  const club = await prisma.club.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      config: true,
-      teams: {
-        select: { id: true, name: true, sport: true, ageGroup: true, season: true },
-        orderBy: { name: 'asc' },
+  // Public read of one club's public info; nested teams/members are RLS-protected
+  // so run under platform scope. Keyed by unique slug → single club only.
+  const club = await prisma.withPlatformAdmin((tx) =>
+    tx.club.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        config: true,
+        teams: {
+          select: { id: true, name: true, sport: true, ageGroup: true, season: true },
+          orderBy: { name: 'asc' },
+        },
+        _count: { select: { members: true } },
       },
-      _count: { select: { members: true } },
-    },
-  });
+    }),
+  );
 
   if (!club) {
     throw Object.assign(new Error('Club not found'), { statusCode: 404, code: 'CLUB_NOT_FOUND' });
@@ -164,6 +171,10 @@ clubs.post(
         },
       });
 
+      // Scope the rest of the tx to the new club so RLS WITH CHECK passes when
+      // inserting the owner Member / ClubRole / Team (Club itself is not RLS'd).
+      await tx.$executeRaw`SELECT set_config('app.club_id', ${newClub.id}, true)`;
+
       // Create member + OWNER role
       const member = await tx.member.create({
         data: { userId: user.id, clubId: newClub.id },
@@ -209,7 +220,7 @@ clubs.patch(
     const input = c.req.valid('json');
     const parsedTheme = ClubTheme.parse(input.theme);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.withClub(clubId, async (tx) => {
       const current = await tx.club.findUnique({
         where: { id: clubId },
         select: { config: true },
@@ -270,7 +281,7 @@ clubs.patch(
       return c.json({ error: 'Bad Request', message: 'At least one field required' }, 400);
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.withClub(clubId, async (tx) => {
       // If updating currentSeason, merge into config
       if (input.currentSeason) {
         const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
@@ -315,7 +326,7 @@ clubs.post(
     const clubId = c.get('clubId')!;
     const { newSeason } = c.req.valid('json');
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.withClub(clubId, async (tx) => {
       const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
       const currentConfig = (current?.config as Record<string, unknown>) ?? {};
       const archivedSeasons = Array.isArray(currentConfig.archivedSeasons)
@@ -412,48 +423,58 @@ clubs.post(
 
     const clubId = payload.clubId;
 
-    // Resolve member: find existing, otherwise create.
-    let member = await prisma.member.findUnique({
-      where: { userId_clubId: { userId: user.id, clubId } },
-      select: { id: true },
-    });
-    if (!member) {
-      member = await prisma.member.create({
-        data: { userId: user.id, clubId },
+    // Resolve member + optional team membership inside a single withClub transaction.
+    const { teamNotFound, invalidRole } = await prisma.withClub(clubId, async (tx) => {
+      let m = await tx.member.findUnique({
+        where: { userId_clubId: { userId: user.id, clubId } },
         select: { id: true },
       });
-    }
-
-    // Optional: attach team role in one step.
-    if (body.teamRole && body.teamId) {
-      if (!ALLOWED_TEAM_ROLES.has(body.teamRole)) {
-        return c.json({ error: 'Bad Request', message: 'Invalid team role', code: 'INVALID_ROLE' }, 400);
+      if (!m) {
+        m = await tx.member.create({
+          data: { userId: user.id, clubId },
+          select: { id: true },
+        });
       }
 
-      // Verify the team actually belongs to the invited club.
-      const team = await prisma.team.findFirst({
-        where: { id: body.teamId, clubId },
-        select: { id: true },
-      });
-      if (!team) {
-        return c.json({ error: 'Not Found', message: 'Team not found in this club', code: 'TEAM_NOT_FOUND' }, 404);
-      }
+      // Optional: attach team role in one step.
+      if (body.teamRole && body.teamId) {
+        if (!ALLOWED_TEAM_ROLES.has(body.teamRole)) {
+          return { member: m, teamNotFound: false, invalidRole: true };
+        }
 
-      await prisma.teamMembership.upsert({
-        where: {
-          memberId_teamId_role: {
-            memberId: member.id,
+        const team = await tx.team.findFirst({
+          where: { id: body.teamId, clubId },
+          select: { id: true },
+        });
+        if (!team) {
+          return { member: m, teamNotFound: true };
+        }
+
+        await tx.teamMembership.upsert({
+          where: {
+            memberId_teamId_role: {
+              memberId: m.id,
+              teamId: body.teamId,
+              role: body.teamRole,
+            },
+          },
+          create: {
+            memberId: m.id,
             teamId: body.teamId,
             role: body.teamRole,
           },
-        },
-        create: {
-          memberId: member.id,
-          teamId: body.teamId,
-          role: body.teamRole,
-        },
-        update: { leftAt: null },
-      });
+          update: { leftAt: null },
+        });
+      }
+
+      return { member: m, teamNotFound: false };
+    });
+
+    if (invalidRole) {
+      return c.json({ error: 'Bad Request', message: 'Invalid team role', code: 'INVALID_ROLE' }, 400);
+    }
+    if (teamNotFound) {
+      return c.json({ error: 'Not Found', message: 'Team not found in this club', code: 'TEAM_NOT_FOUND' }, 404);
     }
 
     return c.json({ clubId, message: 'Joined successfully' }, 201);
@@ -472,15 +493,17 @@ clubs.get('/audit', requireRole('OWNER', 'ADMIN'), async (c) => {
   const cursor = c.req.query('cursor');
   const limit = Math.min(Math.max(limitParam ? parseInt(limitParam, 10) : 20, 1), 100);
 
-  const rows = await prisma.clubFeatureAudit.findMany({
-    where: { clubId },
-    orderBy: { changedAt: 'desc' },
-    take: limit + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    include: {
-      changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
-    },
-  });
+  const rows = await prisma.withClub(clubId, (tx) =>
+    tx.clubFeatureAudit.findMany({
+      where: { clubId },
+      orderBy: { changedAt: 'desc' },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        changedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+    }),
+  );
 
   const hasMore = rows.length > limit;
   const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => ({
@@ -552,7 +575,7 @@ clubs.post('/apply-referral', requireRole('OWNER'), zValidator('json', ApplyRefe
   }
 
   // Store referredBy in current club config, add current club to referrer's referredClubs
-  await prisma.$transaction(async (tx) => {
+  await prisma.withClub(clubId, async (tx) => {
     const [currentClub, referrerClub] = await Promise.all([
       tx.club.findUnique({ where: { id: clubId }, select: { config: true } }),
       tx.club.findUnique({ where: { id: referrer.id }, select: { config: true } }),
@@ -663,13 +686,15 @@ clubs.post('/public/:slug/registration', zValidator('json', RegistrationInput), 
 
   // Check team exists in this club if teamId provided
   if (input.teamId) {
-    const team = await prisma.team.findFirst({ where: { id: input.teamId, clubId: club.id } });
+    const team = await prisma.withClub(club.id, (tx) =>
+      tx.team.findFirst({ where: { id: input.teamId!, clubId: club.id } }),
+    );
     if (!team) {
       return c.json({ error: 'Bad Request', message: 'Team not found in this club' }, 400);
     }
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.withClub(club.id, async (tx) => {
     // Upsert parent user
     let parentUser = await tx.user.findUnique({ where: { email: input.parentEmail } });
     if (!parentUser) {
@@ -801,7 +826,7 @@ clubs.patch(
     const clubId = c.get('clubId')!;
     const { open } = c.req.valid('json');
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.withClub(clubId, async (tx) => {
       const current = await tx.club.findUnique({ where: { id: clubId }, select: { config: true } });
       const currentConfig = (current?.config as Record<string, unknown>) ?? {};
       const regConfig = (currentConfig.registration as Record<string, unknown> | undefined) ?? {};

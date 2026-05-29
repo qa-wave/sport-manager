@@ -142,10 +142,12 @@ reports.get(
       .slice(0, 10);
 
     // ── Payment summary ───────────────────────────────────────────────────
-    const paymentRows = await prisma.payment.findMany({
-      where: { clubId },
-      select: { amountCents: true, currency: true, status: true },
-    });
+    const paymentRows = await prisma.withClub(clubId, (tx) =>
+      tx.payment.findMany({
+        where: { clubId },
+        select: { amountCents: true, currency: true, status: true },
+      }),
+    );
 
     const collected = paymentRows
       .filter((p) => p.status === 'PAID')

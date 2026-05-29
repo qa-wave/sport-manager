@@ -92,14 +92,16 @@ exercises.get('/', async (c) => {
     ];
   }
 
-  const rows = await prisma.exercise.findMany({
-    where,
-    include: {
-      category: true,
-      createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-    },
-    orderBy: { updatedAt: 'desc' },
-  });
+  const rows = await prisma.withClub(clubId, (tx) =>
+    tx.exercise.findMany({
+      where,
+      include: {
+        category: true,
+        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  );
 
   return c.json({ exercises: rows.map(serializeExercise) });
 });
@@ -114,13 +116,15 @@ exercises.get('/:id', async (c) => {
   }
   const id = c.req.param('id');
 
-  const row = await prisma.exercise.findFirst({
-    where: { id, clubId },
-    include: {
-      category: true,
-      createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-    },
-  });
+  const row = await prisma.withClub(clubId, (tx) =>
+    tx.exercise.findFirst({
+      where: { id, clubId },
+      include: {
+        category: true,
+        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+      },
+    }),
+  );
   if (!row) {
     return c.json({ error: 'Not Found', message: 'Exercise not found' }, 404);
   }
@@ -142,49 +146,60 @@ exercises.post(
     }
     const input = c.req.valid('json');
 
-    // If categoryId is provided, verify it belongs to this club or is built-in.
-    if (input.categoryId) {
-      const cat = await prisma.exerciseCategory.findUnique({ where: { id: input.categoryId } });
-      if (!cat || (cat.clubId && cat.clubId !== clubId)) {
+    const createResult = await prisma.withClub(clubId, async (tx) => {
+      // If categoryId is provided, verify it belongs to this club or is built-in.
+      if (input.categoryId) {
+        const cat = await tx.exerciseCategory.findUnique({ where: { id: input.categoryId } });
+        if (!cat || (cat.clubId && cat.clubId !== clubId)) {
+          return { error: 'invalidCategory' as const };
+        }
+        if (cat.type !== input.type) {
+          return { error: 'typeMismatch' as const };
+        }
+      }
+
+      const row = await tx.exercise.create({
+        data: {
+          source: 'CUSTOM',
+          type: input.type,
+          clubId,
+          categoryId: input.categoryId ?? null,
+          name: input.name,
+          description: input.description ?? null,
+          instructions: input.instructions ?? [],
+          coachingPoints: input.coachingPoints ?? [],
+          equipment: input.equipment ?? [],
+          difficulty: input.difficulty ?? null,
+          ageGroups: input.ageGroups ?? [],
+          sports: input.sports ?? [],
+          bodyAreas: input.bodyAreas ?? [],
+          physioType: input.physioType ?? null,
+          durationMinutes: input.durationMinutes ?? null,
+          playersMin: input.playersMin ?? null,
+          playersMax: input.playersMax ?? null,
+          fieldSize: input.fieldSize ?? null,
+          imageUrls: input.imageUrls ?? [],
+          youtubeId: input.youtubeId ?? null,
+          videoUrl: input.videoUrl ?? null,
+          icon: input.icon ?? null,
+          tags: input.tags ?? [],
+          createdById: member.memberId,
+        },
+        include: {
+          category: true,
+          createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+        },
+      });
+      return { row };
+    });
+
+    if ('error' in createResult) {
+      if (createResult.error === 'invalidCategory') {
         return c.json({ error: 'Bad Request', message: 'Invalid category' }, 400);
       }
-      if (cat.type !== input.type) {
-        return c.json({ error: 'Bad Request', message: 'Category type mismatch' }, 400);
-      }
+      return c.json({ error: 'Bad Request', message: 'Category type mismatch' }, 400);
     }
-
-    const row = await prisma.exercise.create({
-      data: {
-        source: 'CUSTOM',
-        type: input.type,
-        clubId,
-        categoryId: input.categoryId ?? null,
-        name: input.name,
-        description: input.description ?? null,
-        instructions: input.instructions ?? [],
-        coachingPoints: input.coachingPoints ?? [],
-        equipment: input.equipment ?? [],
-        difficulty: input.difficulty ?? null,
-        ageGroups: input.ageGroups ?? [],
-        sports: input.sports ?? [],
-        bodyAreas: input.bodyAreas ?? [],
-        physioType: input.physioType ?? null,
-        durationMinutes: input.durationMinutes ?? null,
-        playersMin: input.playersMin ?? null,
-        playersMax: input.playersMax ?? null,
-        fieldSize: input.fieldSize ?? null,
-        imageUrls: input.imageUrls ?? [],
-        youtubeId: input.youtubeId ?? null,
-        videoUrl: input.videoUrl ?? null,
-        icon: input.icon ?? null,
-        tags: input.tags ?? [],
-        createdById: member.memberId,
-      },
-      include: {
-        category: true,
-        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-      },
-    });
+    const { row } = createResult;
 
     return c.json(serializeExercise(row), 201);
   },
@@ -205,58 +220,65 @@ exercises.patch(
     const id = c.req.param('id');
     const input = c.req.valid('json');
 
-    const existing = await prisma.exercise.findFirst({ where: { id, clubId } });
-    if (!existing) {
-      return c.json({ error: 'Not Found', message: 'Exercise not found' }, 404);
-    }
-    if (existing.source === 'BUILTIN') {
-      return c.json(
-        { error: 'Forbidden', message: 'Built-in exercises are read-only' },
-        403,
-      );
-    }
+    const updateResult = await prisma.withClub(clubId, async (tx) => {
+      const existing = await tx.exercise.findFirst({ where: { id, clubId } });
+      if (!existing) return { error: 'notFound' as const };
+      if (existing.source === 'BUILTIN') return { error: 'builtin' as const };
 
-    if (input.categoryId) {
-      const cat = await prisma.exerciseCategory.findUnique({ where: { id: input.categoryId } });
-      if (!cat || (cat.clubId && cat.clubId !== clubId)) {
-        return c.json({ error: 'Bad Request', message: 'Invalid category' }, 400);
+      if (input.categoryId) {
+        const cat = await tx.exerciseCategory.findUnique({ where: { id: input.categoryId } });
+        if (!cat || (cat.clubId && cat.clubId !== clubId)) {
+          return { error: 'invalidCategory' as const };
+        }
       }
-    }
 
-    const data: Prisma.ExerciseUpdateInput = {};
-    if (input.name !== undefined) data.name = input.name;
-    if (input.description !== undefined) data.description = input.description ?? null;
-    if (input.categoryId !== undefined) {
-      data.category = input.categoryId
-        ? { connect: { id: input.categoryId } }
-        : { disconnect: true };
-    }
-    if (input.instructions !== undefined) data.instructions = input.instructions ?? [];
-    if (input.coachingPoints !== undefined) data.coachingPoints = input.coachingPoints ?? [];
-    if (input.equipment !== undefined) data.equipment = input.equipment ?? [];
-    if (input.difficulty !== undefined) data.difficulty = input.difficulty ?? null;
-    if (input.ageGroups !== undefined) data.ageGroups = input.ageGroups ?? [];
-    if (input.sports !== undefined) data.sports = input.sports ?? [];
-    if (input.bodyAreas !== undefined) data.bodyAreas = input.bodyAreas ?? [];
-    if (input.physioType !== undefined) data.physioType = input.physioType ?? null;
-    if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes ?? null;
-    if (input.playersMin !== undefined) data.playersMin = input.playersMin ?? null;
-    if (input.playersMax !== undefined) data.playersMax = input.playersMax ?? null;
-    if (input.fieldSize !== undefined) data.fieldSize = input.fieldSize ?? null;
-    if (input.imageUrls !== undefined) data.imageUrls = input.imageUrls ?? [];
-    if (input.youtubeId !== undefined) data.youtubeId = input.youtubeId ?? null;
-    if (input.videoUrl !== undefined) data.videoUrl = input.videoUrl ?? null;
-    if (input.icon !== undefined) data.icon = input.icon ?? null;
-    if (input.tags !== undefined) data.tags = input.tags ?? [];
+      const data: Prisma.ExerciseUpdateInput = {};
+      if (input.name !== undefined) data.name = input.name;
+      if (input.description !== undefined) data.description = input.description ?? null;
+      if (input.categoryId !== undefined) {
+        data.category = input.categoryId
+          ? { connect: { id: input.categoryId } }
+          : { disconnect: true };
+      }
+      if (input.instructions !== undefined) data.instructions = input.instructions ?? [];
+      if (input.coachingPoints !== undefined) data.coachingPoints = input.coachingPoints ?? [];
+      if (input.equipment !== undefined) data.equipment = input.equipment ?? [];
+      if (input.difficulty !== undefined) data.difficulty = input.difficulty ?? null;
+      if (input.ageGroups !== undefined) data.ageGroups = input.ageGroups ?? [];
+      if (input.sports !== undefined) data.sports = input.sports ?? [];
+      if (input.bodyAreas !== undefined) data.bodyAreas = input.bodyAreas ?? [];
+      if (input.physioType !== undefined) data.physioType = input.physioType ?? null;
+      if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes ?? null;
+      if (input.playersMin !== undefined) data.playersMin = input.playersMin ?? null;
+      if (input.playersMax !== undefined) data.playersMax = input.playersMax ?? null;
+      if (input.fieldSize !== undefined) data.fieldSize = input.fieldSize ?? null;
+      if (input.imageUrls !== undefined) data.imageUrls = input.imageUrls ?? [];
+      if (input.youtubeId !== undefined) data.youtubeId = input.youtubeId ?? null;
+      if (input.videoUrl !== undefined) data.videoUrl = input.videoUrl ?? null;
+      if (input.icon !== undefined) data.icon = input.icon ?? null;
+      if (input.tags !== undefined) data.tags = input.tags ?? [];
 
-    const row = await prisma.exercise.update({
-      where: { id },
-      data,
-      include: {
-        category: true,
-        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-      },
+      const row = await tx.exercise.update({
+        where: { id },
+        data,
+        include: {
+          category: true,
+          createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+        },
+      });
+      return { row };
     });
+
+    if ('error' in updateResult) {
+      if (updateResult.error === 'notFound') {
+        return c.json({ error: 'Not Found', message: 'Exercise not found' }, 404);
+      }
+      if (updateResult.error === 'builtin') {
+        return c.json({ error: 'Forbidden', message: 'Built-in exercises are read-only' }, 403);
+      }
+      return c.json({ error: 'Bad Request', message: 'Invalid category' }, 400);
+    }
+    const { row } = updateResult;
 
     return c.json(serializeExercise(row));
   },
@@ -275,18 +297,20 @@ exercises.delete(
     }
     const id = c.req.param('id');
 
-    const existing = await prisma.exercise.findFirst({ where: { id, clubId } });
-    if (!existing) {
-      return c.json({ error: 'Not Found', message: 'Exercise not found' }, 404);
-    }
-    if (existing.source === 'BUILTIN') {
-      return c.json(
-        { error: 'Forbidden', message: 'Built-in exercises are read-only' },
-        403,
-      );
-    }
+    const deleteResult = await prisma.withClub(clubId, async (tx) => {
+      const existing = await tx.exercise.findFirst({ where: { id, clubId } });
+      if (!existing) return { error: 'notFound' as const };
+      if (existing.source === 'BUILTIN') return { error: 'builtin' as const };
+      await tx.exercise.delete({ where: { id } });
+      return { ok: true };
+    });
 
-    await prisma.exercise.delete({ where: { id } });
+    if ('error' in deleteResult) {
+      if (deleteResult.error === 'notFound') {
+        return c.json({ error: 'Not Found', message: 'Exercise not found' }, 404);
+      }
+      return c.json({ error: 'Forbidden', message: 'Built-in exercises are read-only' }, 403);
+    }
     return c.json({ ok: true });
   },
 );

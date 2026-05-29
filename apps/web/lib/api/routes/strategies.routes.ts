@@ -103,13 +103,15 @@ strategies.get('/', async (c) => {
     where.AND = [{ OR: orClauses }];
   }
 
-  const rows = await prisma.strategy.findMany({
-    where,
-    include: {
-      createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-    },
-    orderBy: [{ source: 'asc' }, { updatedAt: 'desc' }],
-  });
+  const rows = await prisma.withClub(clubId, (tx) =>
+    tx.strategy.findMany({
+      where,
+      include: {
+        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+      },
+      orderBy: [{ source: 'asc' }, { updatedAt: 'desc' }],
+    }),
+  );
 
   return c.json({ strategies: rows.map(serializeStrategy) });
 });
@@ -124,18 +126,20 @@ strategies.get('/:id', async (c) => {
   }
   const id = c.req.param('id');
 
-  const row = await prisma.strategy.findFirst({
-    where: {
-      id,
-      OR: [
-        { source: 'BUILTIN', clubId: null },
-        { clubId },
-      ],
-    },
-    include: {
-      createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-    },
-  });
+  const row = await prisma.withClub(clubId, (tx) =>
+    tx.strategy.findFirst({
+      where: {
+        id,
+        OR: [
+          { source: 'BUILTIN', clubId: null },
+          { clubId },
+        ],
+      },
+      include: {
+        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+      },
+    }),
+  );
   if (!row) {
     return c.json({ error: 'Not Found', message: 'Strategy not found' }, 404);
   }
@@ -157,33 +161,35 @@ strategies.post(
     }
     const input = c.req.valid('json');
 
-    const row = await prisma.strategy.create({
-      data: {
-        source: 'CUSTOM',
-        clubId,
-        category: input.category,
-        name: input.name,
-        description: input.description ?? null,
-        whenToUse: input.whenToUse ?? null,
-        counterTo: input.counterTo ?? null,
-        reasoning: input.reasoning ?? null,
-        roles: (input.roles ?? []) as Prisma.InputJsonValue,
-        keyPoints: input.keyPoints ?? [],
-        formation: input.formation ?? null,
-        sports: input.sports ?? [],
-        difficulty: input.difficulty ?? null,
-        ageGroups: input.ageGroups ?? [],
-        videoUrl: input.videoUrl ?? null,
-        posterUrl: input.posterUrl ?? null,
-        imageUrls: input.imageUrls ?? [],
-        icon: input.icon ?? null,
-        tags: input.tags ?? [],
-        createdById: member.memberId,
-      },
-      include: {
-        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-      },
-    });
+    const row = await prisma.withClub(clubId, (tx) =>
+      tx.strategy.create({
+        data: {
+          source: 'CUSTOM',
+          clubId,
+          category: input.category,
+          name: input.name,
+          description: input.description ?? null,
+          whenToUse: input.whenToUse ?? null,
+          counterTo: input.counterTo ?? null,
+          reasoning: input.reasoning ?? null,
+          roles: (input.roles ?? []) as Prisma.InputJsonValue,
+          keyPoints: input.keyPoints ?? [],
+          formation: input.formation ?? null,
+          sports: input.sports ?? [],
+          difficulty: input.difficulty ?? null,
+          ageGroups: input.ageGroups ?? [],
+          videoUrl: input.videoUrl ?? null,
+          posterUrl: input.posterUrl ?? null,
+          imageUrls: input.imageUrls ?? [],
+          icon: input.icon ?? null,
+          tags: input.tags ?? [],
+          createdById: member.memberId,
+        },
+        include: {
+          createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+        },
+      }),
+    );
 
     return c.json(serializeStrategy(row), 201);
   },
@@ -204,43 +210,47 @@ strategies.patch(
     const id = c.req.param('id');
     const input = c.req.valid('json');
 
-    const existing = await prisma.strategy.findFirst({ where: { id, clubId } });
-    if (!existing) {
-      return c.json({ error: 'Not Found', message: 'Strategy not found' }, 404);
-    }
-    if (existing.source === 'BUILTIN') {
-      return c.json(
-        { error: 'Forbidden', message: 'Built-in strategies are read-only' },
-        403,
-      );
-    }
+    const updateResult = await prisma.withClub(clubId, async (tx) => {
+      const existing = await tx.strategy.findFirst({ where: { id, clubId } });
+      if (!existing) return { error: 'notFound' as const };
+      if (existing.source === 'BUILTIN') return { error: 'builtin' as const };
 
-    const data: Prisma.StrategyUpdateInput = {};
-    if (input.category !== undefined) data.category = input.category;
-    if (input.name !== undefined) data.name = input.name;
-    if (input.description !== undefined) data.description = input.description ?? null;
-    if (input.whenToUse !== undefined) data.whenToUse = input.whenToUse ?? null;
-    if (input.counterTo !== undefined) data.counterTo = input.counterTo ?? null;
-    if (input.reasoning !== undefined) data.reasoning = input.reasoning ?? null;
-    if (input.roles !== undefined) data.roles = (input.roles ?? []) as Prisma.InputJsonValue;
-    if (input.keyPoints !== undefined) data.keyPoints = input.keyPoints ?? [];
-    if (input.formation !== undefined) data.formation = input.formation ?? null;
-    if (input.sports !== undefined) data.sports = input.sports ?? [];
-    if (input.difficulty !== undefined) data.difficulty = input.difficulty ?? null;
-    if (input.ageGroups !== undefined) data.ageGroups = input.ageGroups ?? [];
-    if (input.videoUrl !== undefined) data.videoUrl = input.videoUrl ?? null;
-    if (input.posterUrl !== undefined) data.posterUrl = input.posterUrl ?? null;
-    if (input.imageUrls !== undefined) data.imageUrls = input.imageUrls ?? [];
-    if (input.icon !== undefined) data.icon = input.icon ?? null;
-    if (input.tags !== undefined) data.tags = input.tags ?? [];
+      const data: Prisma.StrategyUpdateInput = {};
+      if (input.category !== undefined) data.category = input.category;
+      if (input.name !== undefined) data.name = input.name;
+      if (input.description !== undefined) data.description = input.description ?? null;
+      if (input.whenToUse !== undefined) data.whenToUse = input.whenToUse ?? null;
+      if (input.counterTo !== undefined) data.counterTo = input.counterTo ?? null;
+      if (input.reasoning !== undefined) data.reasoning = input.reasoning ?? null;
+      if (input.roles !== undefined) data.roles = (input.roles ?? []) as Prisma.InputJsonValue;
+      if (input.keyPoints !== undefined) data.keyPoints = input.keyPoints ?? [];
+      if (input.formation !== undefined) data.formation = input.formation ?? null;
+      if (input.sports !== undefined) data.sports = input.sports ?? [];
+      if (input.difficulty !== undefined) data.difficulty = input.difficulty ?? null;
+      if (input.ageGroups !== undefined) data.ageGroups = input.ageGroups ?? [];
+      if (input.videoUrl !== undefined) data.videoUrl = input.videoUrl ?? null;
+      if (input.posterUrl !== undefined) data.posterUrl = input.posterUrl ?? null;
+      if (input.imageUrls !== undefined) data.imageUrls = input.imageUrls ?? [];
+      if (input.icon !== undefined) data.icon = input.icon ?? null;
+      if (input.tags !== undefined) data.tags = input.tags ?? [];
 
-    const row = await prisma.strategy.update({
-      where: { id },
-      data,
-      include: {
-        createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
-      },
+      const row = await tx.strategy.update({
+        where: { id },
+        data,
+        include: {
+          createdBy: { include: { user: { select: { firstName: true, lastName: true } } } },
+        },
+      });
+      return { row };
     });
+
+    if ('error' in updateResult) {
+      if (updateResult.error === 'notFound') {
+        return c.json({ error: 'Not Found', message: 'Strategy not found' }, 404);
+      }
+      return c.json({ error: 'Forbidden', message: 'Built-in strategies are read-only' }, 403);
+    }
+    const { row } = updateResult;
 
     return c.json(serializeStrategy(row));
   },
@@ -259,18 +269,20 @@ strategies.delete(
     }
     const id = c.req.param('id');
 
-    const existing = await prisma.strategy.findFirst({ where: { id, clubId } });
-    if (!existing) {
-      return c.json({ error: 'Not Found', message: 'Strategy not found' }, 404);
-    }
-    if (existing.source === 'BUILTIN') {
-      return c.json(
-        { error: 'Forbidden', message: 'Built-in strategies are read-only' },
-        403,
-      );
-    }
+    const deleteResult = await prisma.withClub(clubId, async (tx) => {
+      const existing = await tx.strategy.findFirst({ where: { id, clubId } });
+      if (!existing) return { error: 'notFound' as const };
+      if (existing.source === 'BUILTIN') return { error: 'builtin' as const };
+      await tx.strategy.delete({ where: { id } });
+      return { ok: true };
+    });
 
-    await prisma.strategy.delete({ where: { id } });
+    if ('error' in deleteResult) {
+      if (deleteResult.error === 'notFound') {
+        return c.json({ error: 'Not Found', message: 'Strategy not found' }, 404);
+      }
+      return c.json({ error: 'Forbidden', message: 'Built-in strategies are read-only' }, 403);
+    }
     return c.json({ ok: true });
   },
 );
