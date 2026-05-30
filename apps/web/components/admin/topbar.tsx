@@ -137,7 +137,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
                   <p className="text-sm font-semibold">{me.data.firstName} {me.data.lastName}</p>
                   <p className="text-xs text-muted-foreground">{me.data.email}</p>
                   {roleLabel && (
-                    <Badge variant="secondary" className="mt-0.5 w-fit text-[10px] font-semibold uppercase tracking-wide">
+                    <Badge variant="outline" className="mt-0.5 w-fit text-[10px] font-semibold uppercase tracking-wide">
                       {roleLabel}
                     </Badge>
                   )}
