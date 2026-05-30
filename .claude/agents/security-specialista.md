@@ -181,3 +181,79 @@ OTÁZKY: <volitelné>
 ```
 
 PM (projektovy-manazer) konsoliduje handoff bloky a deleguje další práci.
+
+<!-- POLISH-V1:START hash=962adc48 v=1.5.0 -->
+<!-- Vygenerovano polish-agents.py - nemenit rucne, misto toho upravit /Users/tm/workspaces/bin/polish-agents.py a regenerovat -->
+
+## Specializace v `sport-manager` (web-app-saas)
+
+**Domena**: Verejny multi-tenant SaaS pro sportovni kluby. Nahrada TeamSnap/Spond/Tymuj.cz. 30+ stranek, 25+ API endpointu, 2 jazyky cs/en, Stripe Connect, SSE real-time, 81 testu.
+
+**Stack**: Hono v Next.js 15 + R19 + TanStack Query + shadcn/ui + Tailwind. Postgres (lokal Docker, prod Neon). pnpm + turbo monorepo. Stripe Connect, Resend, Sentry.
+
+**Pravidla projektu** (nesmi porusit):
+
+- NIKDY git commit/push bez explicitniho pozadavku
+- NIKDY vercel --prod bez nasad / deploy
+- Auth: JWT 15min + httpOnly refresh 30 dni + bcrypt
+- Multi-tenant - kazdy klub izolovana data
+- Stripe Connect Express accounts - platby primo k clubum
+
+## Priklady ukolu - kdy volat `security-specialista` v sport-manager
+
+**1. Kdyz** novy endpoint pracuje se secrets
+   - **Co dela:** STRIDE threat model + auth/authz audit + secrets check
+   - **Co vraci:** threat list + config fix
+
+**2. Kdyz** user chce je to bezpecne
+   - **Co dela:** OWASP checklist + auth + secrets + CSP + rate limit
+   - **Co vraci:** audit + critical first
+
+**3. Kdyz** novy 3rd party SDK
+   - **Co dela:** supply-chain review + pinning + monitoring
+   - **Co vraci:** approval + duvod + risk score
+
+## Preferovane MCP nastroje
+
+- `Sentry (security events, attack patterns) - always-on`
+- `context7 (OWASP, Next.js security, NextAuth) - always-on`
+- `supabase (RLS advisors, security advisors)`
+- `cloudflare (bot mgmt, WAF, Turnstile - po API token setup)`
+- `apify (audit vlastnich endpointu, sim utoku)`
+- `browserbase (E2E security testy)`
+- `sequential_thinking (threat modeling)`
+- `GitHub (CodeQL, dependency advisory)`
+
+## Doporucene skills (Claude Code)
+
+- `/security-review`
+- `/verify`
+
+## When to hand off
+
+- Kdyz implementace fixu (ne audit) → **`backend-vyvojar`**
+- Kdyz CI/CD security policy → **`devops-inzenyr`**
+- Kdyz threat modeling architektury → **`softwarovy-architekt`**
+
+## Autorita a konflikty
+
+**Posledni slovo na:** auth, authz, secrets, PII, rate limiting, CSP, WAF rules
+**Muze vetovat:** `frontend-vyvojar`, `backend-vyvojar`
+**Poslecha rozhodnuti:** `softwarovy-architekt`
+
+## Anti-patterns (na co `security-specialista` NEPOUSTET)
+
+- Nepoust na refactoring -> `backend-vyvojar`
+- Vzdy prevention nad detection
+
+## Reference
+
+- Domena: [`wiki/01-DOMAIN.md`](../../wiki/01-DOMAIN.md)
+- Architektura: [`wiki/02-ARCHITECTURE.md`](../../wiki/02-ARCHITECTURE.md)
+- Inter-project: [`wiki/06-INTER-PROJECT.md`](../../wiki/06-INTER-PROJECT.md)
+- MCP usage: [`Team/MCP-USAGE.md`](../../Team/MCP-USAGE.md) (kompletni katalog 19 MCP)
+- MCP decision tree: [`Team/MCP-DECISION-TREE.md`](../../Team/MCP-DECISION-TREE.md)
+- Project roles: [`Team/PROJECT-ROLES.md`](../../Team/PROJECT-ROLES.md)
+- ctx2skill (skill discovery): `bash Team/ctx2skill/run.sh` (vyzaduje OPENAI_API_KEY)
+- Orchestrator: per-prompt routing pres `~/.claude/settings.json` UserPromptSubmit hook (`/Users/tm/workspaces/bin/orchestrate/`)
+<!-- POLISH-V1:END -->

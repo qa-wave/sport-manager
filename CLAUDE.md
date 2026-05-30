@@ -279,8 +279,8 @@ vercel --prod --yes
 |---|---|---|
 | `admin@hvezda.cz` | OWNER + ADMIN | Kompletní přístup, Stripe connect, audit log |
 | `coach@hvezda.cz` | HEAD_COACH | Plánování, attendance, bulk RSVP, coach stats |
-| `parent@hvezda.cz` | Rodič (Mom) | Dashboard s dětmi, statistiky dítěte, DM s trenérem |
-| `petr.pekar@hvezda.cz` | Rodič (Dad, rozvedený) | **NE**vidí DM, **NE**vidí platby |
+| `parent@hvezda.cz` | Rodič (1. účet Anny) | Dashboard s dětmi, statistiky dítěte, přímé zprávy s trenérem |
+| `petr.pekar@hvezda.cz` | Rodič (2. účet Anny) | **NE**vidí přímé zprávy, **NE**vidí platby |
 | `simon.assist@hvezda.cz` | Multi-role | U15 PLAYER + U13 ASSISTANT_COACH |
 | `admin@sokoli.cz` | OWNER (Sokol) | TJ Sokol — florbal |
 | `tomas@example.com` | Multi-tenant + multi-club rodič | Hvězda rodič (Anna) + Sokol HEAD_COACH + rodič |
@@ -293,7 +293,7 @@ vercel --prod --yes
 - **2 kluby**: FC Hvězda Strašnice (fotbal) + TJ Sokol Měcholupy (florbal)
 - **66+ uživatelů** s realistickými avatary (pravatar.cc + DiceBear)
 - **Full enum coverage**: všechny MemberStatus, ClubRoleType, TeamRole, GuardianRelationship, EventType, etc.
-- **Edge cases**: multi-role, multi-tenant, multi-club rodič, rozvedení rodiče, step-parent, legal-guardian
+- **Edge cases**: multi-role, multi-tenant, multi-club rodič, více rodičovských účtů na dítě, step-parent, legal-guardian
 
 ---
 

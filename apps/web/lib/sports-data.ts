@@ -44,7 +44,7 @@ export const SPORTS: SportData[] = [
       },
       {
         title: 'Komunikace s rodiči',
-        desc: 'Přímé zprávy mezi trenérem a rodičem každého hráče. Rozvedení rodiče vidí každý jen svou konverzaci — žádné úniky informací.',
+        desc: 'Přímé zprávy mezi trenérem a rodičem každého hráče. Každý rodič má vlastní účet a vidí jen svou konverzaci — žádné úniky informací.',
       },
       {
         title: 'Správa týmů U9–U21',

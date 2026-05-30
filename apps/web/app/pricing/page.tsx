@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Check, ChevronDown, Minus, Zap } from 'lucide-react';
+import { Check, ChevronDown, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,96 +10,51 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { AuthRedirect } from '@/components/auth-redirect';
-import { useAuth } from '@/lib/auth-store';
-import { apiFetch } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Tier data
 // ---------------------------------------------------------------------------
+// Všechny funkce jsou v obou tarifech. Jediný rozdíl: tarif zdarma zobrazuje
+// reklamu, placený tarif ji odebírá.
+const ALL_FEATURES = [
+  'Neomezený počet členů',
+  'Neomezený počet týmů',
+  'Kalendář a události',
+  'Potvrzování účasti a docházka',
+  'Upozornění e-mailem i do telefonu',
+  'Statistiky hráčů i týmů',
+  'Knihovna tréninků',
+  'Platby přes platební bránu',
+  'Souhlasy a podpisy rodičů',
+  'Fotogalerie',
+  'Export do tabulky',
+  'Více klubů pod jedním účtem',
+  'Vlastní vzhled a barvy klubu',
+  'Napojení na sportovní svaz',
+] as const;
+
 const TIERS = [
   {
     id: 'free',
-    name: 'FREE',
+    name: 'ZDARMA',
     price: '0 Kč',
-    period: '/měsíc',
-    tagline: 'Pro malé kluby a začátky',
+    period: 'navždy',
+    tagline: 'Všechny funkce, bez omezení. Zobrazuje nenápadnou reklamu.',
     cta: 'Začít zdarma',
     ctaHref: '/signup',
-    ctaVariant: 'outline' as const,
-    recommended: false,
-    features: [
-      { label: 'Až 25 členů', included: true },
-      { label: 'Až 2 týmy', included: true },
-      { label: 'Kalendář a události', included: true },
-      { label: 'RSVP a docházka', included: true },
-      { label: 'Email notifikace', included: true },
-      { label: 'Základní statistiky', included: true },
-      { label: 'Knihovna tréninků', included: true },
-      { label: 'Push notifikace', included: false },
-      { label: 'Stripe platby', included: false },
-      { label: 'Waivers a souhlasy', included: false },
-      { label: 'Galerie', included: false },
-      { label: 'CSV export', included: false },
-      { label: 'Multi-klub', included: false },
-      { label: 'Custom branding', included: false },
-      { label: 'FAČR sync', included: false },
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'PRO',
-    price: '490 Kč',
-    period: '/měsíc',
-    tagline: 'Pro aktivní kluby',
-    cta: 'Vyzkoušet 14 dní zdarma',
-    ctaHref: '/signup?plan=pro',
-    ctaVariant: 'default' as const,
     recommended: true,
-    features: [
-      { label: 'Neomezení členové', included: true },
-      { label: 'Neomezené týmy', included: true },
-      { label: 'Kalendář a události', included: true },
-      { label: 'RSVP a docházka', included: true },
-      { label: 'Email notifikace', included: true },
-      { label: 'Pokročilé statistiky', included: true },
-      { label: 'Knihovna tréninků', included: true },
-      { label: 'Push notifikace', included: true },
-      { label: 'Stripe platby', included: true },
-      { label: 'Waivers a souhlasy', included: true },
-      { label: 'Galerie', included: true },
-      { label: 'CSV export', included: true },
-      { label: 'Multi-klub', included: false },
-      { label: 'Custom branding', included: false },
-      { label: 'FAČR sync', included: false },
-    ],
+    features: ['Všechny funkce, bez omezení', ...ALL_FEATURES],
   },
   {
-    id: 'club',
-    name: 'CLUB',
-    price: '1 490 Kč',
-    period: '/měsíc',
-    tagline: 'Pro velké organizace',
-    cta: 'Kontaktovat nás',
-    ctaHref: 'mailto:ahoj@sport-manager.cz?subject=CLUB%20plán',
-    ctaVariant: 'outline' as const,
+    id: 'noads',
+    name: 'BEZ REKLAM',
+    price: 'Brzy',
+    period: 'cenu oznámíme',
+    tagline: 'Úplně stejné jako zdarma — jen bez reklamy.',
+    cta: 'Chci vědět víc',
+    ctaHref: 'mailto:ahoj@sport-manager.cz?subject=Tarif%20bez%20reklam',
     recommended: false,
-    features: [
-      { label: 'Neomezení členové', included: true },
-      { label: 'Neomezené týmy', included: true },
-      { label: 'Kalendář a události', included: true },
-      { label: 'RSVP a docházka', included: true },
-      { label: 'Email notifikace', included: true },
-      { label: 'Pokročilé statistiky', included: true },
-      { label: 'Knihovna tréninků', included: true },
-      { label: 'Push notifikace', included: true },
-      { label: 'Stripe platby', included: true },
-      { label: 'Waivers a souhlasy', included: true },
-      { label: 'Galerie', included: true },
-      { label: 'CSV export', included: true },
-      { label: 'Multi-klub', included: true },
-      { label: 'Custom branding', included: true },
-      { label: 'FAČR sync', included: true },
-    ],
+    features: ['Všechno z tarifu Zdarma', 'Žádné reklamy', 'Podpoříte další vývoj'],
   },
 ] as const;
 
@@ -109,43 +63,35 @@ const TIERS = [
 // ---------------------------------------------------------------------------
 const FAQ = [
   {
-    q: 'Mohu kdykoli změnit plán?',
-    a: 'Ano. Upgrade je okamžitý — limity se rozvolní ihned po zaplacení. Downgrade proběhne na konci fakturačního období. Data se nemažou.',
+    q: 'Je Sport Manager opravdu zdarma?',
+    a: 'Ano. Všechny funkce jsou zdarma a bez omezení počtu členů nebo týmů. Verze zdarma zobrazuje nenápadnou reklamu, která provoz financuje.',
   },
   {
-    q: 'Jak funguje 14denní trial PRO?',
-    a: 'Při registraci si vyberete PRO plán. Kreditní karta se nezadává hned — až na konci trialu. Pokud nepokračujete, účet zůstane na FREE plánu.',
+    q: 'Co je tarif bez reklam?',
+    a: 'Připravujeme placený tarif, který odebere reklamu. Všechny funkce zůstávají stejné jako u verze zdarma — platíte jen za klidnější prostředí. Cenu oznámíme brzy.',
   },
   {
-    q: 'Co se stane, když překročím limit FREE plánu?',
-    a: 'Stávající členové a týmy zůstanou. Systém vás upozorní a znemožní přidávat nové záznamy nad limit, dokud neupgradujete nebo neodeberete členy.',
+    q: 'Jaké reklamy se zobrazují?',
+    a: 'Jen nenápadné reklamy, které neruší práci trenérů ani rodičů. Vaše data nikdy neprodáváme třetím stranám.',
   },
   {
     q: 'Jsou data v bezpečí? Kde jsou uložena?',
-    a: 'Data jsou uložena v Neon Postgres (us-east-1, AWS). Každý klub je izolovaný na úrovni databáze. Nikdy neprodáváme data třetím stranám.',
+    a: 'Data jsou uložena v evropském cloudu a každý klub je oddělený na úrovni databáze. Vaše data nikdy neprodáváme třetím stranám.',
   },
   {
     q: 'Funguje Sport Manager pro každý sport?',
-    a: 'Ano — fotbal, florbal, hokej, basketbal, volejbal, tenis, atletika a jakýkoli jiný. Systém je sportově agnostický; typ sportu vyberete při registraci.',
-  },
-  {
-    q: 'Jaké platební metody přijímáte?',
-    a: 'Platby probíhají přes Stripe — kreditní/debetní karty (Visa, Mastercard, Amex) a SEPA direct debit. Faktura se vystavuje každý měsíc automaticky.',
+    a: 'Ano — fotbal, florbal, hokej, basketbal, volejbal, tenis, atletika a jakýkoli jiný. Systém je nezávislý na sportu; typ vyberete při registraci.',
   },
 ];
 
 // ---------------------------------------------------------------------------
 // Components
 // ---------------------------------------------------------------------------
-function FeatureRow({ label, included }: { label: string; included: boolean }) {
+function FeatureRow({ label }: { label: string }) {
   return (
     <li className="flex items-center gap-2.5 text-sm">
-      {included ? (
-        <Check className="h-4 w-4 shrink-0 text-emerald-500" />
-      ) : (
-        <Minus className="h-4 w-4 shrink-0 text-muted-foreground/30" />
-      )}
-      <span className={included ? '' : 'text-muted-foreground/50'}>{label}</span>
+      <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+      <span>{label}</span>
     </li>
   );
 }
@@ -178,27 +124,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // Page
 // ---------------------------------------------------------------------------
 export default function PricingPage() {
-  const auth = useAuth();
-  const router = useRouter();
-  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'club' | null>(null);
-
-  async function handleSubscribe(plan: 'pro' | 'club') {
-    if (!auth.isAuthenticated) {
-      router.push(`/signup?plan=${plan}`);
-      return;
-    }
-    setLoadingPlan(plan);
-    try {
-      const { url } = await apiFetch<{ url: string }>('/stripe/create-subscription', {
-        method: 'POST',
-        body: JSON.stringify({ plan }),
-      });
-      window.location.href = url;
-    } catch {
-      setLoadingPlan(null);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <AuthRedirect />
@@ -238,23 +163,23 @@ export default function PricingPage() {
         <div className="relative mx-auto max-w-2xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Zap className="h-3 w-3" />
-            Transparentní ceny, žádné skryté poplatky
+            Žádné skryté poplatky
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Plán pro každý klub
+            Zdarma, nebo bez reklam
           </h1>
           <p className="mt-4 text-muted-foreground sm:text-lg">
-            Začněte zdarma. Upgradujte až budete připraveni.
+            Sport Manager má všechny funkce zdarma a bez omezení.
             <br className="hidden sm:block" />
-            Žádné smlouvy, zrušení kdykoli.
+            Nechcete reklamu? Přejděte na tarif bez reklam.
           </p>
         </div>
       </section>
 
       {/* Pricing cards */}
       <section className="px-6 pb-20">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        <div className="mx-auto max-w-3xl">
+          <div className="grid gap-6 sm:grid-cols-2 sm:items-start">
             {TIERS.map((tier) => (
               <Card
                 key={tier.id}
@@ -288,35 +213,23 @@ export default function PricingPage() {
                 <CardContent className="flex-1 pb-6">
                   <ul className="space-y-2.5">
                     {tier.features.map((f) => (
-                      <FeatureRow key={f.label} label={f.label} included={f.included} />
+                      <FeatureRow key={f} label={f} />
                     ))}
                   </ul>
                 </CardContent>
 
                 <CardFooter className="pt-0">
-                  {tier.id === 'club' ? (
+                  {tier.id === 'free' ? (
+                    <Button asChild className="w-full bg-gradient-brand text-white border-0 hover:brightness-110 hover:shadow-lg">
+                      <Link href={tier.ctaHref}>{tier.cta}</Link>
+                    </Button>
+                  ) : (
                     <a
                       href={tier.ctaHref}
-                      className={`w-full inline-flex items-center justify-center rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-muted`}
+                      className="w-full inline-flex items-center justify-center rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-muted"
                     >
                       {tier.cta}
                     </a>
-                  ) : tier.id === 'pro' ? (
-                    <Button
-                      onClick={() => handleSubscribe('pro')}
-                      disabled={loadingPlan === 'pro'}
-                      className="w-full bg-gradient-brand text-white border-0 hover:brightness-110 hover:shadow-lg"
-                    >
-                      {loadingPlan === 'pro' ? 'Přesměrování...' : tier.cta}
-                    </Button>
-                  ) : (
-                    <Button
-                      asChild
-                      variant={tier.ctaVariant}
-                      className="w-full"
-                    >
-                      <Link href={tier.ctaHref}>{tier.cta}</Link>
-                    </Button>
                   )}
                 </CardFooter>
               </Card>
@@ -325,11 +238,10 @@ export default function PricingPage() {
 
           {/* Bottom note */}
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            Všechny ceny jsou bez DPH. Pro neziskové kluby a školy&nbsp;
+            Verze zdarma má všechny funkce bez omezení a financuje ji nenápadná reklama. Máte dotaz?&nbsp;
             <a href="mailto:ahoj@sport-manager.cz" className="underline underline-offset-2 hover:text-foreground transition-colors">
-              kontaktujte nás
-            </a>{' '}
-            — rádi domluvíme speciální podmínky.
+              napište nám
+            </a>.
           </p>
         </div>
       </section>
@@ -338,7 +250,7 @@ export default function PricingPage() {
       <section className="border-t border-border/40 px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-2xl">
           <div className="text-center mb-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">FAQ</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-3">Otázky a odpovědi</p>
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Časté dotazy
             </h2>

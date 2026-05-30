@@ -91,9 +91,9 @@ const ROLES = [
     capabilities: [
       { icon: Calendar, text: 'Kalendář — kdy má dítě trénink nebo zápas' },
       { icon: CheckCircle2, text: 'RSVP za dítě — potvrdí účast na 2 kliknutí' },
-      { icon: CreditCard, text: 'Platby — vidí jen své (rozvedení rodiče: oddělené)' },
+      { icon: CreditCard, text: 'Platby — vidí jen své (každý rodič má vlastní účet)' },
       { icon: MessageSquare, text: 'Zprávy — čte oznámení, píše trenérovi' },
-      { icon: Lock, text: 'Privacy — nevidí DM druhého rodiče s trenérem' },
+      { icon: Lock, text: 'Soukromí — nevidí přímé zprávy druhého rodiče s trenérem' },
     ],
   },
 ];
@@ -116,7 +116,7 @@ const FEATURES = [
   },
   {
     title: 'Správa členů',
-    desc: 'Evidence hráčů, trenérů, rodičů. Rodičovské účty s granulárními právy. Rozvedení rodiče — každý vidí jen své.',
+    desc: 'Evidence hráčů, trenérů, rodičů. Rodičovské účty s podrobnými právy. Vlastní účet pro každého rodiče — každý vidí jen své.',
     icon: Users,
     mock: {
       type: 'members',
@@ -155,8 +155,8 @@ const FEATURES = [
 /* ── Privacy showcase ─── */
 
 const PRIVACY_EXAMPLES = [
-  { icon: Eye, label: 'Maminka vidí', items: ['DM s trenérem', 'Platby za Annu', 'RSVP za Annu'] },
-  { icon: EyeOff, label: 'Tatínek nevidí', items: ['DM maminky s trenérem', 'Platby (nemá oprávnění)', 'Lékařské záznamy'] },
+  { icon: Eye, label: 'Rodič vidí', items: ['Přímé zprávy s trenérem', 'Platby za své dítě', 'Potvrzení účasti dítěte'] },
+  { icon: EyeOff, label: 'Druhý rodič nevidí', items: ['Cizí přímé zprávy s trenérem', 'Platby, na které nemá oprávnění', 'Lékařské záznamy'] },
 ];
 
 function PublicClubContent() {
@@ -353,10 +353,10 @@ function PublicClubContent() {
       {/* Privacy showcase */}
       <section className="border-t border-border/50 px-6 py-14">
         <div className="mx-auto max-w-4xl">
-          <SectionLabel>Privacy</SectionLabel>
-          <h2 className="text-2xl font-semibold tracking-tight mb-2">Rozvedení rodiče? Vyřešeno.</h2>
+          <SectionLabel>Soukromí</SectionLabel>
+          <h2 className="text-2xl font-semibold tracking-tight mb-2">Vlastní účet pro každého rodiče.</h2>
           <p className="text-sm text-muted-foreground mb-8">
-            Každý rodič má vlastní oprávnění. Žádné úniky informací mezi rodiči.
+            Každé dítě může mít víc rodičovských účtů — každý rodič svůj, s vlastními oprávněními. Každý vidí jen své, nic neprosakuje mezi rodiči.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             {PRIVACY_EXAMPLES.map((ex) => (

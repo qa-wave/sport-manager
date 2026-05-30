@@ -51,27 +51,6 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Při zájezdu nebo turnaji může trenér sám nastavit hromadnou odpověď za celý tým — ušetří desítky individuálních notifikací.</p>`,
   },
   {
-    slug: 'rozvedeni-rodice-v-klubu',
-    title: 'Rozvedení rodiče v klubu: jak na to bez kompromisů na soukromí',
-    excerpt:
-      'Každý rodič vidí jen to, co má. Žádné úniky informací, žádné konflikty. Privacy-by-design.',
-    date: '2026-04-20',
-    readingTime: '6 min',
-    category: 'Privacy',
-    content: `<h2>Realita v mládežnickém sportu</h2>
-<p>V průměrném týmu U13 je 15–20 % dětí z rozvedených rodin. To znamená dva rodiče, kteří spolu nekomunikují, každý s jiným zázemím, možná i soudní rozhodnutí o styku. Klub se ocitá uprostřed.</p>
-<h2>Typický problém s WhatsApp skupinami</h2>
-<p>Mama je ve skupině. Táta taky. Mama napíše trenérovi soukromou zprávu. Táta se divá, proč se o tom nedozvěděl. Nebo naopak — trenér si nepamatuje kdo s kým nemluví a přepošle informaci špatné straně.</p>
-<h2>Privacy-by-design v Sport Manager</h2>
-<p>Každý rodič má explicitní vztah ke svému dítěti. Mama vidí konverzaci "Mama + Trenér". Táta vidí svou vlastní konverzaci. Nikdy navzájem. Systém to vynucuje na úrovni databáze — není to jen UI trik.</p>
-<h2>Typy vztahů</h2>
-<p>Systém rozlišuje: rodič, stepparent (nevlastní rodič), legal guardian (zákonný zástupce), ověřený / neověřený opatrovník. Každý typ má jiná výchozí oprávnění, která správce klubu může upravit.</p>
-<h2>Oprávnění na míru</h2>
-<p>Vedoucí klubu může pro konkrétního rodiče vypnout přístup k platbám, komunikaci nebo docházce — bez ovlivnění ostatních. Např. pokud soud rozhodl, že finanční záležitosti řeší výhradně jeden rodič.</p>
-<h2>Audit log</h2>
-<p>Každá změna oprávnění je zalogována. Pokud někdy dojde ke sporu, klub má přesný záznam — kdy, kdo, co změnil.</p>`,
-  },
-  {
     slug: 'treninkova-knihovna',
     title: '30+ hotových tréninků pro mládežnický fotbal — zdarma',
     excerpt:

@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: 'Komunikace v sportovním klubu | Sport Manager',
   description:
-    'Týmový chat, přímé zprávy, oznámení. Real-time zprávy přes SSE. Privacy-by-participation pro rozvedené rodiče. Konec WhatsApp chaosu.',
+    'Týmový chat, přímé zprávy, oznámení. Zprávy v reálném čase. Soukromí podle účasti — každý rodič má vlastní účet. Konec chaosu ve WhatsApp skupinách.',
   keywords: [
     'sportovní klub chat',
     'komunikace sportovní tým',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://sport-manager.qawave.ai/produkt/komunikace' },
   openGraph: {
     title: 'Komunikace v sportovním klubu | Sport Manager',
-    description: 'Týmový chat, DM, oznámení. Real-time. Privacy-by-participation.',
+    description: 'Týmový chat, přímé zprávy, oznámení. V reálném čase. Soukromí podle účasti.',
   },
 };
 
@@ -40,14 +40,14 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: 'Přímé zprávy',
-    desc: 'DM mezi trenérem a rodičem, nebo mezi hráči. Soukromé, bez zbytečného sdílení s celou skupinou.',
+    desc: 'Přímé zprávy mezi trenérem a rodičem, nebo mezi hráči. Soukromé, bez zbytečného sdílení s celou skupinou.',
     color: 'text-emerald-500',
     bg: 'bg-emerald-500/10',
   },
   {
     icon: Zap,
-    title: 'Real-time (SSE)',
-    desc: 'Zprávy přicházejí okamžitě bez obnovení stránky. Server-Sent Events bez nutnosti WebSocket serveru.',
+    title: 'Zprávy v reálném čase',
+    desc: 'Zprávy přicházejí okamžitě, bez obnovování stránky.',
     color: 'text-amber-500',
     bg: 'bg-amber-500/10',
   },
@@ -60,14 +60,14 @@ const FEATURES = [
   },
   {
     icon: EyeOff,
-    title: 'Privacy pro rozvedené rodiče',
-    desc: 'Maminka a tatínek mají oddělené konverzace s trenérem. Nikdo nevidí zprávy druhého — i když jsou v jednom klubu.',
+    title: 'Vlastní účet pro každého rodiče',
+    desc: 'Každý rodič má vlastní účet a vlastní konverzace s trenérem. Nikdo nevidí zprávy druhého — i když jsou v jednom klubu.',
     color: 'text-rose-500',
     bg: 'bg-rose-500/10',
   },
   {
     icon: Search,
-    title: 'Cmd+K vyhledávání',
+    title: 'Rychlé vyhledávání',
     desc: 'Najděte zprávu, událost nebo člena okamžitě. Vyhledávání funguje napříč všemi konverzacemi.',
     color: 'text-cyan-500',
     bg: 'bg-cyan-500/10',
@@ -81,11 +81,11 @@ const COMPARE = [
   },
   {
     problem: 'Soukromá zpráva viditelná všem',
-    solution: 'DM jsou opravdu soukromé',
+    solution: 'Přímé zprávy jsou opravdu soukromé',
   },
   {
-    problem: 'Tatínek vidí konverzaci maminky s trenérem',
-    solution: 'Privacy-by-participation — oddělené účty',
+    problem: 'Jeden rodič vidí konverzaci druhého s trenérem',
+    solution: 'Soukromí podle účasti — oddělené účty',
   },
   {
     problem: 'Starý telefon bez WhatsApp',

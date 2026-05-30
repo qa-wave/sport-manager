@@ -69,12 +69,11 @@ export default function DashboardPage() {
 
   function getRoleGreeting(roleLabel: string): string {
     switch (roleLabel) {
-      case 'Parent':
+      case 'Rodič':
         return t('dashboard.greetingParent');
-      case 'Head Coach':
-      case 'Asst. Coach':
-        return t('dashboard.greetingCoach');
-      case 'Team Manager':
+      case 'Hlavní trenér':
+      case 'Asistent trenéra':
+      case 'Vedoucí týmu':
         return t('dashboard.greetingCoach');
       default:
         return t('dashboard.greetingAdmin');

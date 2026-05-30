@@ -23,9 +23,9 @@
  *   - NotificationType: all 10 variants
  *   - Multi-role: 16yo Šimon is PLAYER on U15 AND ASSISTANT_COACH on U13
  *   - Multi-tenant: Tomáš Mertin = parent in Hvězda + HEAD_COACH in Sokol
- *   - Divorced parents (different permission masks)
+ *   - Multiple parent accounts per child (different permission masks)
  *   - Step-parent + Legal guardian relationships
- *   - Privacy DM (Dad NOT participant)
+ *   - Private direct message (second parent NOT participant)
  *   - TrainingTemplate that materializes Events
  *   - Detached event (was from template, then unlinked)
  *   - ClubFeatureAudit entry
@@ -310,7 +310,7 @@ async function main() {
     teamRoles: [{ teamId: u15.id, role: TeamRole.HEAD_COACH }],
   });
 
-  // --- U13 Players + parent linkage (with divorced + step-parent + legal-guardian variants) ---
+  // --- U13 Players + parent linkage (multiple parent accounts per child + step-parent + legal-guardian variants) ---
 
   const childMembersHvezda: Array<{ id: string; firstName: string; surname: string }> = [];
 
@@ -329,7 +329,7 @@ async function main() {
     childMembersHvezda.push({ id: child.memberId, firstName, surname });
 
     if (isAnna) {
-      // Divorced parents
+      // Two parent accounts for the same child
       const mom = await createUserMember({
         email: 'parent@hvezda.cz', firstName: 'Lucie', lastName: 'Pekařová',
         clubId: hvezda.id, brandColor: '#f59e0b', devHash,
@@ -338,7 +338,7 @@ async function main() {
         email: 'petr.pekar@hvezda.cz', firstName: 'Petr', lastName: 'Pekař',
         clubId: hvezda.id, brandColor: '#475569', devHash,
       });
-      // Plus step-parent (Mom's new partner)
+      // Plus an additional guardian account (step-parent)
       const stepDad = await createUserMember({
         email: 'martin.novotny@hvezda.cz', firstName: 'Martin', lastName: 'Novotný',
         clubId: hvezda.id, brandColor: '#1e3a8a', devHash,
@@ -1255,7 +1255,7 @@ async function main() {
     data: { conversationId: parentsChat.id, senderId: commsH.memberId, body: 'Milí rodiče, podzimní rozpis je v kalendáři. Případné dotazy směřujte sem.', createdAt: offset(-7, 10) },
   });
 
-  // 4. DM — Coach ↔ Mom (Dad NOT participant — privacy demo)
+  // 4. Direct message — Coach ↔ one parent (second parent NOT participant — privacy demo)
   const mom = await prisma.user.findUnique({ where: { email: 'parent@hvezda.cz' } });
   const momMember = mom ? await prisma.member.findFirst({ where: { userId: mom.id, clubId: hvezda.id } }) : null;
   if (momMember) {
@@ -1397,8 +1397,8 @@ async function main() {
   console.table([
     { email: 'admin@hvezda.cz',         name: 'Pavel Dvořák',     role: 'Hvězda OWNER + ADMIN + FINANCE' },
     { email: 'coach@hvezda.cz',         name: 'Miroslav Horák',   role: 'Hvězda U13 HEAD_COACH' },
-    { email: 'parent@hvezda.cz',        name: 'Lucie Pekařová',   role: 'Hvězda parent (Mom of Anna — divorced)' },
-    { email: 'petr.pekar@hvezda.cz',    name: 'Petr Pekař',       role: 'Hvězda parent (Dad — privacy: nevidí DM)' },
+    { email: 'parent@hvezda.cz',        name: 'Lucie Pekařová',   role: 'Hvězda parent (Anna — 1. rodičovský účet)' },
+    { email: 'petr.pekar@hvezda.cz',    name: 'Petr Pekař',       role: 'Hvězda parent (Anna — 2. rodičovský účet, nevidí přímé zprávy)' },
     { email: 'simon.assist@hvezda.cz',  name: 'Šimon Růžička',    role: 'multi-role: U15 PLAYER + U13 ASSISTANT_COACH' },
     { email: 'admin@sokoli.cz',         name: 'Jana Procházková', role: 'Sokol OWNER' },
     { email: 'tomas@example.com',       name: 'Tomáš Mertin',     role: 'multi-tenant: Hvězda parent + Sokol HEAD_COACH' },

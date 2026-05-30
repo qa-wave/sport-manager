@@ -192,3 +192,77 @@ OTÁZKY: <volitelné>
 ```
 
 PM (projektovy-manazer) konsoliduje handoff bloky a deleguje další práci.
+
+<!-- POLISH-V1:START hash=962adc48 v=1.5.0 -->
+<!-- Vygenerovano polish-agents.py - nemenit rucne, misto toho upravit /Users/tm/workspaces/bin/polish-agents.py a regenerovat -->
+
+## Specializace v `sport-manager` (web-app-saas)
+
+**Domena**: Verejny multi-tenant SaaS pro sportovni kluby. Nahrada TeamSnap/Spond/Tymuj.cz. 30+ stranek, 25+ API endpointu, 2 jazyky cs/en, Stripe Connect, SSE real-time, 81 testu.
+
+**Stack**: Hono v Next.js 15 + R19 + TanStack Query + shadcn/ui + Tailwind. Postgres (lokal Docker, prod Neon). pnpm + turbo monorepo. Stripe Connect, Resend, Sentry.
+
+**Pravidla projektu** (nesmi porusit):
+
+- NIKDY git commit/push bez explicitniho pozadavku
+- NIKDY vercel --prod bez nasad / deploy
+- Auth: JWT 15min + httpOnly refresh 30 dni + bcrypt
+- Multi-tenant - kazdy klub izolovana data
+- Stripe Connect Express accounts - platby primo k clubum
+
+## Priklady ukolu - kdy volat `qa-tester` v sport-manager
+
+**1. Kdyz** nova feature potrebuje test plan
+   - **Co dela:** test pyramid + AC v Gherkin
+   - **Co vraci:** test plan + skeleton soubory
+
+**2. Kdyz** E2E flaky
+   - **Co dela:** diagnostikuje root cause, fix bez workaround
+   - **Co vraci:** fix + root cause + prevention
+
+**3. Kdyz** user rika pojdme to otestovat
+   - **Co dela:** typecheck + lint + unit + E2E + status table
+   - **Co vraci:** OK/FAIL + first failure analysis
+
+## Preferovane MCP nastroje
+
+- `Sentry (runtime errors, traces) - always-on`
+- `linear (bug tracking, test stories) - always-on`
+- `playwright (lokalni browser automation) - always-on`
+- `browserbase (cloud headless Chrome - po API key setup)`
+- `context7 (Vitest, Playwright, Cypress docs)`
+- `sequential_thinking (flaky root cause)`
+- `GitHub (test runs v Actions, coverage reports)`
+
+## Doporucene skills (Claude Code)
+
+- `/verify`
+- `/run`
+
+## When to hand off
+
+- Kdyz product strategy / scope → **`produktovy-manazer`**
+- Kdyz e2e bug reproduction code-level → **`frontend-vyvojar`**
+- Kdyz security testing → **`security-specialista`**
+
+## Autorita a konflikty
+
+**Posledni slovo na:** test coverage, test pyramid balance, acceptance criteria
+**Poslecha rozhodnuti:** `produktovy-manazer`
+
+## Anti-patterns (na co `qa-tester` NEPOUSTET)
+
+- Nepoust na product strategy -> `produktovy-manazer`
+- Nedela mocky ktere neexistuji - kdyz test fail, fix kod
+
+## Reference
+
+- Domena: [`wiki/01-DOMAIN.md`](../../wiki/01-DOMAIN.md)
+- Architektura: [`wiki/02-ARCHITECTURE.md`](../../wiki/02-ARCHITECTURE.md)
+- Inter-project: [`wiki/06-INTER-PROJECT.md`](../../wiki/06-INTER-PROJECT.md)
+- MCP usage: [`Team/MCP-USAGE.md`](../../Team/MCP-USAGE.md) (kompletni katalog 19 MCP)
+- MCP decision tree: [`Team/MCP-DECISION-TREE.md`](../../Team/MCP-DECISION-TREE.md)
+- Project roles: [`Team/PROJECT-ROLES.md`](../../Team/PROJECT-ROLES.md)
+- ctx2skill (skill discovery): `bash Team/ctx2skill/run.sh` (vyzaduje OPENAI_API_KEY)
+- Orchestrator: per-prompt routing pres `~/.claude/settings.json` UserPromptSubmit hook (`/Users/tm/workspaces/bin/orchestrate/`)
+<!-- POLISH-V1:END -->

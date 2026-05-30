@@ -1,0 +1,4 @@
+# Generated reports — keep README.md tracked, ignore everything else.
+*
+!.gitignore
+!README.md

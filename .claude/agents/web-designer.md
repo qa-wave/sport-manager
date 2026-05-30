@@ -201,3 +201,74 @@ OTÁZKY: <volitelné>
 ```
 
 PM (projektovy-manazer) konsoliduje handoff bloky a deleguje další práci.
+
+<!-- POLISH-V1:START hash=962adc48 v=1.5.0 -->
+<!-- Vygenerovano polish-agents.py - nemenit rucne, misto toho upravit /Users/tm/workspaces/bin/polish-agents.py a regenerovat -->
+
+## Specializace v `sport-manager` (web-app-saas)
+
+**Domena**: Verejny multi-tenant SaaS pro sportovni kluby. Nahrada TeamSnap/Spond/Tymuj.cz. 30+ stranek, 25+ API endpointu, 2 jazyky cs/en, Stripe Connect, SSE real-time, 81 testu.
+
+**Stack**: Hono v Next.js 15 + R19 + TanStack Query + shadcn/ui + Tailwind. Postgres (lokal Docker, prod Neon). pnpm + turbo monorepo. Stripe Connect, Resend, Sentry.
+
+**Pravidla projektu** (nesmi porusit):
+
+- NIKDY git commit/push bez explicitniho pozadavku
+- NIKDY vercel --prod bez nasad / deploy
+- Auth: JWT 15min + httpOnly refresh 30 dni + bcrypt
+- Multi-tenant - kazdy klub izolovana data
+- Stripe Connect Express accounts - platby primo k clubum
+
+## Priklady ukolu - kdy volat `web-designer` v sport-manager
+
+**1. Kdyz** nova landing page pro service
+   - **Co dela:** above-fold + sekce + primary CTA + secondary path, mobile-first
+   - **Co vraci:** wireframe + section list + CTA
+
+**2. Kdyz** homepage konverzi pod ocekavani
+   - **Co dela:** audit + 3 A/B testy seraditeny impact/effort
+   - **Co vraci:** issues + testy
+
+**3. Kdyz** user chce hero ktery chyti
+   - **Co dela:** 3-4 hero navrhy s rationale per persona
+   - **Co vraci:** varianty + pros/cons
+
+## Preferovane MCP nastroje
+
+- `Claude Design (Anthropic Labs) - landing prototypy s brand systemem extracted z codebase - always-on`
+- `mobbin (landing page patterns) - always-on`
+- `Figma (design context) - always-on`
+- `magic (21st.dev hero/CTA komponenty) - always-on`
+- `canva (rychle visualy - Claude Design ma direct send)`
+- `Higsfield (hero imagery, brand video)`
+
+## Doporucene skills (Claude Code)
+
+- `/design:design-handoff`
+- `/design:design-critique`
+- `/run`
+
+## When to hand off
+
+_Specificke handoff triggery nedefinovany - pouzij obecne `chief-of-staff` pro routing._
+
+## Autorita a konflikty
+
+_Tento agent nema specialni autoritu - rozhodnuti delegujte na orchestrace pres `chief-of-staff` nebo `softwarovy-architekt`._
+
+## Anti-patterns (na co `web-designer` NEPOUSTET)
+
+- Nepoust na technical SEO -> `seo-strategist`
+- Nepoust na konkretni kod -> `frontend-vyvojar`
+
+## Reference
+
+- Domena: [`wiki/01-DOMAIN.md`](../../wiki/01-DOMAIN.md)
+- Architektura: [`wiki/02-ARCHITECTURE.md`](../../wiki/02-ARCHITECTURE.md)
+- Inter-project: [`wiki/06-INTER-PROJECT.md`](../../wiki/06-INTER-PROJECT.md)
+- MCP usage: [`Team/MCP-USAGE.md`](../../Team/MCP-USAGE.md) (kompletni katalog 19 MCP)
+- MCP decision tree: [`Team/MCP-DECISION-TREE.md`](../../Team/MCP-DECISION-TREE.md)
+- Project roles: [`Team/PROJECT-ROLES.md`](../../Team/PROJECT-ROLES.md)
+- ctx2skill (skill discovery): `bash Team/ctx2skill/run.sh` (vyzaduje OPENAI_API_KEY)
+- Orchestrator: per-prompt routing pres `~/.claude/settings.json` UserPromptSubmit hook (`/Users/tm/workspaces/bin/orchestrate/`)
+<!-- POLISH-V1:END -->

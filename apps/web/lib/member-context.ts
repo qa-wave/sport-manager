@@ -38,16 +38,16 @@ export function useMemberContext() {
 }
 
 export function getPrimaryRoleLabel(ctx: MemberContext): string {
-  if (ctx.clubRoles.includes('OWNER')) return 'Owner';
-  if (ctx.clubRoles.includes('ADMIN')) return 'Admin';
+  if (ctx.clubRoles.includes('OWNER')) return 'Majitel';
+  if (ctx.clubRoles.includes('ADMIN')) return 'Administrátor';
   if (ctx.clubRoles.includes('FINANCE')) return 'Finance';
-  if (ctx.clubRoles.includes('COMMUNICATIONS')) return 'Comms';
-  if (ctx.teamRoles.some((r) => r.role === 'HEAD_COACH')) return 'Head Coach';
-  if (ctx.teamRoles.some((r) => r.role === 'ASSISTANT_COACH')) return 'Asst. Coach';
-  if (ctx.teamRoles.some((r) => r.role === 'TEAM_MANAGER')) return 'Team Manager';
-  if (ctx.guardianOf.length > 0) return 'Parent';
-  if (ctx.teamRoles.some((r) => r.role === 'PLAYER')) return 'Player';
-  return 'Member';
+  if (ctx.clubRoles.includes('COMMUNICATIONS')) return 'Komunikace';
+  if (ctx.teamRoles.some((r) => r.role === 'HEAD_COACH')) return 'Hlavní trenér';
+  if (ctx.teamRoles.some((r) => r.role === 'ASSISTANT_COACH')) return 'Asistent trenéra';
+  if (ctx.teamRoles.some((r) => r.role === 'TEAM_MANAGER')) return 'Vedoucí týmu';
+  if (ctx.guardianOf.length > 0) return 'Rodič';
+  if (ctx.teamRoles.some((r) => r.role === 'PLAYER')) return 'Hráč';
+  return 'Člen';
 }
 
 export function isAdmin(ctx: MemberContext): boolean {

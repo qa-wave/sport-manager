@@ -171,3 +171,78 @@ OTÁZKY: <volitelné>
 ```
 
 PM (projektovy-manazer) konsoliduje handoff bloky a deleguje další práci.
+
+<!-- POLISH-V1:START hash=962adc48 v=1.5.0 -->
+<!-- Vygenerovano polish-agents.py - nemenit rucne, misto toho upravit /Users/tm/workspaces/bin/polish-agents.py a regenerovat -->
+
+## Specializace v `sport-manager` (web-app-saas)
+
+**Domena**: Verejny multi-tenant SaaS pro sportovni kluby. Nahrada TeamSnap/Spond/Tymuj.cz. 30+ stranek, 25+ API endpointu, 2 jazyky cs/en, Stripe Connect, SSE real-time, 81 testu.
+
+**Stack**: Hono v Next.js 15 + R19 + TanStack Query + shadcn/ui + Tailwind. Postgres (lokal Docker, prod Neon). pnpm + turbo monorepo. Stripe Connect, Resend, Sentry.
+
+**Pravidla projektu** (nesmi porusit):
+
+- NIKDY git commit/push bez explicitniho pozadavku
+- NIKDY vercel --prod bez nasad / deploy
+- Auth: JWT 15min + httpOnly refresh 30 dni + bcrypt
+- Multi-tenant - kazdy klub izolovana data
+- Stripe Connect Express accounts - platby primo k clubum
+
+## Priklady ukolu - kdy volat `ui-designer` v sport-manager
+
+**1. Kdyz** nova obrazovka pro X
+   - **Co dela:** layout + states (loading/empty/error/full) + tokens
+   - **Co vraci:** spec + Figma + variants
+
+**2. Kdyz** komponenta nema hover/focus
+   - **Co dela:** doplni all interactive states, WCAG kontrast
+   - **Co vraci:** before/after + a11y check
+
+**3. Kdyz** user rika zlepsi design tohoto
+   - **Co dela:** kritika hierarchie/whitespace/typografie/contrast + 2-3 fixy
+   - **Co vraci:** list zmen + duvody
+
+## Preferovane MCP nastroje
+
+- `Claude Design (Anthropic Labs, claude.ai/design) - prototypy, slidy, one-pagery, design system extraction z codebase - always-on`
+- `mobbin (621k+ screen reference) - always-on`
+- `Figma (design context, screenshots, variables) - always-on`
+- `magic (21st.dev komponenty) - always-on`
+- `canva (rychle exporty, brand kity - Claude Design ma direct send)`
+- `Higsfield (image generation pro mockups)`
+
+## Doporucene skills (Claude Code)
+
+- `/design:design-system`
+- `/design:design-critique`
+- `/design:accessibility-review`
+- `/run`
+
+## When to hand off
+
+- Kdyz implementace v TSX/React → **`frontend-vyvojar`**
+- Kdyz brand decisions / logo / paleta → **`brand-designer`**
+- Kdyz user research / journey map → **`ux-designer`**
+
+## Autorita a konflikty
+
+_Tento agent nema specialni autoritu - rozhodnuti delegujte na orchestrace pres `chief-of-staff` nebo `softwarovy-architekt`._
+
+## Anti-patterns (na co `ui-designer` NEPOUSTET)
+
+- Nepoust na implementaci -> `frontend-vyvojar`
+- Nepoust na brand -> `brand-designer`
+- Nepoust na user research -> `ux-designer`
+
+## Reference
+
+- Domena: [`wiki/01-DOMAIN.md`](../../wiki/01-DOMAIN.md)
+- Architektura: [`wiki/02-ARCHITECTURE.md`](../../wiki/02-ARCHITECTURE.md)
+- Inter-project: [`wiki/06-INTER-PROJECT.md`](../../wiki/06-INTER-PROJECT.md)
+- MCP usage: [`Team/MCP-USAGE.md`](../../Team/MCP-USAGE.md) (kompletni katalog 19 MCP)
+- MCP decision tree: [`Team/MCP-DECISION-TREE.md`](../../Team/MCP-DECISION-TREE.md)
+- Project roles: [`Team/PROJECT-ROLES.md`](../../Team/PROJECT-ROLES.md)
+- ctx2skill (skill discovery): `bash Team/ctx2skill/run.sh` (vyzaduje OPENAI_API_KEY)
+- Orchestrator: per-prompt routing pres `~/.claude/settings.json` UserPromptSubmit hook (`/Users/tm/workspaces/bin/orchestrate/`)
+<!-- POLISH-V1:END -->

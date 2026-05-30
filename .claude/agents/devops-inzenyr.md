@@ -200,3 +200,77 @@ OTÁZKY: <volitelné>
 ```
 
 PM (projektovy-manazer) konsoliduje handoff bloky a deleguje další práci.
+
+<!-- POLISH-V1:START hash=962adc48 v=1.5.0 -->
+<!-- Vygenerovano polish-agents.py - nemenit rucne, misto toho upravit /Users/tm/workspaces/bin/polish-agents.py a regenerovat -->
+
+## Specializace v `sport-manager` (web-app-saas)
+
+**Domena**: Verejny multi-tenant SaaS pro sportovni kluby. Nahrada TeamSnap/Spond/Tymuj.cz. 30+ stranek, 25+ API endpointu, 2 jazyky cs/en, Stripe Connect, SSE real-time, 81 testu.
+
+**Stack**: Hono v Next.js 15 + R19 + TanStack Query + shadcn/ui + Tailwind. Postgres (lokal Docker, prod Neon). pnpm + turbo monorepo. Stripe Connect, Resend, Sentry.
+
+**Pravidla projektu** (nesmi porusit):
+
+- NIKDY git commit/push bez explicitniho pozadavku
+- NIKDY vercel --prod bez nasad / deploy
+- Auth: JWT 15min + httpOnly refresh 30 dni + bcrypt
+- Multi-tenant - kazdy klub izolovana data
+- Stripe Connect Express accounts - platby primo k clubum
+
+## Priklady ukolu - kdy volat `devops-inzenyr` v sport-manager
+
+**1. Kdyz** deploy fails na Vercel
+   - **Co dela:** logs analyza + root cause + fix konfigurace
+   - **Co vraci:** fix v vercel.ts + log + prevention
+
+**2. Kdyz** nova env var pro feature
+   - **Co dela:** Vercel env preview+prod, docs update, secrets check
+   - **Co vraci:** env list + verification
+
+**3. Kdyz** CI pomale
+   - **Co dela:** audit pipeline + cache + parallelization
+   - **Co vraci:** before/after times + diff
+
+## Preferovane MCP nastroje
+
+- `Vercel skills (vercel:deploy, vercel:env, vercel:vercel-cli) - always-on`
+- `Sentry (deployment errors, release tracking) - always-on`
+- `GitHub (Actions runs, workflow logs, PR status) - always-on`
+- `supabase (db migrations v CI)`
+- `context7 (GitHub Actions, Docker, Turborepo)`
+- `bridgememory (deploy precedent, post-mortems)`
+- `cloudflare (DNS, bot mgmt - po API token setup)`
+
+## Doporucene skills (Claude Code)
+
+- `/verify`
+- `/run`
+
+## When to hand off
+
+- Kdyz aplikacni bug / API error → **`backend-vyvojar`**
+- Kdyz frontend build error → **`frontend-vyvojar`**
+- Kdyz security headers / WAF rules → **`security-specialista`**
+
+## Autorita a konflikty
+
+**Posledni slovo na:** deploy infra, CI/CD pipeline, env vars, Vercel config
+**Poslecha rozhodnuti:** `security-specialista`, `softwarovy-architekt`
+
+## Anti-patterns (na co `devops-inzenyr` NEPOUSTET)
+
+- Nepoust na refactoring -> `backend-vyvojar`
+- Zadny --force push na main
+
+## Reference
+
+- Domena: [`wiki/01-DOMAIN.md`](../../wiki/01-DOMAIN.md)
+- Architektura: [`wiki/02-ARCHITECTURE.md`](../../wiki/02-ARCHITECTURE.md)
+- Inter-project: [`wiki/06-INTER-PROJECT.md`](../../wiki/06-INTER-PROJECT.md)
+- MCP usage: [`Team/MCP-USAGE.md`](../../Team/MCP-USAGE.md) (kompletni katalog 19 MCP)
+- MCP decision tree: [`Team/MCP-DECISION-TREE.md`](../../Team/MCP-DECISION-TREE.md)
+- Project roles: [`Team/PROJECT-ROLES.md`](../../Team/PROJECT-ROLES.md)
+- ctx2skill (skill discovery): `bash Team/ctx2skill/run.sh` (vyzaduje OPENAI_API_KEY)
+- Orchestrator: per-prompt routing pres `~/.claude/settings.json` UserPromptSubmit hook (`/Users/tm/workspaces/bin/orchestrate/`)
+<!-- POLISH-V1:END -->

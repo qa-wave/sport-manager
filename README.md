@@ -7,7 +7,7 @@
 - **Kalendář** zápasů a tréninků s RSVP a attendance
 - **Komunikace** per tým / role / DM s privacy-by-participation
 - **Multi-tenant** — jeden uživatel může být v několika klubech, jeden klub může mít více týmů
-- **Privacy** — divorced parents s permission maskou, hráč 16+ s vlastním přístupem
+- **Privacy** — vlastní účet pro každého rodiče s permission maskou, hráč 16+ s vlastním přístupem
 - **AI integrace s ligami** *(plánováno)* — onboarding wizard najde tým a stáhne celý rozpis z FAČR / ČFbU / ČSLH
 
 ## Architektura
@@ -42,7 +42,7 @@ sport-manager/
 
 1. **`User` vs `Member` separation.** `User` je identita (1 řádek per člověk). `Member` je klubový profil. User může být členem více klubů.
 2. **Role na vztazích.** `TeamMembership(memberId, teamId, role)` je RBAC join — 16letý hráč může být `PLAYER` na U18 *a* `ASSISTANT_COACH` na U8 současně.
-3. **`GuardianLink` nese permission per link.** Dva rozvedení rodiče stejného dítěte mají dva `GuardianLink` řádky, každý s vlastní maskou (`canViewPayments`, `canViewMedical`, atd.).
+3. **`GuardianLink` nese permission per link.** Dítě může mít víc rodičovských účtů — každý má vlastní `GuardianLink` řádek s vlastní maskou (`canViewPayments`, `canViewMedical`, atd.).
 4. **Privacy by participation.** `Conversation` má explicitní `ConversationParticipant` list — rodič vidí jen DMs, kterých je účastníkem.
 5. **Multi-tenant by `clubId`.** Každá tabulka s klubovým scope má `clubId`; Postgres Row-Level Security policies vynucují izolaci na DB úrovni.
 

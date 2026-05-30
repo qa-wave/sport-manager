@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: 'Správa členů sportovního klubu | Sport Manager',
   description:
-    'Evidence hráčů, trenérů a rodičů. 5 rolí, granulární oprávnění. Import z CSV. Profily s avatary. Rozvedení rodiče s ochranou soukromí.',
+    'Evidence hráčů, trenérů a rodičů. Pět rolí s podrobnými oprávněními. Import z tabulky. Profily s fotkami. Vlastní účet pro každého rodiče s ochranou soukromí.',
   keywords: [
     'správa členů sportovního klubu',
     'evidence hráčů',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://sport-manager.qawave.ai/produkt/sprava-clenu' },
   openGraph: {
     title: 'Správa členů sportovního klubu | Sport Manager',
-    description: 'Evidence hráčů, trenérů a rodičů. 5 rolí, granulární oprávnění. Import z CSV.',
+    description: 'Evidence hráčů, trenérů a rodičů. Pět rolí s podrobnými oprávněními. Import z tabulky.',
   },
 };
 
@@ -39,8 +39,8 @@ const FEATURES = [
   },
   {
     icon: EyeOff,
-    title: 'Privacy pro rozvedené rodiče',
-    desc: 'Každý rodič má vlastní účet. Konverzace a platby jsou oddělené — tatínek nevidí zprávy maminky s trenérem.',
+    title: 'Vlastní účet pro každého rodiče',
+    desc: 'Každé dítě může mít víc rodičovských účtů — každý rodič svůj. Konverzace a platby jsou oddělené a soukromé, každý vidí jen své.',
     color: 'text-rose-500',
     bg: 'bg-rose-500/10',
   },

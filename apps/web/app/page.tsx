@@ -34,7 +34,7 @@ const TESTIMONIALS = [
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Michal%20V&backgroundColor=2563eb&fontColor=ffffff',
   },
   {
-    text: 'Rozvedení rodiče — každý vidí jen své. Žádné konflikty, žádné přeposílání.',
+    text: 'Každý rodič má vlastní účet a vidí jen své. Žádné přeposílání, žádné nedorozumění.',
     author: 'Petra K.',
     role: 'Vedoucí klubu',
     club: 'SK Praha Letňany',
@@ -60,7 +60,7 @@ const SUPPORTED_SPORTS = [
 ];
 
 const COMPARISON = [
-  { feature: 'Privacy rozvedených rodičů', sportManager: true, teamSnap: false, spond: false },
+  { feature: 'Vlastní účet pro každého rodiče', sportManager: true, teamSnap: false, spond: false },
   { feature: 'Multi-tenant (více klubů)', sportManager: true, teamSnap: false, spond: false },
   { feature: 'RSVP s push notifikací', sportManager: true, teamSnap: true, spond: true },
   { feature: 'QR docházka', sportManager: true, teamSnap: false, spond: false },
