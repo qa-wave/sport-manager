@@ -91,7 +91,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
           </span>
         )}
         <span className="hidden sm:inline text-chrome-border">/</span>
-        <span className="hidden sm:inline text-xs font-medium text-chrome-muted">{roleLabel ?? 'Admin'}</span>
+        <span className="hidden sm:inline text-xs font-medium text-chrome-muted">{roleLabel ?? 'Člen'}</span>
       </div>
 
       <div className="flex items-center gap-3">
@@ -114,6 +114,11 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
           </kbd>
         </button>
         {process.env.NODE_ENV === 'development' && <ApiStatus />}
+        {auth.isAuthenticated && roleLabel && (
+          <Badge className="hidden sm:inline-flex border border-chrome-border bg-white/[0.06] text-chrome-foreground font-semibold tracking-wide hover:bg-white/[0.1]">
+            {roleLabel}
+          </Badge>
+        )}
         <NotificationBell />
         {auth.isAuthenticated && me.data ? (
           <DropdownMenu>
@@ -128,9 +133,14 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
+                <div className="flex flex-col space-y-1.5">
                   <p className="text-sm font-semibold">{me.data.firstName} {me.data.lastName}</p>
                   <p className="text-xs text-muted-foreground">{me.data.email}</p>
+                  {roleLabel && (
+                    <Badge variant="secondary" className="mt-0.5 w-fit text-[10px] font-semibold uppercase tracking-wide">
+                      {roleLabel}
+                    </Badge>
+                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -171,9 +181,12 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
 /* ── Dev-only role switcher ──────────────────────── */
 
 const DEV_ACCOUNTS = [
-  { email: 'admin@hvezda.cz', label: 'Admin', short: 'ADM' },
-  { email: 'coach@hvezda.cz', label: 'Coach', short: 'COA' },
-  { email: 'parent@hvezda.cz', label: 'Parent', short: 'PAR' },
+  { email: 'admin@hvezda.cz', label: 'Admin' },
+  { email: 'spravce@hvezda.cz', label: 'Správce' },
+  { email: 'coach@hvezda.cz', label: 'Trenér' },
+  { email: 'pr@hvezda.cz', label: 'Novinář' },
+  { email: 'parent@hvezda.cz', label: 'Rodič' },
+  { email: 'hrac@hvezda.cz', label: 'Hráč' },
 ] as const;
 
 function DevRoleSwitcher() {
