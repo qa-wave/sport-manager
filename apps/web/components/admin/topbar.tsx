@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, LogOut, Menu, RefreshCw, Search, Settings, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { ApiStatus } from './api-status';
 import { NotificationBell } from './notification-bell';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -95,7 +96,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
       </div>
 
       <div className="flex items-center gap-3">
-        {process.env.NODE_ENV === 'development' && <DevRoleSwitcher />}
+        <DevRoleSwitcher currentEmail={me.data?.email} />
         <button
           data-tour="search"
           onClick={() => {
@@ -189,12 +190,17 @@ const DEV_ACCOUNTS = [
   { email: 'hrac@hvezda.cz', label: 'Hráč' },
 ] as const;
 
-function DevRoleSwitcher() {
-  const queryClient = useQueryClient();
-  const [switching, setSwitching] = useState(false);
+function DevRoleSwitcher({ currentEmail }: { currentEmail?: string }) {
+  const [switching, setSwitching] = useState<string | null>(null);
+
+  // Visible in local dev, and on any deployment for demo-account users — so the
+  // public demo lets visitors hop between roles. Real tenants never see it.
+  const isDemoUser = !!currentEmail && DEV_ACCOUNTS.some((a) => a.email === currentEmail);
+  if (process.env.NODE_ENV !== 'development' && !isDemoUser) return null;
 
   async function switchTo(email: string) {
-    setSwitching(true);
+    if (switching) return;
+    setSwitching(email);
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
@@ -202,33 +208,48 @@ function DevRoleSwitcher() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email, password: 'heslo123' }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        toast.error(`Přihlášení jako ${email} se nezdařilo (${res.status}).`);
+        setSwitching(null);
+        return;
+      }
       const { accessToken } = (await res.json()) as { accessToken: string };
       authStore.setSession(accessToken, null);
       const me = await apiFetch<MeResponse>('/me');
       authStore.setSession(accessToken, me.members[0]?.clubId ?? null);
-      queryClient.clear();
-    } finally {
-      setSwitching(false);
+      // Full navigation + reload so the whole app (sidebar, dashboard, role
+      // badge) re-renders under the freshly authenticated role.
+      window.location.assign('/admin');
+    } catch {
+      toast.error('Přepnutí role se nezdařilo.');
+      setSwitching(null);
     }
   }
 
   return (
     <div className="flex items-center gap-1 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 px-1.5 py-0.5">
       <span className="mr-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-500/70">
-        {switching ? <RefreshCw className="inline h-3 w-3 animate-spin" /> : 'DEV'}
+        {switching ? <RefreshCw className="inline h-3 w-3 animate-spin" /> : 'DEMO'}
       </span>
-      {DEV_ACCOUNTS.map((acc) => (
-        <button
-          key={acc.email}
-          onClick={() => switchTo(acc.email)}
-          disabled={switching}
-          className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-amber-500/80 transition-colors hover:bg-amber-500/15 hover:text-amber-400 disabled:opacity-50"
-          title={acc.email}
-        >
-          {acc.label}
-        </button>
-      ))}
+      {DEV_ACCOUNTS.map((acc) => {
+        const active = acc.email === currentEmail;
+        return (
+          <button
+            key={acc.email}
+            onClick={() => switchTo(acc.email)}
+            disabled={!!switching}
+            aria-pressed={active}
+            className={`rounded px-1.5 py-0.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+              active
+                ? 'bg-amber-500/20 text-amber-300'
+                : 'text-amber-500/80 hover:bg-amber-500/15 hover:text-amber-400'
+            }`}
+            title={`Přihlásit jako ${acc.email}`}
+          >
+            {acc.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
