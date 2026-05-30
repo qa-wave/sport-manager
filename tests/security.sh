@@ -459,7 +459,7 @@ fi
 
 # SEC-INJ-003: SQL injection v search query parametru → 200 (ne 500)
 SEARCH_INJECT=$(curl -s -o /dev/null -w "%{http_code}" "$API/me/search?q=%27%20OR%201%3D1%20--" \
-  -H "authorization: Bearer $ADMIN_TOKEN")
+  -H "authorization: Bearer $ADMIN_TOKEN" -H "x-club-id: $HVEZDA_CID")
 assert "SEC-INJ-003: SQL injection v search query → 200 nebo 400 (ne 500)" "true" \
   "$([ "$SEARCH_INJECT" = "200" ] || [ "$SEARCH_INJECT" = "400" ] || [ "$SEARCH_INJECT" = "404" ] && echo true || echo false)"
 

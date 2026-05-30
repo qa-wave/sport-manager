@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework via the X-Powered-By header (security hardening).
+  poweredByHeader: false,
   transpilePackages: ['@sport-manager/contracts', '@sport-manager/db'],
   typedRoutes: true,
   images: {

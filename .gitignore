@@ -30,6 +30,17 @@ pnpm-debug.log*
 # Test coverage
 coverage/
 
+# Playwright / test artifacts
+test-results/
+playwright-report/
+.playwright-mcp/
+
+# Local dev screenshots
+/*.png
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock
+
 # Prisma
 packages/db/prisma/migrations/dev.db*
 

@@ -66,6 +66,12 @@ export const rateLimitMiddleware = createMiddleware<HonoEnv>(async (c, next) => 
  */
 export function strictRateLimit(opts: { max: number; windowSeconds: number; name: string }) {
   return createMiddleware<HonoEnv>(async (c, next) => {
+    // E2E test mode bypasses ONLY the strict auth limiter so the test suite can
+    // perform many logins from a single IP. The global IP limiter stays active.
+    // This flag is never set in production, where full brute-force protection holds.
+    if (process.env.E2E_TEST_MODE === '1') {
+      return next();
+    }
     try {
       const ok = await consume(
         `rl:${opts.name}:${clientIp(c)}`,

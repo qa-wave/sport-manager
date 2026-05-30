@@ -106,15 +106,15 @@ test('TC-MBR-003: vyhledávání filtruje seznam členů', async ({ page }) => {
 // TC-MBR-004: Member detail
 // ---------------------------------------------------------------------------
 test('TC-MBR-004: klik na člena otevře detail', async ({ page }) => {
-  const memberLink = page.locator('a[href*="/members/"]').first();
-  const hasLink = await memberLink.isVisible().catch(() => false);
+  const memberRow = page.locator('[data-testid="member-row"]').first();
+  const hasRow = await memberRow.isVisible().catch(() => false);
 
-  if (!hasLink) {
+  if (!hasRow) {
     test.skip();
     return;
   }
 
-  await memberLink.click();
+  await memberRow.click();
   await waitForPage(page);
 
   // Member detail should show name, email or profile info
@@ -129,14 +129,14 @@ test('TC-MBR-004: klik na člena otevře detail', async ({ page }) => {
 // TC-MBR-005: Stats tab
 // ---------------------------------------------------------------------------
 test('TC-MBR-005: member detail má stats tab s daty', async ({ page }) => {
-  const memberLink = page.locator('a[href*="/members/"]').first();
-  const hasLink = await memberLink.isVisible().catch(() => false);
-  if (!hasLink) {
+  const memberRow = page.locator('[data-testid="member-row"]').first();
+  const hasRow = await memberRow.isVisible().catch(() => false);
+  if (!hasRow) {
     test.skip();
     return;
   }
 
-  await memberLink.click();
+  await memberRow.click();
   await waitForPage(page);
 
   // Look for tabs (Přehled, Statistiky, Odznaky, ...)

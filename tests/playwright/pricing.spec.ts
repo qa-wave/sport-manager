@@ -30,22 +30,20 @@ test('TC-PUB-001: landing page se načte a zobrazí hero sekci', async ({ page }
 });
 
 // ---------------------------------------------------------------------------
-// TC-PUB-002: Pricing page — 3 tiery
+// TC-PUB-002: Pricing page — 2 tiery (ZDARMA / BEZ REKLAM)
 // ---------------------------------------------------------------------------
-test('TC-PUB-002: pricing page zobrazí 3 pricing tiery', async ({ page }) => {
+test('TC-PUB-002: pricing page zobrazí 2 pricing tiery', async ({ page }) => {
   await page.goto('/pricing');
   await waitForPage(page);
 
-  // Three tier cards: FREE, PRO, CLUB
-  const freeCard = page.locator('text=FREE').first();
-  const proCard = page.locator('text=PRO').first();
-  const clubCard = page.locator('text=CLUB').first();
+  // Two tier cards: ZDARMA (s reklamou) a BEZ REKLAM
+  const freeCard = page.locator('text=ZDARMA').first();
+  const adFreeCard = page.locator('text=BEZ REKLAM').first();
 
   await expect(freeCard).toBeVisible({ timeout: 10_000 });
-  await expect(proCard).toBeVisible({ timeout: 5_000 });
-  await expect(clubCard).toBeVisible({ timeout: 5_000 });
+  await expect(adFreeCard).toBeVisible({ timeout: 5_000 });
 
-  // Prices should be visible
+  // Free price should be visible
   const freePriceTxt = page.locator('text=0 Kč').first();
   await expect(freePriceTxt).toBeVisible({ timeout: 5_000 });
 });

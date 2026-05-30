@@ -384,6 +384,7 @@ export default function MembersPage() {
               {filtered.map((m) => (
                 <TableRow
                   key={m.id}
+                  data-testid="member-row"
                   className="group cursor-pointer border-border/30 transition-colors hover:bg-primary/[0.03]"
                   onClick={() => router.push(`/admin/members/${m.id}`)}
                 >
