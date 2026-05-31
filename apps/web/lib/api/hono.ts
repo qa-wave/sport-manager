@@ -8,6 +8,7 @@ import { authMiddleware } from './middleware/auth.middleware';
 import { clubContextMiddleware } from './middleware/club-context.middleware';
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 import { healthRoutes } from './routes/health.routes';
+import { chatRoutes } from './routes/chat.routes';
 import { authRoutes } from './routes/auth.routes';
 import { meRoutes } from './routes/me.routes';
 import { membersRoutes } from './routes/members.routes';
@@ -94,6 +95,7 @@ app.use('*', clubContextMiddleware);
 // Route groups — all under /v1/
 // ---------------------------------------------------------------------------
 app.route('/v1/health', healthRoutes);
+app.route('/v1/chat', chatRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me', meRoutes);
 app.route('/v1/members', membersRoutes);

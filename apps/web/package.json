@@ -13,6 +13,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.48",
+    "@ai-sdk/react": "^3.0.195",
     "@hono/zod-validator": "^0.7.6",
     "@prisma/client": "^5.20.0",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -28,6 +30,7 @@
     "@tanstack/react-query": "^5.59.0",
     "@vercel/blob": "^2.3.3",
     "@vercel/functions": "^3.6.1",
+    "ai": "^6.0.193",
     "bcrypt": "^5.1.1",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",

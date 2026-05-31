@@ -16,6 +16,7 @@ import {
   canActOnBehalfOf,
 } from '../middleware/rbac.middleware';
 import { sendEmail, rsvpReminderEmail, getNotifiableMembers } from '../services/email.service';
+import { sendRsvpRemindersForEvent } from '../services/rsvp-reminder.service';
 import {
   newEventEmail as buildNewEventEmail,
   rsvpReminderEmail as buildRsvpReminderEmail,
@@ -584,6 +585,30 @@ events.post(
       return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
     }
 
+    return c.json(result);
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /v1/events/:eventId/remind
+// Sends RSVP reminders to team members who haven't responded yet.
+// ---------------------------------------------------------------------------
+events.post(
+  '/:eventId/remind',
+  requireRole('ADMIN', 'OWNER', 'HEAD_COACH', 'ASSISTANT_COACH'),
+  async (c) => {
+    const member = c.get('member')!;
+    const eventId = c.req.param('eventId');
+
+    // Verify the event belongs to the caller's club before sending anything.
+    const event = await prisma.withClub(member.clubId, (tx) =>
+      tx.event.findFirst({ where: { id: eventId, clubId: member.clubId }, select: { id: true } }),
+    );
+    if (!event) {
+      return c.json({ error: 'Not Found', message: 'Event not found' }, 404);
+    }
+
+    const result = await sendRsvpRemindersForEvent(eventId);
     return c.json(result);
   },
 );

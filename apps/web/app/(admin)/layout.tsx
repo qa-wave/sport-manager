@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/admin/sidebar';
 import { Topbar } from '@/components/admin/topbar';
 import { CommandPalette } from '@/components/command-palette';
 import { OnboardingTour } from '@/components/admin/onboarding-tour';
+import { AiChatWidget } from '@/components/admin/ai-chat';
 import { QueryProvider } from '@/components/query-provider';
 import { AuthGuard } from '@/components/auth-guard';
 import { useClubThemeInjection } from '@/lib/use-club-theme';
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <OnboardingTour />
+        <AiChatWidget />
       </AuthGuard>
       <Toaster position="bottom-right" richColors closeButton />
     </QueryProvider>

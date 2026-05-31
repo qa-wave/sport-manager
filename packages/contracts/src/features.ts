@@ -81,12 +81,69 @@ export const ClubTheme = z.object({
 });
 export type ClubTheme = z.infer<typeof ClubTheme>;
 
+// ---------- AI assistant (per-club chatbot config) ----------
+
+/**
+ * Coarse role buckets the AI tool permissions are expressed in. Kept small so
+ * the admin config UI stays a simple matrix. `member` = everyone (players,
+ * parents); higher buckets are additive (an admin is also a member).
+ */
+export const AI_ROLE_BUCKETS = ['admin', 'finance', 'coach', 'member'] as const;
+export const AiRoleBucket = z.enum(AI_ROLE_BUCKETS);
+export type AiRoleBucket = z.infer<typeof AiRoleBucket>;
+
+export const AI_ROLE_BUCKET_LABELS: Record<AiRoleBucket, string> = {
+  admin: 'Správce / majitel',
+  finance: 'Finance',
+  coach: 'Trenér',
+  member: 'Člen / rodič',
+};
+
+/**
+ * Catalog of assistant tools (chat "commands"). `defaults` is the out-of-the-box
+ * set of role buckets allowed to use each tool; admins override per club.
+ */
+export const AI_TOOL_CATALOG = [
+  { key: 'getUpcomingEvents', label: 'Nadcházející akce', kind: 'read', defaults: ['admin', 'finance', 'coach', 'member'] },
+  { key: 'getEventRsvpStats', label: 'RSVP u akce', kind: 'read', defaults: ['admin', 'coach', 'member'] },
+  { key: 'searchDrills', label: 'Hledání cvičení', kind: 'read', defaults: ['admin', 'coach'] },
+  { key: 'getMemberStats', label: 'Statistiky členů', kind: 'read', defaults: ['admin', 'coach'] },
+  { key: 'getUnpaidPayments', label: 'Nezaplacené platby', kind: 'read', defaults: ['admin', 'finance'] },
+  { key: 'createEvent', label: 'Vytvořit událost', kind: 'action', defaults: ['admin', 'coach'] },
+  { key: 'sendEventReminder', label: 'Poslat připomínku', kind: 'action', defaults: ['admin', 'coach'] },
+  { key: 'markAttendance', label: 'Označit docházku', kind: 'action', defaults: ['admin', 'coach'] },
+] as const satisfies ReadonlyArray<{ key: string; label: string; kind: 'read' | 'action'; defaults: AiRoleBucket[] }>;
+
+export type AiToolKey = (typeof AI_TOOL_CATALOG)[number]['key'];
+export const AI_TOOL_KEYS = AI_TOOL_CATALOG.map((t) => t.key) as AiToolKey[];
+
+export const ClubAiSettings = z.object({
+  /** Master on/off for the chatbot in this club. */
+  enabled: z.boolean().default(true),
+  /** Ollama model id the club's assistant uses (must exist on the server). */
+  model: z.string().min(1).max(100).default('qwen2.5:7b'),
+  /** Optional extra persona/instructions appended to the system prompt. */
+  persona: z.string().max(1000).optional(),
+  /** Per-tool allowed role buckets. Missing key → catalog default. */
+  toolRoles: z.record(z.string(), z.array(AiRoleBucket)).default({}),
+});
+export type ClubAiSettings = z.infer<typeof ClubAiSettings>;
+
+/** Resolve which role buckets may use a tool for a given club's settings. */
+export function aiToolAllowedBuckets(settings: ClubAiSettings, toolKey: string): AiRoleBucket[] {
+  const override = settings.toolRoles?.[toolKey];
+  if (override) return override;
+  const entry = AI_TOOL_CATALOG.find((t) => t.key === toolKey);
+  return entry ? [...entry.defaults] : [];
+}
+
 export const ClubConfig = z
   .object({
     /** Pricing tier — drives limits and feature gating. New clubs default to 'free'. */
     tier: ClubTier.default('free'),
     limits: ClubLimits,
     theme: ClubTheme.default({}),
+    ai: ClubAiSettings.default({}),
   })
   .passthrough();
 export type ClubConfig = z.infer<typeof ClubConfig>;
@@ -108,6 +165,11 @@ export const UpdateClubThemeInput = z.object({
   theme: ClubTheme,
 });
 export type UpdateClubThemeInput = z.infer<typeof UpdateClubThemeInput>;
+
+export const UpdateClubAiSettingsInput = z.object({
+  ai: ClubAiSettings,
+});
+export type UpdateClubAiSettingsInput = z.infer<typeof UpdateClubAiSettingsInput>;
 
 // ---------- Defaults (used by both API and FE) ----------
 /**
