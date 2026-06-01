@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -9,7 +10,7 @@ import { useMemberContext, canAccessNavItem, getPrimaryRoleLabel } from '@/lib/m
 import { useFeatures } from '@/lib/features';
 import { useTranslation } from '@/lib/i18n';
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch, type MeResponse } from '@/lib/api';
+import { apiFetch, type MeResponse, type MemberSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,26 @@ export function Sidebar({
     : ADMIN_NAV
   ).filter((item) => isNavItemFeatureEnabled(item, flags));
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : 'Admin';
+
+  // Count badges for the member-segment nav items — only fetch when the user
+  // actually has those sections (admin/coach), reusing the shared 'members' cache.
+  const showCounts = nav.some((i) => i.href === '/admin/players');
+  const { data: membersForCounts } = useQuery<MemberSummary[]>({
+    queryKey: ['members'],
+    queryFn: () => apiFetch<MemberSummary[]>('/members'),
+    enabled: auth.isAuthenticated && showCounts,
+    staleTime: 60_000,
+  });
+  const navCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    if (!membersForCounts) return counts;
+    const coachRoles = ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'MEDIC'];
+    counts['/admin/members'] = membersForCounts.length;
+    counts['/admin/players'] = membersForCounts.filter((m) => m.teamRoles.some((tr) => tr.role === 'PLAYER')).length;
+    counts['/admin/coaches'] = membersForCounts.filter((m) => m.teamRoles.some((tr) => coachRoles.includes(tr.role))).length;
+    counts['/admin/parents'] = membersForCounts.filter((m) => m.guardianOf.length > 0).length;
+    return counts;
+  }, [membersForCounts]);
 
   // Translate nav label: try nav.<key> translation, fall back to item.label
   function navLabel(item: typeof nav[number]): string {
@@ -108,6 +129,11 @@ export function Sidebar({
           )}
         />
         <span>{navLabel(item)}</span>
+        {navCounts[item.href] != null && (
+          <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-chrome-muted">
+            {navCounts[item.href]}
+          </span>
+        )}
       </Link>
     );
   }
@@ -207,6 +233,11 @@ export function Sidebar({
                         )}
                       />
                       {!collapsed && <span>{navLabel(item)}</span>}
+                      {!collapsed && navCounts[item.href] != null && (
+                        <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-chrome-muted">
+                          {navCounts[item.href]}
+                        </span>
+                      )}
                     </Link>
                   );
 
