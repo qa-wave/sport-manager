@@ -26,6 +26,9 @@ import {
   Mail,
   Star,
   UsersRound,
+  Volleyball,
+  ClipboardList,
+  HeartHandshake,
 } from 'lucide-react';
 
 export type NavItem = {
@@ -113,6 +116,33 @@ export const ADMIN_NAV: NavItem[] = [
     description: 'Hráči, rodiče, zákonní zástupci',
     icon: UserCircle,
     access: 'admin',
+    group: 'manage',
+  },
+  {
+    href: '/admin/players',
+    label: 'Hráči',
+    labelKey: 'players',
+    description: 'Členové s hráčskou rolí',
+    icon: Volleyball,
+    access: 'admin_or_coach',
+    group: 'manage',
+  },
+  {
+    href: '/admin/coaches',
+    label: 'Trenéři',
+    labelKey: 'coaches',
+    description: 'Trenéři, asistenti, vedoucí týmů, zdravotníci',
+    icon: ClipboardList,
+    access: 'admin_or_coach',
+    group: 'manage',
+  },
+  {
+    href: '/admin/parents',
+    label: 'Rodiče',
+    labelKey: 'parents',
+    description: 'Rodiče a zákonní zástupci hráčů',
+    icon: HeartHandshake,
+    access: 'admin_or_coach',
     group: 'manage',
   },
   {
