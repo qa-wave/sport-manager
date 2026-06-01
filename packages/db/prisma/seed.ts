@@ -92,6 +92,52 @@ function photoUrl(email: string, gender: 'women' | 'men'): string {
   return `https://randomuser.me/api/portraits/${gender}/${idx}.jpg`;
 }
 
+function strHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+// Czech diminutives — only a subset of first names have one, and only ~60% of
+// matching users get a nickname set (realistic: not everyone uses one).
+const CZ_NICKNAMES: Record<string, string> = {
+  Pavel: 'Pája', Jakub: 'Kuba', Tomáš: 'Tom', Lucie: 'Lucka', Petr: 'Péťa',
+  Jan: 'Honza', Martin: 'Máťa', Roman: 'Rómen', Miroslav: 'Mirek', Aleš: 'Alešík',
+  Renata: 'Renča', Iveta: 'Ivča', Jaroslav: 'Jarda', Marie: 'Maruška', Anna: 'Anička',
+  Eva: 'Evča', Josef: 'Pepa', František: 'Fanda', Michal: 'Míša', Ondřej: 'Ondra',
+  Filip: 'Fíla', Adam: 'Áďa', David: 'Davídek', Kateřina: 'Káťa', Tereza: 'Terka',
+  Markéta: 'Maky', Veronika: 'Verča', Barbora: 'Bára', Jana: 'Janička', Karel: 'Kája',
+  Daniel: 'Dan', Vojtěch: 'Vojta', Matěj: 'Matějek', Lukáš: 'Luky', Šimon: 'Šíma',
+  Kristýna: 'Týna', Nikola: 'Niki', Natálie: 'Naty', Dominik: 'Domča', Štěpán: 'Štěpa',
+};
+
+function nicknameFor(firstName: string, email: string): string | null {
+  const dim = CZ_NICKNAMES[firstName];
+  if (!dim) return null;
+  return strHash(email + ':nick') % 5 < 3 ? dim : null;
+}
+
+const TOPIC_POOLS: Record<'admin' | 'coach' | 'player' | 'parent', string[]> = {
+  admin: ['platby', 'novinky', 'statistiky', 'komunikace', 'akce'],
+  coach: ['treninky', 'zapasy', 'statistiky', 'dochazka', 'komunikace'],
+  player: ['treninky', 'zapasy', 'statistiky', 'dochazka', 'akce'],
+  parent: ['treninky', 'zapasy', 'platby', 'komunikace', 'novinky', 'akce'],
+};
+
+/** Deterministic 2–4 interest topics, role-flavoured, stable per email. */
+function pickTopics(email: string, pool: string[]): string[] {
+  const h = strHash(email + ':topics');
+  const count = 2 + (h % 3);
+  const arr = [...pool];
+  let seed = h || 1;
+  for (let i = arr.length - 1; i > 0; i--) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const j = seed % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, count);
+}
+
 function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length]!;
 }
@@ -223,6 +269,8 @@ async function main() {
     data: {
       email: 'platform@example.com', passwordHash: devHash,
       firstName: 'Petr', lastName: 'Platforma', locale: 'cs',
+      nickname: nicknameFor('Petr', 'platform@example.com'),
+      topics: pickTopics('platform@example.com', TOPIC_POOLS.admin),
       isPlatformAdmin: true,
       avatarUrl: avatarUrl('platform@example.com', false),
     },
@@ -517,6 +565,8 @@ async function main() {
     data: {
       email: 'tomas@example.com', passwordHash: devHash,
       firstName: 'Tomáš', lastName: 'Mertin', locale: 'cs',
+      nickname: nicknameFor('Tomáš', 'tomas@example.com'),
+      topics: pickTopics('tomas@example.com', TOPIC_POOLS.parent),
       avatarUrl: avatarUrl('tomas@example.com', false),
     },
   });
@@ -1432,10 +1482,16 @@ type CreateUserMemberArgs = {
 
 async function createUserMember(args: CreateUserMemberArgs) {
   const fullName = `${args.firstName} ${args.lastName}`;
+  const isAdmin = !!args.clubRoles?.some((r) => r === 'OWNER' || r === 'ADMIN');
+  const isCoach = !!args.teamRoles?.some((tr) => tr.role === 'HEAD_COACH' || tr.role === 'ASSISTANT_COACH');
+  const isPlayer = !!args.teamRoles?.some((tr) => tr.role === 'PLAYER') || (args.isMinor ?? false);
+  const pool = isAdmin ? TOPIC_POOLS.admin : isCoach ? TOPIC_POOLS.coach : isPlayer ? TOPIC_POOLS.player : TOPIC_POOLS.parent;
   const user = await prisma.user.create({
     data: {
       email: args.email, passwordHash: args.devHash,
       firstName: args.firstName, lastName: args.lastName, locale: 'cs',
+      nickname: nicknameFor(args.firstName, args.email),
+      topics: pickTopics(args.email, pool),
       avatarUrl: args.realPhoto
         ? photoUrl(args.email, args.realPhoto)
         : avatarUrl(args.email, args.isMinor ?? false),
