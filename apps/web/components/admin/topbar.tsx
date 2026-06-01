@@ -14,7 +14,7 @@ import { authStore, useAuth } from '@/lib/auth-store';
 import { useMemberContext, getPrimaryRoleLabel } from '@/lib/member-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,6 +126,7 @@ export function Topbar({ onMobileOpen }: { onMobileOpen?: () => void }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-1 ring-chrome-border transition-all hover:ring-primary/60">
                 <Avatar className="h-9 w-9">
+                  {me.data?.avatarUrl && <AvatarImage src={me.data.avatarUrl} alt="" />}
                   <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                     {initials}
                   </AvatarFallback>

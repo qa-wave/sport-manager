@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROLE_VARIANT, STATUS_VARIANT } from '@/lib/role-colors';
 import { CsvImportDialog } from '@/components/members/csv-import-dialog';
@@ -394,6 +394,7 @@ export default function MembersPage() {
                   <TableCell>
                     <div className="flex items-center gap-2.5">
                       <Avatar className="h-8 w-8 ring-1 ring-border/50 transition-all group-hover:ring-primary/30">
+                        {m.avatarUrl && <AvatarImage src={m.avatarUrl} alt="" />}
                         <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
                           {m.firstName[0]}{m.lastName[0]}
                         </AvatarFallback>

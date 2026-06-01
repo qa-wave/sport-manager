@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronRight, User } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +48,7 @@ export function ProfileCard({ me, clubName }: ProfileCardProps) {
         <CardContent className="relative flex flex-col items-center gap-4 py-8">
           <div className="relative">
             <Avatar className="h-20 w-20 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
+              {me.avatarUrl && <AvatarImage src={me.avatarUrl} alt="" />}
               <AvatarFallback className="bg-primary/15 text-xl font-bold text-primary">
                 {initials}
               </AvatarFallback>
