@@ -38,8 +38,10 @@ me.get('/', async (c) => {
         email: true,
         firstName: true,
         lastName: true,
+        nickname: true,
         avatarUrl: true,
         locale: true,
+        topics: true,
         isPlatformAdmin: true,
         members: {
           select: {
@@ -83,8 +85,10 @@ me.get('/', async (c) => {
     email: full.email,
     firstName: full.firstName,
     lastName: full.lastName,
+    nickname: full.nickname,
     avatarUrl: full.avatarUrl,
     locale: full.locale,
+    topics: full.topics,
     isPlatformAdmin: full.isPlatformAdmin,
     members,
   });
@@ -129,7 +133,9 @@ me.get('/context', async (c) => {
 const UpdateProfileInput = z.object({
   firstName: z.string().min(1).max(60).optional(),
   lastName: z.string().min(1).max(60).optional(),
+  nickname: z.string().max(40).nullable().optional(),
   locale: z.string().max(10).optional(),
+  topics: z.array(z.string().max(40)).max(20).optional(),
 });
 
 me.patch('/', zValidator('json', UpdateProfileInput), async (c) => {
@@ -141,9 +147,11 @@ me.patch('/', zValidator('json', UpdateProfileInput), async (c) => {
     data: {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
       ...(input.lastName !== undefined && { lastName: input.lastName }),
+      ...(input.nickname !== undefined && { nickname: input.nickname?.trim() || null }),
       ...(input.locale !== undefined && { locale: input.locale }),
+      ...(input.topics !== undefined && { topics: input.topics }),
     },
-    select: { id: true, firstName: true, lastName: true, email: true, locale: true },
+    select: { id: true, firstName: true, lastName: true, nickname: true, email: true, locale: true, topics: true },
   });
 
   return c.json(updated);

@@ -129,7 +129,7 @@ export default function DashboardPage() {
   const guardian = memberCtx ? isGuardian(memberCtx) : false;
   const purePlayer = memberCtx ? isPurePlayer(memberCtx) : false;
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : 'Admin';
-  const firstName = me.data?.firstName;
+  const firstName = me.data?.nickname?.trim() || me.data?.firstName;
 
   // Player-only: pull latest feedback for dashboard card
   const myFeedback = useQuery<{ items: FeedbackItem[] }, ApiError>({

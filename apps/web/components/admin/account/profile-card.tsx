@@ -23,6 +23,7 @@ export function ProfileCard({ me, clubName }: ProfileCardProps) {
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(me.firstName);
   const [lastName, setLastName] = useState(me.lastName);
+  const [nickname, setNickname] = useState(me.nickname ?? '');
 
   const roleLabel = memberCtx ? getPrimaryRoleLabel(memberCtx) : null;
   const initials = (me.firstName[0] ?? '') + (me.lastName[0] ?? '');
@@ -31,7 +32,7 @@ export function ProfileCard({ me, clubName }: ProfileCardProps) {
     mutationFn: () =>
       apiFetch('/me', {
         method: 'PATCH',
-        body: JSON.stringify({ firstName, lastName }),
+        body: JSON.stringify({ firstName, lastName, nickname }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
@@ -63,8 +64,11 @@ export function ProfileCard({ me, clubName }: ProfileCardProps) {
 
           <div className="text-center">
             <h2 className="text-lg font-bold">
-              {me.firstName} {me.lastName}
+              {me.nickname?.trim() || `${me.firstName} ${me.lastName}`}
             </h2>
+            {me.nickname?.trim() && (
+              <p className="text-xs text-muted-foreground">{me.firstName} {me.lastName}</p>
+            )}
             <p className="text-sm text-muted-foreground">{me.email}</p>
             {clubName && <p className="mt-1 text-xs text-primary/70">{clubName}</p>}
           </div>
@@ -142,6 +146,16 @@ export function ProfileCard({ me, clubName }: ProfileCardProps) {
                   className="h-8 text-sm"
                 />
               </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Přezdívka (nickname)</label>
+              <Input
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="Jak ti máme říkat"
+                maxLength={40}
+                className="h-8 text-sm"
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Email</label>

@@ -115,8 +115,10 @@ export type MeResponse = {
   email: string;
   firstName: string;
   lastName: string;
+  nickname: string | null;
   avatarUrl: string | null;
   locale: string;
+  topics: string[];
   isPlatformAdmin: boolean;
   members: Array<{
     id: string;

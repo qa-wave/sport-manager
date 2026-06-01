@@ -16,6 +16,7 @@ import { ProfileCard } from '@/components/admin/account/profile-card';
 import { AppearanceCard } from '@/components/admin/account/appearance-card';
 import { NotificationPrefsCard } from '@/components/admin/account/notification-prefs-card';
 import { AiSettingsCard } from '@/components/admin/account/ai-settings-card';
+import { TopicsCard } from '@/components/admin/account/topics-card';
 import {
   ClubSettingsCard,
   SeasonCard,
@@ -92,6 +93,7 @@ export default function AccountPage() {
         {/* ── Tab: Profil ── */}
         <TabsContent value="profil" className="space-y-3 mt-4">
           <AppearanceCard />
+          {me.data && <TopicsCard me={me.data} />}
           <NotificationPrefsCard />
           <DangerZoneCard />
         </TabsContent>
